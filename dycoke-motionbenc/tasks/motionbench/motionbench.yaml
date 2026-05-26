@@ -2,7 +2,6 @@ dataset_path: json
 dataset_kwargs:
   data_files: /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl
   cache_dir: /project/rhu/dpalfaro/cache/huggingface/datasets
-  video: True
 task: motionbench
 test_split: train
 output_type: generate_until
