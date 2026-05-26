@@ -3,10 +3,10 @@
 #SBATCH -o /project/rhu/dpalfaro/results/dycoke_%j.out
 #SBATCH -e /project/rhu/dpalfaro/results/dycoke_%j.err
 #SBATCH -N 1
-#SBATCH -n 8
+#SBATCH -n 16
 #SBATCH --gpus=1
-#SBATCH --mem=64G
-#SBATCH -t 24:00:00
+#SBATCH --mem=128G
+#SBATCH -t 12:00:00
 #SBATCH --mail-type=END
 #SBATCH --mail-user=dpalfaro@cougarnet.uh.edu
 
@@ -28,4 +28,5 @@ cd /project/rhu/dpalfaro
     --tasks motionbench \
     --batch_size 1 \
     --output_path /project/rhu/dpalfaro/results/dycoke_run1 \
-    --log_samples
+    --log_samples \
+    --num_processes 1

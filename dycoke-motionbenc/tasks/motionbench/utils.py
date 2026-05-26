@@ -27,7 +27,7 @@ def motionbench_doc_to_visual(doc):
 
 def motionbench_doc_to_text(doc, lmms_eval_specific_kwargs=None):
     question = doc["qa"][0]["question"]
-    post_prompt = "\nAnswer with the option's letter from tshe given choices directly."
+    post_prompt = "\nAnswer with the option's letter from the given choices directly."
     if lmms_eval_specific_kwargs:
         post_prompt = lmms_eval_specific_kwargs.get("post_prompt", post_prompt)
     return f"{question}{post_prompt}"
