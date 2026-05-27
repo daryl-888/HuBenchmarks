@@ -8,7 +8,9 @@
       "Bash(gh repo *)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:paperswithcode.com)",
-      "WebFetch(domain:motion-bench.github.io)"
+      "WebFetch(domain:motion-bench.github.io)",
+      "Bash(find /tmp/MotionBench -type f \\\\\\( -name \"*.md\" -o -name \"README*\" \\\\\\) | head -10)",
+      "Read(//tmp/MotionBench/**)"
     ]
   }
 }

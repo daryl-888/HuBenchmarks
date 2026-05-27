@@ -42,6 +42,14 @@ def motionbench_process_results(doc, results):
     match = re.search(r'\b([A-D])\b', prediction.upper())
     pred_letter = match.group(1) if match else prediction.strip().upper()[:1]
     ground_truth = doc["qa"][0]["answer"].strip().upper()
+
+    # Skip NA samples — unanswerable questions that have no valid A-D answer
+    if ground_truth == "NA":
+        return {
+            "motionbench_accuracy": None,
+            "category": doc.get("question_type", "Unknown"),
+        }
+
     correct = int(pred_letter == ground_truth)
     category = doc.get("question_type", "Unknown")
     return {
@@ -51,10 +59,12 @@ def motionbench_process_results(doc, results):
 
 
 def motionbench_aggregate_results(results):
-    total = len(results)
+    # Filter out NA samples
+    valid_results = [r for r in results if r is not None]
+    total = len(valid_results)
     if total == 0:
         return 0.0
-    correct = sum(results)
+    correct = sum(valid_results)
     acc = correct / total
-    eval_logger.info(f"Accuracy: {correct}/{total} = {acc:.4f}")
+    eval_logger.info(f"Accuracy: {correct}/{total} = {acc:.4f} (skipped {len(results) - total} NA samples)")
     return acc

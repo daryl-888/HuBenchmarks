@@ -6,7 +6,7 @@
 #SBATCH -n 8
 #SBATCH --gpus=ada:1
 #SBATCH --mem=32G
-#SBATCH -t 06:00:00
+#SBATCH -t 12:00:00
 #SBATCH --mail-type=END
 #SBATCH --mail-user=dpalfaro@cougarnet.uh.edu
 
@@ -14,6 +14,8 @@ module purge
 module load Miniforge3/py3.10
 
 export PYTHONNOUSERSITE=1
+unset HF_HUB_OFFLINE
+unset HF_DATASETS_OFFLINE
 export PYTHONPATH=/project/rhu/dpalfaro/code/DyCoke:$PYTHONPATH
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
 export TRANSFORMERS_OFFLINE=1
