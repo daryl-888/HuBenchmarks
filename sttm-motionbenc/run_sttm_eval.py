@@ -126,6 +126,22 @@ replace_qwen2_with_quadtree_attn(
     sa_tree_root_level=SA_TREE_ROOT_LEVEL,
 )
 
+# --- Fix 5: prompt_stat=None in _sample ---
+# STTM's LlavaQwenForCausalLM.generate() passes prompt_stat=None when invoked
+# without it (lmms_eval never passes it). Then _sample() tries to do
+# model_kwargs['prompt_stat']['num_last_layer_token'] = n → TypeError on None.
+try:
+    from llava.model.language_model.llava_qwen import LlavaQwenForCausalLM as _LlavaQwen
+    _orig_sample = _LlavaQwen._sample
+    def _patched_sample(self, *args, **model_kwargs):
+        if model_kwargs.get('prompt_stat') is None:
+            model_kwargs['prompt_stat'] = {}
+        return _orig_sample(self, *args, **model_kwargs)
+    _LlavaQwen._sample = _patched_sample
+    print("STTM: patched _sample for prompt_stat=None", flush=True)
+except Exception as e:
+    print(f"STTM: could not patch _sample: {e}", flush=True)
+
 # --- Fix 4: num_logits_to_keep ---
 import inspect
 from transformers.models.qwen2.modeling_qwen2 import Qwen2ForCausalLM as _Qwen2CausalLM
