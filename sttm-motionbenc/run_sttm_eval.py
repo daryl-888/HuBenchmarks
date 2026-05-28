@@ -17,6 +17,18 @@ from token_merging_monkey_patch.quadtree_attn_monkey_patch import (
     replace_qwen2_with_quadtree_attn,
 )
 
+# LlavaQwenConfig lacks max_batch_size, which STTM's patched Qwen2Model.forward()
+# accesses at inference time. Inject it right after load_pretrained_model returns.
+import llava.model.builder as _builder
+_orig_load = _builder.load_pretrained_model
+def _patched_load(*args, **kwargs):
+    result = _orig_load(*args, **kwargs)
+    _tok, model, _ip, _ctx = result
+    if not hasattr(model.config, 'max_batch_size'):
+        model.config.max_batch_size = 32
+    return result
+_builder.load_pretrained_model = _patched_load
+
 SA_START_LAYER_IDX = 2
 SA_TREE_THRESH = 0.85
 SA_TREE_TEMPORAL_THRESH = 0.65
