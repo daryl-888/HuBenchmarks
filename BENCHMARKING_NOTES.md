@@ -123,6 +123,45 @@ and check that per-sample time is faster than a baseline run at the same
 
 ---
 
+## PruneVid (`prunevid-motionbenc/`)
+
+### What is implemented
+
+**`eval_prunevid.py`** (use this — not `eval_motionbench.py`):
+- Loads LLaVA-OV-7B with the standard `load_pretrained_model`.
+- **Stage 1** (SigLIP-level token pruning) is active: hooks SigLIP encoder
+  layer 23's Q/K projections; after the full SigLIP forward pass, keeps the
+  top `cluster_ratio` fraction of patch tokens by CLS-attention score; merges
+  the discarded tokens into one weighted residual token.  Feature dim (1152)
+  is unchanged; only token count is reduced (cluster_ratio=0.5 → ~50% kept).
+- **Stage 2** (query-aware LLM pruning) is **not implemented**.  PruneVid's
+  Stage 2 code (`models/pllava/modify_llama.py`) targets LLaMA attention;
+  LLaVA-OV-7B uses Qwen2, which has a different attention signature.
+
+### Why `eval_motionbench.py` is broken
+
+The old script calls `tasks.eval.model_utils.load_llavaov_with_prunevid`, a
+Carya-local custom function that replaces LLaVA-OV's SigLIP tower with a
+wrong-dimensioned vision encoder.  The result is 384-dim patch features going
+into an mm_projector that expects 1152-dim → matmul error on every sample.
+
+PruneVid's public GitHub repo (`visual-ai/prunevid`) has no LLaVA-OV support
+at all (only PLLaVA and LLaVA-NeXT-Video).
+
+### Caveats
+
+- Stage 2 is omitted; results will be slightly higher than full PruneVid
+  because the LLM-side token pruning is not applied.
+- Stage 1 algorithm is simplified vs. `pllava_prumerge.py`: the original
+  iteratively updates each top-k cluster center by merging its k=32 nearest
+  neighbors; our version keeps top-k as-is and adds one weighted residual.
+  Token count reduction is identical; individual token values differ slightly.
+- conda env is `prunevid`; `PYTHONPATH` still points to the PruneVid repo so
+  the `tasks/` package is importable, but `eval_prunevid.py` does not import
+  from it at runtime.
+
+---
+
 ## Shared caveats (all models)
 
 - **No checkpointing.** lmms_eval sorts samples by descending context length and
