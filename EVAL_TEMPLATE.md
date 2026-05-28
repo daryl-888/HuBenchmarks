@@ -1,5 +1,5 @@
 # Standalone eval template — for every new model
-
+EAXH MODEL USES THEIR OWN BASED LLM
 The right structure for each `<model>-motionbenc/` directory.
 No lmms_eval wrapper. No monkey-patching around framework mismatches.
 The model runs exactly as its authors intended.

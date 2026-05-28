@@ -7,9 +7,9 @@ when interpreting results.
 
 ## Setup
 
-All models evaluate **LLaVA-OV-7B** on **MotionBench** (8,052 samples, ~4,034 NA,
-4,018 scoreable) via the **lmms_eval** framework. Each subdirectory wraps its
-model's patch around the same lmms_eval call, making the comparison
+All models evaluate **ITS ORIGINAL LLM** on **MotionBench** (8,052 samples, ~4,034 NA,
+4,018 scoreable) via the **THEIR OWN** framework. Each subdirectory wraps its
+model's patch around the  call, making the comparison
 apples-to-apples at the framework level.
 
 Cluster: UH Carya, single A40/Ada GPU, SLURM. No checkpointing — a job that dies
