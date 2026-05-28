@@ -97,6 +97,10 @@ try:
                         n_frames = images.shape[0]
                     else:
                         n_frames = max(1, img_tok_len // 169)
+                    # Strip any non-spatial tokens (e.g. SigLIP CLS) so
+                    # img_tok_len is exactly T*H*W and einops rearrange succeeds.
+                    tokens_per_frame = img_tok_len // n_frames
+                    img_tok_len = tokens_per_frame * n_frames
                     self_m.model.image_token_start_index = _torch.tensor(img_start, dtype=_torch.long)
                     self_m.model.image_token_length = _torch.tensor(img_tok_len, dtype=_torch.long)
                     self_m.model.num_frame = _torch.tensor(n_frames, dtype=_torch.long)
