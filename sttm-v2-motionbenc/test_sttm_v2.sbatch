@@ -29,7 +29,7 @@ cd /project/rhu/dpalfaro
     --meta_path  /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
     --output_dir /project/rhu/dpalfaro/results/sttm_v2_test_${SLURM_JOB_ID} \
     --num_frames 32 \
-    --limit 10 \
+    --limit 50 \
     --sa_start_layer_idx     2 \
     --sa_tree_thresh         0.85 \
     --sa_tree_temporal_thresh 0.65 \

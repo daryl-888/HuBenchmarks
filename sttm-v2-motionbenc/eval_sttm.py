@@ -1,37 +1,29 @@
 #!/usr/bin/env python3
 """
-STTM MotionBench evaluation — standalone, no lmms_eval.
+STTM × MotionBench — thin wrapper, no lmms_eval.
 
-Key differences from sttm-motionbenc/ (the lmms_eval wrapper approach):
+Calls STTM's unmodified replace_qwen2_with_quadtree_attn() on LLaVA-OV-7B
+(STTM's native base model), then iterates MotionBench directly.
+This file provides only: STTM patch application, dataset iteration,
+subprocess video loading, and NA-skip scoring.
 
-1. prompt_stat is built explicitly from token counts, so STTM's generate()
-   sets image_token_start_index / image_token_length / num_frame from real
-   values rather than from embedding shape inference.
+Three compatibility shims bridge STTM (written for transformers 4.40.0.dev0)
+with the installed env (4.45.2). None of them modify STTM's code:
+  1. model.config.max_batch_size = 32    (LlavaQwenConfig lacks this attr)
+  2. pre-forward hook on model.model     (truncates image_token_length to T×H×W)
+  3. prompt_stat built from token counts (STTM's generate() requires this dict)
 
-2. A pre-forward hook on the inner Qwen2Model corrects image_token_length to
-   the nearest multiple of num_frame, stripping any extra tokens (e.g. the
-   LLaVA-OV image_newline token). This is done at the point of use rather
-   than guessed upstream.
-
-3. No lmms_eval dependency — iterate MotionBench directly, score in-process.
-
-4. Subprocess-isolated video loading for NFS stale-handle safety (same
-   pattern as extract_features.py).
-
-Only one compatibility fix remains:
-  - model.config.max_batch_size is missing from LlavaQwenConfig and is
-    accessed by STTM's Qwen2Model_forward. We inject it after load.
-
-Run from the STTM repo root or any directory, with:
-  PYTHONPATH=/project/rhu/dpalfaro/code/STTM:$PYTHONPATH
+After the STTM monkey-patch is imported, STTM's root is removed from sys.path
+to prevent its partial llava/ directory from shadowing the installed package.
 
 Usage:
-    python eval_sttm.py \
-        --model_path /project/rhu/dpalfaro/weights/llava-ov-7b \
-        --meta_path  /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
-        --output_dir /project/rhu/dpalfaro/results/sttm_v2_run1 \
-        [--num_frames 32] [--limit 10]
-        [--sa_start_layer_idx 2] [--sa_tree_thresh 0.85]
+    PYTHONPATH=/project/rhu/dpalfaro/code/STTM:$PYTHONPATH \\
+    python eval_sttm.py \\
+        --model_path /project/rhu/dpalfaro/weights/llava-ov-7b \\
+        --meta_path  /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \\
+        --output_dir /project/rhu/dpalfaro/results/sttm_v2_run1 \\
+        [--num_frames 32] [--limit 50] \\
+        [--sa_start_layer_idx 2] [--sa_tree_thresh 0.85] \\
         [--sa_tree_temporal_thresh 0.65] [--sa_tree_root_level 1]
 """
 
