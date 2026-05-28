@@ -23,7 +23,7 @@ export TRANSFORMERS_OFFLINE=1
 
 cd /project/rhu/dpalfaro
 
-/project/rhu/dpalfaro/conda/envs/dycoke11/bin/python3 \
+/project/rhu/dpalfaro/conda/envs/sttm/bin/python3 \
     /project/rhu/dpalfaro/code/sttm-motionbenc/run_sttm_eval.py \
     --include_path /project/rhu/dpalfaro/code/sttm-motionbenc/tasks \
     --model llava_onevision \
