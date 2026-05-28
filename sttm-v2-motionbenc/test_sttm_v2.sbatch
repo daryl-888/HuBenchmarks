@@ -16,8 +16,10 @@ module load Miniforge3/py3.10
 export PYTHONNOUSERSITE=1
 unset HF_HUB_OFFLINE
 unset HF_DATASETS_OFFLINE
-# STTM only — no DyCoke needed (no lmms_eval)
-export PYTHONPATH=/project/rhu/dpalfaro/code/STTM:$PYTHONPATH
+# STTM first (for monkey-patch import), then DyCoke (for full llava package).
+# eval_sttm.py removes STTM from sys.path after importing the patch so that
+# DyCoke's llava is used instead of STTM's partial llava/ shadow.
+export PYTHONPATH=/project/rhu/dpalfaro/code/STTM:/project/rhu/dpalfaro/code/DyCoke:$PYTHONPATH
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
 export TRANSFORMERS_OFFLINE=1
 
