@@ -126,19 +126,28 @@ replace_qwen2_with_quadtree_attn(
     sa_tree_root_level=SA_TREE_ROOT_LEVEL,
 )
 
-# --- Fix 5: prompt_stat=None in _sample ---
-# STTM's LlavaQwenForCausalLM.generate() passes prompt_stat=None when invoked
-# without it (lmms_eval never passes it). Then _sample() tries to do
-# model_kwargs['prompt_stat']['num_last_layer_token'] = n → TypeError on None.
+# --- Fix 5: prompt_stat + runtime_dict in _sample ---
+# (a) STTM's generate() passes prompt_stat=None when called from lmms_eval
+#     (no prompt_stat kwarg). _sample() then does
+#     model_kwargs['prompt_stat']['key'] = val → TypeError on None.
+# (b) STTM's _sample() always returns (sequences, runtime_dict) — a 2-tuple.
+#     transformers' generate() passes this tuple back to lmms_eval which calls
+#     batch_decode((tensor, dict)) and fails. Strip runtime_dict here so
+#     generate() sees a normal tensor return.
 try:
     from llava.model.language_model.llava_qwen import LlavaQwenForCausalLM as _LlavaQwen
     _orig_sample = _LlavaQwen._sample
     def _patched_sample(self, *args, **model_kwargs):
         if model_kwargs.get('prompt_stat') is None:
             model_kwargs['prompt_stat'] = {}
-        return _orig_sample(self, *args, **model_kwargs)
+        result = _orig_sample(self, *args, **model_kwargs)
+        # Strip runtime_dict — STTM always returns (sequences, runtime_dict)
+        if isinstance(result, tuple) and len(result) == 2:
+            sequences, _runtime = result
+            return sequences
+        return result
     _LlavaQwen._sample = _patched_sample
-    print("STTM: patched _sample for prompt_stat=None", flush=True)
+    print("STTM: patched _sample (prompt_stat init + runtime_dict strip)", flush=True)
 except Exception as e:
     print(f"STTM: could not patch _sample: {e}", flush=True)
 
