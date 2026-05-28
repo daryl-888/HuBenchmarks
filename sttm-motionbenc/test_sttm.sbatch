@@ -16,28 +16,20 @@ module load Miniforge3/py3.10
 export PYTHONNOUSERSITE=1
 unset HF_HUB_OFFLINE
 unset HF_DATASETS_OFFLINE
+# STTM first (quadtree patch), then DyCoke (lmms_eval + NFS-fixed llava_onevision)
+export PYTHONPATH=/project/rhu/dpalfaro/code/STTM:/project/rhu/dpalfaro/code/DyCoke:$PYTHONPATH
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
 export TRANSFORMERS_OFFLINE=1
-export PYTHONPATH=/project/rhu/dpalfaro/code/STTM:$PYTHONPATH
 
-cd /project/rhu/dpalfaro/code/STTM
+cd /project/rhu/dpalfaro
 
-/project/rhu/dpalfaro/conda/envs/sttm/bin/python3 \
-    /project/rhu/dpalfaro/code/sttm-motionbenc/extract_features.py \
-    --model_path /project/rhu/dpalfaro/weights/llava-ov-7b \
-    --meta_path /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
-    --video_base /project/rhu/MotionBench_Data/MotionBench \
-    --output_dir /project/rhu/dpalfaro/sttm_features/motionbench_test \
-    --num_frames 32 \
-    --limit 10
-
-/project/rhu/dpalfaro/conda/envs/sttm/bin/python3 \
-    /project/rhu/dpalfaro/code/sttm-motionbenc/eval_motionbench.py \
-    --model_path /project/rhu/dpalfaro/weights/llava-ov-7b \
-    --features_dir /project/rhu/dpalfaro/sttm_features/motionbench_test \
-    --output_dir /project/rhu/dpalfaro/results/sttm_test_${SLURM_JOB_ID} \
+/project/rhu/dpalfaro/conda/envs/dycoke11/bin/python3 \
+    /project/rhu/dpalfaro/code/sttm-motionbenc/run_sttm_eval.py \
+    --include_path /project/rhu/dpalfaro/code/sttm-motionbenc/tasks \
+    --model llava_onevision \
+    --model_args pretrained=/project/rhu/dpalfaro/weights/llava-ov-7b,conv_template=qwen_1_5,model_name=llava_qwen \
+    --tasks motionbench \
+    --batch_size 1 \
     --limit 10 \
-    --sa_start_layer_idx 2 \
-    --sa_tree_thresh 0.85 \
-    --sa_tree_temporal_thresh 0.65 \
-    --sa_tree_root_level 1
+    --output_path /project/rhu/dpalfaro/results/sttm_test_${SLURM_JOB_ID} \
+    --log_samples

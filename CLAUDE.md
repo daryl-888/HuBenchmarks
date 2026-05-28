@@ -139,14 +139,17 @@ Each dir:
 - `run_baseline.sbatch` — vanilla LLaVA-OV-7B
 - `tasks/motionbench/` — lmms_eval task (`motionbench.yaml` + `utils.py`)
 
-### STTM is two-step
+### STTM evaluation approach
 
-1. `extract_features.py` — vision encoder only, saves `.pt` + `.pkl` per video
-2. `eval_motionbench.py` — loads saved features, runs STTM quadtree attention, generates answers
+STTM patches Qwen2's LLM attention with quadtree merging via `replace_qwen2_with_quadtree_attn()`. The vision encoder runs normally — efficiency comes from LLM layers only.
 
-`run_sttm.sbatch` runs both in one 24h job.
+`run_sttm_eval.py` applies the patch before lmms_eval loads the model, then hands off to lmms_eval CLI (same as DyCoke, no pre-extraction). PYTHONPATH must put STTM first (for the patch module), then DyCoke (for lmms_eval + NFS-fixed llava_onevision). Uses `dycoke11` env.
 
-STTM conda env cloned from dycoke11, STTM code on PYTHONPATH only. Do not run `pip install -r requirements.txt` (ByteDance internal dump with private packages).
+`run_sttm.sbatch` / `test_sttm.sbatch` are single-step jobs.
+
+STTM's original repo uses a custom two-step pipeline (`video_feat_llavavideo.py` → `eval_vidqa_by_feat_llavavideo.py`) with pre-extracted features for its own datasets. The lmms_eval wrapper here is simpler and produces identical accuracy.
+
+Do not run `pip install -r requirements.txt` in any env — ByteDance internal dump with private packages.
 
 ---
 
