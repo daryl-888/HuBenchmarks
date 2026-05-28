@@ -63,6 +63,8 @@ Patched `load_video`:
 def load_video(self, video_path, max_frames_num):
     import multiprocessing as _mp
     import queue as _queue
+    import numpy as _np
+    import logging as _logging
 
     def _worker(p, n, q):
         try:
@@ -85,15 +87,19 @@ def load_video(self, video_path, max_frames_num):
     except _queue.Empty:
         proc.kill()
         proc.join()
-        raise RuntimeError(f'Video load timeout (NFS stale): {path}')
+        _logging.warning(f'load_video: timeout (NFS stale?), skipping with black frames: {path}')
+        return _np.zeros((max_frames_num, 336, 336, 3), dtype=_np.uint8)
     proc.join(timeout=5)
     if proc.is_alive():
         proc.kill()
         proc.join()
     if status == 'error':
-        raise RuntimeError(data)
+        _logging.warning(f'load_video: decode error, skipping with black frames: {path} — {data}')
+        return _np.zeros((max_frames_num, 336, 336, 3), dtype=_np.uint8)
     return data
 ```
+
+**Critical:** `raise RuntimeError` was replaced with a black-frames fallback. The old version that raised on timeout/error would crash the entire lmms_eval job (no per-sample try/except), causing the reproducible freeze at sample 1168. Now a bad video scores wrong but the job continues.
 
 `q.get` must come before `proc.join` — for a 22MB numpy array the Queue feeder thread hasn't finished by the time join returns, so `get_nowait` after join will miss the data.
 
