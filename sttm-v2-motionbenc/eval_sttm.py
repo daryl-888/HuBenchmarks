@@ -184,17 +184,10 @@ def run_inference(tokenizer, model, image_processor, frames, question):
         prompt_str, tokenizer, IMAGE_TOKEN_INDEX, return_tensors="pt"
     ).unsqueeze(0).cuda()
 
-    # Count sys and inst token spans.
-    # sys  = tokens before the image placeholder (system prompt prefix)
-    # inst = tokens after the image placeholder (question + trailing tokens)
-    # This matches what STTM's generate() does with prompt_stat["sys/inst"],
-    # but computed directly from the tokenised input rather than guessed.
     img_pos = (input_ids[0] == IMAGE_TOKEN_INDEX).nonzero(as_tuple=True)[0]
     if len(img_pos) == 0:
         raise RuntimeError("No image token found in input_ids")
-    img_pos = img_pos[0].item()
-    sys_tokens  = img_pos
-    inst_tokens = input_ids.shape[1] - img_pos - 1  # -1 for the placeholder
+    sys_tokens = img_pos[0].item()
 
     # Process video frames
     images = process_images(frames, image_processor, model.config)
@@ -203,25 +196,22 @@ def run_inference(tokenizer, model, image_processor, frames, question):
     images = images.cuda().half()
     n_frames = images.shape[0]
 
-    # Build prompt_stat with the values STTM's generate() needs.
-    # STTM's generate() will compute:
-    #   prompt_stat['video'] = inputs_embeds.size(1) - (sys + inst)
-    # which may include the image_newline token. The pre-forward hook on
-    # model.model corrects image_token_length to T*H*W at inference time.
-    prompt_stat = {
-        "sys":   sys_tokens,
-        "inst":  inst_tokens,
-        "frame": n_frames,
-    }
+    # Set the three attributes STTM's patched Qwen2Model_forward reads from
+    # self (i.e. model.model) to locate image tokens and build the quadtree.
+    # Passing prompt_stat to LLaVA's standard generate() doesn't reach
+    # Qwen2Model_forward — without these being set, STTM has no image token
+    # boundaries and attempts full attention on the entire sequence (OOM).
+    # LLaVA-OV adds one image_newline token per frame (729+1=730 per frame);
+    # the pre-forward hook corrects image_token_length to exactly T*H*W=T*729.
+    model.model.image_token_start_index = torch.tensor(sys_tokens, dtype=torch.long)
+    model.model.image_token_length      = torch.tensor(n_frames * 730, dtype=torch.long)
+    model.model.num_frame               = torch.tensor(n_frames,       dtype=torch.long)
 
     input_len = input_ids.shape[1]
 
-    # STTM's _sample always returns (sequences, runtime_dict).
-    # We unpack here; the runtime_dict contains timing stats we don't need.
     result = model.generate(
         inputs=input_ids,
         images=images,
-        prompt_stat=prompt_stat,
         do_sample=False,
         temperature=0,
         max_new_tokens=16,
@@ -314,6 +304,7 @@ def main():
                 print(f"  [WARN] sample {i} ({sample['video_path']}): {e}",
                       file=sys.stderr)
                 prediction = ""
+                torch.cuda.empty_cache()
 
         s = score_prediction(prediction, ground_truth)
         results.append({
