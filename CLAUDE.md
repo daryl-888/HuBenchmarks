@@ -113,11 +113,16 @@ Re-apply this patch if DyCoke is re-cloned or reset.
 - 8,052 samples; ~4,034 are "NA" (unanswerable); 4,018 scoreable
 - 5,385 unique videos across `self-collected/` and `public-dataset/`
 
-### Bad video
+### Bad videos (NFS stale handles)
 
-`self-collected/bevgNkpc5dKYD8Un.mp4` — NFS stale handle, moved to `/project/rhu/dpalfaro/bad_videos/`. Affects 3 JSONL entries. Not on HF Hub. Accuracy impact ≤ 0.05%.
+Both trigger at ~sample 1168 in lmms_eval's sorted order. The `load_video` patch returns black frames and continues — jobs no longer freeze here.
 
-Scan completed 2026-05-27: 5,385 scanned, 1 bad. Re-scan: `sbatch dycoke-motionbenc/scan_videos.sbatch`.
+| File | Notes |
+|------|-------|
+| `self-collected/bevgNkpc5dKYD8Un.mp4` | moved to `/project/rhu/dpalfaro/bad_videos/`; 3 JSONL entries |
+| `self-collected/l0w4V7yPdPJQQphx.mp4` | confirmed stale 2026-05-28 (DyCoke job 6990458) |
+
+Scan completed 2026-05-27: 5,385 scanned, found 1 (missed l0w4V7yPdPJQQphx.mp4). Re-scan: `sbatch dycoke-motionbenc/scan_videos.sbatch`.
 
 ---
 
