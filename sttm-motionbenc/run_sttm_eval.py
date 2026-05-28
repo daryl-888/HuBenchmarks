@@ -3,22 +3,24 @@
 Wrapper that applies STTM's quadtree attention patch to Qwen2Model BEFORE
 lmms_eval loads the LLaVA-OV-7B model, then hands off to lmms_eval's CLI.
 
-Usage: called by run_sttm.sbatch / test_sttm.sbatch with the same args
-as a normal lmms_eval invocation.
-
-STTM patches Qwen2Model.forward() in-place on the class object, so any
-subsequent instantiation uses quadtree attention automatically.
-No pre-extraction of features needed — vision encoding runs normally.
+Compatibility shims for transformers 4.40 / 4.45 vs STTM's 4.40.0.dev0 API:
+  1. max_batch_size      — LlavaQwenConfig lacks it; inject after model load
+  2. _update_causal_mask — missing in transformers 4.40 Qwen2Model; add if absent
+  3. image_token_start_index / image_token_length / num_frame
+                         — STTM-specific per-sample attrs; set via hook on
+                           prepare_inputs_labels_for_multimodal
+  4. num_logits_to_keep  — added to generate() in 4.40 stable; STTM's replaced
+                           Qwen2ForCausalLM.forward doesn't accept it; shim it
 """
 import runpy
 import sys
+import torch as _torch
 
 from token_merging_monkey_patch.quadtree_attn_monkey_patch import (
     replace_qwen2_with_quadtree_attn,
 )
 
-# LlavaQwenConfig lacks max_batch_size, which STTM's patched Qwen2Model.forward()
-# accesses at inference time. Inject it right after load_pretrained_model returns.
+# --- Fix 1: max_batch_size ---
 import llava.model.builder as _builder
 _orig_load = _builder.load_pretrained_model
 def _patched_load(*args, **kwargs):
@@ -29,14 +31,7 @@ def _patched_load(*args, **kwargs):
     return result
 _builder.load_pretrained_model = _patched_load
 
-SA_START_LAYER_IDX = 2
-SA_TREE_THRESH = 0.85
-SA_TREE_TEMPORAL_THRESH = 0.65
-SA_TREE_ROOT_LEVEL = 1
-
-# transformers 4.40 Qwen2Model lacks _update_causal_mask, which STTM's
-# Qwen2Model_forward calls. Add a compatible implementation before the patch runs.
-import torch as _torch
+# --- Fix 2: _update_causal_mask (no-op if transformers already has it) ---
 from transformers.models.qwen2.modeling_qwen2 import Qwen2Model as _Qwen2Model
 if not hasattr(_Qwen2Model, '_update_causal_mask'):
     def _update_causal_mask(self, attention_mask, input_tensor, cache_position=None,
@@ -68,6 +63,58 @@ if not hasattr(_Qwen2Model, '_update_causal_mask'):
     _Qwen2Model._update_causal_mask = _update_causal_mask
     print("Added _update_causal_mask to Qwen2Model", flush=True)
 
+# --- Fix 3: image_token_start_index / image_token_length / num_frame ---
+# STTM's patched Qwen2Model.forward() reads these from self (the inner LlavaQwenModel)
+# at prefill time to locate and spatially reshape the image tokens. Hook into
+# prepare_inputs_labels_for_multimodal which is where LLaVA inserts image embeddings
+# and where the final token layout is first known.
+try:
+    from llava.model.llava_arch import LlavaMetaForCausalLM as _LlavaBase
+    from llava.constants import IMAGE_TOKEN_INDEX as _IMG_TOK
+    _orig_prepare = _LlavaBase.prepare_inputs_labels_for_multimodal
+
+    def _sttm_prepare(self_m, input_ids, *args, **kwargs):
+        result = _orig_prepare(self_m, input_ids, *args, **kwargs)
+        try:
+            # signature: (input_ids, position_ids, attn_mask, past_kv, labels, images, ...)
+            images = args[4] if len(args) > 4 else kwargs.get('images')
+            new_embeds = result[4]
+            if input_ids is not None and images is not None and new_embeds is not None:
+                img_mask = (input_ids == _IMG_TOK)
+                if img_mask.any():
+                    img_start = img_mask.nonzero()[0][1].item()
+                    orig_non_img = input_ids.shape[1] - img_mask.sum().item()
+                    img_tok_len = new_embeds.shape[1] - orig_non_img
+                    if isinstance(images, (list, tuple)) and len(images) > 0:
+                        fi = images[0]
+                        if isinstance(fi, _torch.Tensor) and fi.dim() >= 4:
+                            n_frames = fi.shape[0]
+                        elif isinstance(fi, (list, tuple)):
+                            n_frames = len(fi)
+                        else:
+                            n_frames = len(images)
+                    elif isinstance(images, _torch.Tensor):
+                        n_frames = images.shape[0]
+                    else:
+                        n_frames = max(1, img_tok_len // 169)
+                    self_m.model.image_token_start_index = _torch.tensor(img_start, dtype=_torch.long)
+                    self_m.model.image_token_length = _torch.tensor(img_tok_len, dtype=_torch.long)
+                    self_m.model.num_frame = _torch.tensor(n_frames, dtype=_torch.long)
+        except Exception:
+            pass
+        return result
+
+    _LlavaBase.prepare_inputs_labels_for_multimodal = _sttm_prepare
+    print("STTM: patched prepare_inputs_labels_for_multimodal", flush=True)
+except Exception as e:
+    print(f"STTM: could not patch prepare_inputs_labels_for_multimodal: {e}", flush=True)
+
+# --- STTM quadtree patch ---
+SA_START_LAYER_IDX = 2
+SA_TREE_THRESH = 0.85
+SA_TREE_TEMPORAL_THRESH = 0.65
+SA_TREE_ROOT_LEVEL = 1
+
 replace_qwen2_with_quadtree_attn(
     sa_start_layer_idx=SA_START_LAYER_IDX,
     sa_tree_thresh=SA_TREE_THRESH,
@@ -75,8 +122,7 @@ replace_qwen2_with_quadtree_attn(
     sa_tree_root_level=SA_TREE_ROOT_LEVEL,
 )
 
-# STTM's patch was written against an older transformers that didn't have
-# num_logits_to_keep. Wrap the patched forward to accept and discard it.
+# --- Fix 4: num_logits_to_keep ---
 import inspect
 from transformers.models.qwen2.modeling_qwen2 import Qwen2ForCausalLM as _Qwen2CausalLM
 _sttm_forward = _Qwen2CausalLM.forward
