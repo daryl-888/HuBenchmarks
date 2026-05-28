@@ -69,8 +69,14 @@ def apply_sttm_patch(args):
 def load_model(model_path: str):
     from llava.model.builder import load_pretrained_model
 
+    try:
+        import flash_attn  # noqa: F401
+        kwargs = {}
+    except ImportError:
+        kwargs = {"attn_implementation": "eager"}
+
     tokenizer, model, _, _ = load_pretrained_model(
-        model_path, None, "llava_qwen", device_map="auto"
+        model_path, None, "llava_qwen", device_map="auto", **kwargs
     )
     model.eval()
     return tokenizer, model
