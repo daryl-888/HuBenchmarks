@@ -5,12 +5,21 @@ when interpreting results.
 
 ---
 
-## Setup
+## Benchmark philosophy
 
-All models evaluate **ITS ORIGINAL LLM** on **MotionBench** (8,052 samples, ~4,034 NA,
-4,018 scoreable) via the **THEIR OWN** framework. Each subdirectory wraps its
-model's patch around the  call, making the comparison
-apples-to-apples at the framework level.
+Each model is evaluated using **its own native base model and inference pipeline**
+— the exact setup the authors used, not forced onto a common base model.  This
+means accuracy numbers across models are NOT directly apples-to-apples on the LLM
+side, but they ARE apples-to-apples on:
+
+- the dataset (MotionBench, same JSONL, same video files)
+- the number of frames (32 for all)
+- the scoring rule (NA-skip, letter-match regex)
+- the hardware (single A40/Ada, SLURM)
+
+To fairly compare two compression methods you need their respective baselines
+(vanilla runs with the same base model, same num_frames).  Each directory should
+eventually include a `run_baseline.sbatch` for that purpose.
 
 Cluster: UH Carya, single A40/Ada GPU, SLURM. No checkpointing — a job that dies
 restarts from scratch.
@@ -123,53 +132,77 @@ and check that per-sample time is faster than a baseline run at the same
 
 ---
 
+## STTM v2 (`sttm-v2-motionbenc/`) — standalone replacement for sttm-motionbenc/
+
+`eval_sttm.py` is a lmms_eval-free rewrite that fixes the two root causes that
+made the lmms_eval-based run unreliable:
+
+**Root cause 1 — `image_token_length` set wrong (einops crash at sample 1034):**
+The lmms_eval wrapper inferred `image_token_length` from the embedding shape
+after `prepare_inputs_labels_for_multimodal`, which added an extra
+`image_newline` token (T×H×W + 1).  STTM's einops rearrange requires exactly
+T×H×W.  Fix: build `prompt_stat` explicitly from token counts BEFORE the model
+runs, and apply a pre-forward hook that truncates `image_token_length` to the
+nearest multiple of `num_frame` at the point of use.
+
+**Root cause 2 — STTM's bundled `llava/` shadows the installed package (384-dim
+matmul crash on every sample):**
+STTM's repo ships a partial `llava/` directory (`mm_utils.py`, `constants.py`,
+`conversation.py`).  With `PYTHONPATH=/project/rhu/dpalfaro/code/STTM`, Python
+finds STTM's `llava` first.  `process_images`, `tokenizer_image_token`, and
+`conv_templates` all come from this partial copy, which processes images at a
+different resolution and returns features of wrong dimension (384 instead of
+1152), causing a matmul failure in the mm_projector.
+Fix: in `apply_sttm_patch()`, after the STTM monkey-patch is imported, remove
+STTM's root from `sys.path` and evict any cached `llava.*` entries from
+`sys.modules`.  Subsequent `from llava.mm_utils import process_images` then
+finds the env's fully-installed llava.
+
+### Known unknowns
+
+The pre-forward hook that corrects `image_token_length` has not been verified
+sample-by-sample against STTM's own `prompt_stat` output.  Edge cases (unusual
+aspect ratios, fractional tile counts) could silently produce wrong quadtree
+windows.  If accuracy is anomalously low, add a print statement in the hook to
+log `img_len → corrected` per sample and compare to expected T×H×W.
+
+---
+
 ## PruneVid (`prunevid-motionbenc/`)
 
-### What is implemented
+PruneVid is evaluated on **PLLaVA** — the base model it was designed and
+published with — using PruneVid's own `load_pllava` / `pllava_answer` pipeline
+unchanged.  The eval wrapper (`eval_prunevid.py`) only provides the MotionBench
+data loop, subprocess video loading, and NA-skip scoring; it does not modify
+PruneVid's model code.
 
-**`eval_prunevid.py`** (use this — not `eval_motionbench.py`):
-- Loads LLaVA-OV-7B with the standard `load_pretrained_model`.
-- **Stage 1** (SigLIP-level token pruning) is active: hooks SigLIP encoder
-  layer 23's Q/K projections; after the full SigLIP forward pass, keeps the
-  top `cluster_ratio` fraction of patch tokens by CLS-attention score; merges
-  the discarded tokens into one weighted residual token.  Feature dim (1152)
-  is unchanged; only token count is reduced (cluster_ratio=0.5 → ~50% kept).
-- **Stage 2** (query-aware LLM pruning) is **not implemented**.  PruneVid's
-  Stage 2 code (`models/pllava/modify_llama.py`) targets LLaMA attention;
-  LLaVA-OV-7B uses Qwen2, which has a different attention signature.
+### Conda env and PYTHONPATH
 
-### Why `eval_motionbench.py` is broken
+No `prunevid` env exists on Carya.  Use `dycoke11`.  PruneVid's own repo does
+NOT have a top-level `llava/` directory so it does not shadow the installed
+package (confirmed by `ls /project/rhu/dpalfaro/code/PruneVid/`).
 
-The old script calls `tasks.eval.model_utils.load_llavaov_with_prunevid`, a
-Carya-local custom function that replaces LLaVA-OV's SigLIP tower with a
-wrong-dimensioned vision encoder.  The result is 384-dim patch features going
-into an mm_projector that expects 1152-dim → matmul error on every sample.
+### PLLaVA weights
 
-PruneVid's public GitHub repo (`visual-ai/prunevid`) has no LLaVA-OV support
-at all (only PLLaVA and LLaVA-NeXT-Video).
+PLLaVA-7B (`ermu2001/pllava-7b`) must be cached in
+`/project/rhu/dpalfaro/cache/huggingface` before the job runs.  Download with
+`TRANSFORMERS_OFFLINE=0` on a login node or via a short pre-fetch job.
 
 ### Caveats
 
-- Stage 2 is omitted; results will be slightly higher than full PruneVid
-  because the LLM-side token pruning is not applied.
-- Stage 1 algorithm is simplified vs. `pllava_prumerge.py`: the original
-  iteratively updates each top-k cluster center by merging its k=32 nearest
-  neighbors; our version keeps top-k as-is and adds one weighted residual.
-  Token count reduction is identical; individual token values differ slightly.
-- conda env is `prunevid`; `PYTHONPATH` still points to the PruneVid repo so
-  the `tasks/` package is importable, but `eval_prunevid.py` does not import
-  from it at runtime.
+- Results are for PLLaVA-7B + PruneVid, not LLaVA-OV-7B + PruneVid.  The
+  baseline for this number is vanilla PLLaVA-7B on MotionBench (no pruning).
+- PruneVid's pruning is fully active (Stage 1 vision-level and Stage 2
+  LLM-attention-level) because we use PruneVid's unmodified `pllava_answer`.
 
 ---
 
 ## Shared caveats (all models)
 
-- **No checkpointing.** lmms_eval sorts samples by descending context length and
-  processes them sequentially. A job that dies mid-run restarts from sample 1.
-- **NA samples.** ~4,034 of 8,052 samples have ground-truth answer "NA" and are
-  excluded from the accuracy denominator. Reported accuracy is over the ~4,018
-  scoreable samples only.
-- **Batch size = 1.** All video models run with `--batch_size 1` as required.
-- **Baseline comparison.** A vanilla LLaVA-OV-7B run (no compression patch) is
-  needed to interpret any model's number. Without it, we cannot separate
-  MotionBench's inherent difficulty from the effect of token compression.
+- **No checkpointing.** A job that dies mid-run restarts from sample 1.
+- **NA samples.** ~4,034 of 8,052 samples have ground-truth "NA" and are
+  excluded from the accuracy denominator.  Accuracy = correct / scoreable.
+- **Baseline required per model.** Each compression method needs a matching
+  vanilla run (same base model, same num_frames, same env) to be interpretable.
+- **num_frames = 32** for all models so frame-count is not a confound.
+- **do_sample=False, max_new_tokens=16** for deterministic greedy decoding.

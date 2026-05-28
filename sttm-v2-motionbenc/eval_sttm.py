@@ -70,6 +70,22 @@ def apply_sttm_patch(args):
         flush=True,
     )
 
+    # STTM's repo ships a partial llava/ package (mm_utils.py, constants.py,
+    # conversation.py) that shadows the env's installed llava when STTM is on
+    # PYTHONPATH.  Now that we've imported what we need from STTM, remove it
+    # so that subsequent `from llava.mm_utils import process_images` etc. use
+    # the complete, installed package instead.
+    import sys
+    sttm_roots = [
+        p for p in sys.path
+        if p.rstrip("/").rstrip("\\").endswith("STTM")
+    ]
+    for p in sttm_roots:
+        sys.path.remove(p)
+    stale_llava = [k for k in list(sys.modules) if k == "llava" or k.startswith("llava.")]
+    for k in stale_llava:
+        del sys.modules[k]
+
 
 # ---------------------------------------------------------------------------
 # Model loading
