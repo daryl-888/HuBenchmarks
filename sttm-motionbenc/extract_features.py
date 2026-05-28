@@ -38,15 +38,46 @@ from tqdm import tqdm
 # Video loading — matches STTM's process_video_with_decord pattern
 # ---------------------------------------------------------------------------
 def load_frames(video_path: str, num_frames: int):
-    """Uniformly sample num_frames from video, return list of PIL Images."""
-    from decord import VideoReader, cpu
-    from PIL import Image
+    """Uniformly sample num_frames from video, return list of PIL Images.
 
-    vr = VideoReader(video_path, ctx=cpu(0))
-    total = len(vr)
-    indices = np.linspace(0, total - 1, num_frames, dtype=int)
-    frames = vr.get_batch(indices).asnumpy()
-    timestamps = [float(vr.get_frame_timestamp(i)[0]) for i in indices]
+    Uses subprocess isolation so NFS stale handles can't hang the job.
+    Raises RuntimeError on timeout or decode failure — caller's try/except
+    skips the sample (no .pt/.pkl saved), so it gets retried on next run.
+    """
+    import multiprocessing as _mp
+    import queue as _queue
+
+    def _worker(p, n, q):
+        try:
+            import numpy as np
+            from decord import VideoReader, cpu
+            vr = VideoReader(p, ctx=cpu(0))
+            total = len(vr)
+            indices = np.linspace(0, total - 1, n, dtype=int)
+            frames = vr.get_batch(indices).asnumpy()
+            timestamps = [float(vr.get_frame_timestamp(i)[0]) for i in indices]
+            q.put(('ok', (frames, timestamps)))
+        except Exception as e:
+            q.put(('error', str(e)))
+
+    q = _mp.Queue()
+    proc = _mp.Process(target=_worker, args=(video_path, num_frames, q))
+    proc.start()
+    try:
+        status, data = q.get(timeout=60)
+    except _queue.Empty:
+        proc.kill()
+        proc.join()
+        raise RuntimeError(f'load_frames: timeout (NFS stale?): {video_path}')
+    proc.join(timeout=5)
+    if proc.is_alive():
+        proc.kill()
+        proc.join()
+    if status == 'error':
+        raise RuntimeError(f'load_frames: decode error: {video_path} — {data}')
+
+    from PIL import Image
+    frames, timestamps = data
     return [Image.fromarray(f) for f in frames], timestamps
 
 

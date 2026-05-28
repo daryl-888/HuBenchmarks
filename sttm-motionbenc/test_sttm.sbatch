@@ -35,7 +35,7 @@ cd /project/rhu/dpalfaro/code/STTM
     /project/rhu/dpalfaro/code/sttm-motionbenc/eval_motionbench.py \
     --model_path /project/rhu/dpalfaro/weights/llava-ov-7b \
     --features_dir /project/rhu/dpalfaro/sttm_features/motionbench_test \
-    --output_dir /project/rhu/dpalfaro/results/sttm_test \
+    --output_dir /project/rhu/dpalfaro/results/sttm_test_${SLURM_JOB_ID} \
     --limit 10 \
     --sa_start_layer_idx 2 \
     --sa_tree_thresh 0.85 \
