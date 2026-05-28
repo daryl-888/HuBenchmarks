@@ -94,11 +94,9 @@ def find_video(video_path: str, video_base: str):
 # ---------------------------------------------------------------------------
 def load_model(model_path: str):
     from llava.model.builder import load_pretrained_model
-    from llava.mm_utils import get_model_name_from_path
 
-    model_name = get_model_name_from_path(model_path)
     tokenizer, model, image_processor, _ = load_pretrained_model(
-        model_path, None, model_name, device_map="auto"
+        model_path, None, "llava_qwen", device_map="auto"
     )
     model.eval()
     return tokenizer, model, image_processor
