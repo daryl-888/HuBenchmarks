@@ -34,6 +34,40 @@ SA_TREE_THRESH = 0.85
 SA_TREE_TEMPORAL_THRESH = 0.65
 SA_TREE_ROOT_LEVEL = 1
 
+# transformers 4.40 Qwen2Model lacks _update_causal_mask, which STTM's
+# Qwen2Model_forward calls. Add a compatible implementation before the patch runs.
+import torch as _torch
+from transformers.models.qwen2.modeling_qwen2 import Qwen2Model as _Qwen2Model
+if not hasattr(_Qwen2Model, '_update_causal_mask'):
+    def _update_causal_mask(self, attention_mask, input_tensor, cache_position=None,
+                             past_key_values=None, output_attentions=False):
+        dtype, device = input_tensor.dtype, input_tensor.device
+        min_dtype = _torch.finfo(dtype).min
+        seq_len = input_tensor.shape[1]
+        past_seen = past_key_values.get_seq_length() if past_key_values is not None else 0
+        if cache_position is None:
+            cache_position = _torch.arange(past_seen, past_seen + seq_len, device=device)
+        target_len = (
+            attention_mask.shape[-1] if isinstance(attention_mask, _torch.Tensor)
+            else past_seen + seq_len + 1
+        )
+        if attention_mask is not None and attention_mask.dim() == 4:
+            return attention_mask
+        mask = _torch.full((seq_len, target_len), fill_value=min_dtype, dtype=dtype, device=device)
+        if seq_len != 1:
+            mask = _torch.triu(mask, diagonal=1)
+        mask *= _torch.arange(target_len, device=device) > cache_position.reshape(-1, 1)
+        mask = mask[None, None, :, :].expand(input_tensor.shape[0], 1, -1, -1)
+        if attention_mask is not None:
+            mask = mask.clone()
+            pad = mask[:, :, :, :attention_mask.shape[-1]] + attention_mask[:, None, None, :]
+            mask[:, :, :, :attention_mask.shape[-1]] = mask[:, :, :, :attention_mask.shape[-1]].masked_fill(
+                pad == 0, min_dtype
+            )
+        return mask
+    _Qwen2Model._update_causal_mask = _update_causal_mask
+    print("Added _update_causal_mask to Qwen2Model", flush=True)
+
 replace_qwen2_with_quadtree_attn(
     sa_start_layer_idx=SA_START_LAYER_IDX,
     sa_tree_thresh=SA_TREE_THRESH,
