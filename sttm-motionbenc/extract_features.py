@@ -67,12 +67,12 @@ def load_frames(video_path: str, num_frames: int):
         status, data = q.get(timeout=60)
     except _queue.Empty:
         proc.kill()
-        proc.join()
+        proc.join(timeout=5)   # D-state child ignores SIGKILL; don't wait forever
         raise RuntimeError(f'load_frames: timeout (NFS stale?): {video_path}')
     proc.join(timeout=5)
     if proc.is_alive():
         proc.kill()
-        proc.join()
+        proc.join(timeout=5)
     if status == 'error':
         raise RuntimeError(f'load_frames: decode error: {video_path} — {data}')
 

@@ -86,13 +86,13 @@ def load_video(self, video_path, max_frames_num):
         status, data = q.get(timeout=60)   # get WHILE child is alive, not after join
     except _queue.Empty:
         proc.kill()
-        proc.join()
+        proc.join(timeout=5)   # D-state child ignores SIGKILL; don't wait forever
         _logging.warning(f'load_video: timeout (NFS stale?), skipping with black frames: {path}')
         return _np.zeros((max_frames_num, 336, 336, 3), dtype=_np.uint8)
     proc.join(timeout=5)
     if proc.is_alive():
         proc.kill()
-        proc.join()
+        proc.join(timeout=5)
     if status == 'error':
         _logging.warning(f'load_video: decode error, skipping with black frames: {path} — {data}')
         return _np.zeros((max_frames_num, 336, 336, 3), dtype=_np.uint8)
