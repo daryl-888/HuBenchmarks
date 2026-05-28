@@ -29,5 +29,5 @@ cd /project/rhu/dpalfaro
     --tasks motionbench \
     --batch_size 1 \
     --limit 10 \
-    --output_path /project/rhu/dpalfaro/results/dycoke_test \
+    --output_path /project/rhu/dpalfaro/results/dycoke_test_${SLURM_JOB_ID} \
     --log_samples
