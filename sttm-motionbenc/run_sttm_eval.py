@@ -40,6 +40,17 @@ replace_qwen2_with_quadtree_attn(
     sa_tree_temporal_thresh=SA_TREE_TEMPORAL_THRESH,
     sa_tree_root_level=SA_TREE_ROOT_LEVEL,
 )
+
+# STTM's patch was written against an older transformers that didn't have
+# num_logits_to_keep. Wrap the patched forward to accept and discard it.
+import inspect
+from transformers.models.qwen2.modeling_qwen2 import Qwen2ForCausalLM as _Qwen2CausalLM
+_sttm_forward = _Qwen2CausalLM.forward
+if 'num_logits_to_keep' not in inspect.signature(_sttm_forward).parameters:
+    def _compat_forward(*args, num_logits_to_keep=0, **kwargs):
+        return _sttm_forward(*args, **kwargs)
+    _Qwen2CausalLM.forward = _compat_forward
+
 print(
     f"STTM patch applied: layer={SA_START_LAYER_IDX} "
     f"thresh={SA_TREE_THRESH} temporal_thresh={SA_TREE_TEMPORAL_THRESH} "
