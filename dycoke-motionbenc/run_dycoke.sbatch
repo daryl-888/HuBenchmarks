@@ -5,7 +5,7 @@
 #SBATCH -N 1
 #SBATCH -n 8
 #SBATCH --gpus=ada:1
-#SBATCH --mem=32G
+#SBATCH --mem=124G
 #SBATCH -t 12:00:00
 #SBATCH --mail-type=END
 #SBATCH --mail-user=dpalfaro@cougarnet.uh.edu
