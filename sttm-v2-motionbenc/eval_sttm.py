@@ -85,13 +85,13 @@ def apply_sttm_patch(args):
 def load_model(model_path: str):
     from llava.model.builder import load_pretrained_model
 
-    # Do NOT force attn_implementation="eager" when flash_attn is absent.
-    # Eager materialises the full [heads, seq, seq] attention matrix; at 32
-    # frames (23K tokens) that is ~30 GB → OOM on every sample.
-    # Transformers defaults to SDPA (torch.nn.functional.scaled_dot_product_attention)
-    # which is memory-efficient without requiring the flash_attn package.
+    # load_pretrained_model defaults to attn_implementation="flash_attention_2"
+    # which requires the flash_attn package (not installed in the sttm env).
+    # Pass "sdpa" instead: PyTorch's scaled_dot_product_attention is
+    # memory-efficient (O(n) like flash attention) and needs no extra package.
     tokenizer, model, image_processor, _ = load_pretrained_model(
-        model_path, None, "llava_qwen", device_map="auto"
+        model_path, None, "llava_qwen", device_map="auto",
+        attn_implementation="sdpa",
     )
 
     # LlavaQwenConfig lacks max_batch_size; STTM's Qwen2Model_forward reads it.
