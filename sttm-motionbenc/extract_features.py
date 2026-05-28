@@ -119,6 +119,9 @@ def extract_features(model, image_processor, frames):
     """
     from llava.mm_utils import process_images
 
+    if not hasattr(model.config, 'max_batch_size'):
+        model.config.max_batch_size = 32
+
     images = process_images(frames, image_processor, model.config)
     if isinstance(images, list):
         images = torch.stack(images).cuda().half()
