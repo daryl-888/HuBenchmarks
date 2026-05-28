@@ -18,17 +18,17 @@ unset HF_HUB_OFFLINE
 unset HF_DATASETS_OFFLINE
 export PYTHONPATH=/project/rhu/dpalfaro/code/PruneVid:$PYTHONPATH
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
-export TRANSFORMERS_OFFLINE=1
+export TRANSFORMERS_OFFLINE=0
 
 cd /project/rhu/dpalfaro
 
-/project/rhu/dpalfaro/conda/envs/prunevid/bin/python3 \
+/project/rhu/dpalfaro/conda/envs/dycoke11/bin/python3 \
     /project/rhu/dpalfaro/code/prunevid-motionbenc/eval_prunevid.py \
-    --model_path /project/rhu/dpalfaro/weights/llava-ov-7b \
+    --model_path ermu2001/pllava-7b \
     --meta_path  /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
     --output_dir /project/rhu/dpalfaro/results/prunevid_test_${SLURM_JOB_ID} \
-    --num_frames 32 \
-    --limit 10 \
+    --num_frames 16 \
+    --limit 50 \
     --cluster_ratio 0.5 \
     --temporal_segment_ratio 0.25 \
     --selected_layer 10 \
