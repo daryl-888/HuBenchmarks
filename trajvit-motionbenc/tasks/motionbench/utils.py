@@ -4,7 +4,6 @@ from loguru import logger as eval_logger
 
 VIDEO_BASE_PATH = "/project/rhu/MotionBench_Data/MotionBench"
 
-
 def motionbench_doc_to_visual(doc):
     video_path = doc["video_path"]
     for subdir in ("self-collected", "public-dataset"):
@@ -32,27 +31,28 @@ def motionbench_process_results(doc, results):
     pred_letter = match.group(1) if match else prediction.strip().upper()[:1]
     ground_truth = doc["qa"][0]["answer"].strip().upper()
 
+    # Skip NA samples — unanswerable questions that have no valid A-D answer
     if ground_truth == "NA":
         return {
             "motionbench_accuracy": None,
             "category": doc.get("question_type", "Unknown"),
         }
 
+    correct = int(pred_letter == ground_truth)
+    category = doc.get("question_type", "Unknown")
     return {
-        "motionbench_accuracy": int(pred_letter == ground_truth),
-        "category": doc.get("question_type", "Unknown"),
+        "motionbench_accuracy": correct,
+        "category": category,
     }
 
 
 def motionbench_aggregate_results(results):
-    valid = [r for r in results if r is not None]
-    if not valid:
+    # Filter out NA samples
+    valid_results = [r for r in results if r is not None]
+    total = len(valid_results)
+    if total == 0:
         return 0.0
-    correct = sum(valid)
-    total = len(valid)
-    skipped = len(results) - total
-    eval_logger.info(
-        f"Accuracy: {correct}/{total} = {correct / total:.4f} "
-        f"({skipped} NA samples excluded)"
-    )
-    return correct / total
+    correct = sum(valid_results)
+    acc = correct / total
+    eval_logger.info(f"Accuracy: {correct}/{total} = {acc:.4f} (skipped {len(results) - total} NA samples)")
+    return acc

@@ -79,6 +79,8 @@ Each record contains a video path and a QA pair. The dataset is cached to:
 
 For each sample, `motionbench_doc_to_visual()` locates the video file by checking both subdirectories (`self-collected/`, `public-dataset/`).
 
+Video path lookups are wrapped in a subprocess-based timeout (`subprocess.run(["stat", path], timeout=10)`). This prevents the evaluation from freezing on NFS stale file handles — a situation where the file appears to exist in the directory listing but any attempt to read it blocks the kernel indefinitely. `signal.SIGALRM` cannot interrupt this kind of hang because the signal is not delivered until the blocking syscall returns; a separate subprocess can be hard-killed regardless.
+
 ### 3. Inference (`run_dycoke.sbatch`)
 
 `lmms_eval` feeds each video + question to LLaVA-OV-7B with DyCoke enabled. The model generates a short answer (max 16 tokens). Greedy decoding is used (temperature=0, no sampling).
@@ -175,3 +177,46 @@ scp tasks/motionbench/motionbench.yaml dpalfaro@carya.rcdc.uh.edu:/project/rhu/d
 ```
 
 Run all `scp` commands from your **local machine**, not from inside the Carya SSH session.
+
+---
+
+## Known Dataset Issues
+
+### One corrupt video: `bevgNkpc5dKYD8Un.mp4`
+
+The MotionBench copy on Carya contains one video with an NFS stale file handle:
+
+```text
+/project/rhu/MotionBench_Data/MotionBench/self-collected/bevgNkpc5dKYD8Un.mp4
+```
+
+This file appears to exist in the directory listing but is unreadable — any process that tries to open it blocks indefinitely waiting for a response from the NFS storage backend that never arrives. It caused evaluation jobs to freeze for 11+ hours at the sample where this video first appeared.
+
+**Impact:** 2 QA samples out of 8,052 reference this video. Both are scored as wrong (empty prediction). Accuracy impact: ≤ 0.05%.
+
+**Status:** The file has been moved to `/project/rhu/dpalfaro/bad_videos/`. It is not recoverable from `huggingface.co/datasets/zai-org/MotionBench` — the video files are not stored there. Contact the dataset provider or your advisor for the original source.
+
+**Scan results (2026-05-27):** 5,385 unique videos scanned; 1 bad file found. To re-run the scan:
+
+```bash
+python3 /tmp/scan_videos.py  # see script in project history
+```
+
+### DyCoke `llava_onevision.py` error handler patch
+
+DyCoke's fork of lmms_eval (`/project/rhu/dpalfaro/code/DyCoke/lmms_eval/models/llava_onevision.py`) originally had:
+
+```python
+except Exception as e:
+    raise e
+```
+
+This caused the entire evaluation to crash whenever a video failed to load (because DyCoke's tensor pruning code received a malformed image tensor and hit a size mismatch). It was patched to:
+
+```python
+except Exception as e:
+    print(f"WARNING: generate() failed, skipping sample: {e}", file=sys.stderr)
+    text_outputs = [""]
+```
+
+This patch is applied directly on Carya and is **not** in the DyCoke GitHub repo. If the DyCoke code is re-cloned or reset, this patch must be re-applied.
