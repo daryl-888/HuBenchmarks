@@ -85,14 +85,13 @@ def apply_sttm_patch(args):
 def load_model(model_path: str):
     from llava.model.builder import load_pretrained_model
 
-    try:
-        import flash_attn  # noqa: F401
-        attn_kwargs = {}
-    except ImportError:
-        attn_kwargs = {"attn_implementation": "eager"}
-
+    # Do NOT force attn_implementation="eager" when flash_attn is absent.
+    # Eager materialises the full [heads, seq, seq] attention matrix; at 32
+    # frames (23K tokens) that is ~30 GB → OOM on every sample.
+    # Transformers defaults to SDPA (torch.nn.functional.scaled_dot_product_attention)
+    # which is memory-efficient without requiring the flash_attn package.
     tokenizer, model, image_processor, _ = load_pretrained_model(
-        model_path, None, "llava_qwen", device_map="auto", **attn_kwargs
+        model_path, None, "llava_qwen", device_map="auto"
     )
 
     # LlavaQwenConfig lacks max_batch_size; STTM's Qwen2Model_forward reads it.
@@ -197,15 +196,19 @@ def run_inference(tokenizer, model, image_processor, frames, question):
     n_frames = images.shape[0]
 
     # Set the three attributes STTM's patched Qwen2Model_forward reads from
-    # self (i.e. model.model) to locate image tokens and build the quadtree.
-    # Passing prompt_stat to LLaVA's standard generate() doesn't reach
-    # Qwen2Model_forward — without these being set, STTM has no image token
-    # boundaries and attempts full attention on the entire sequence (OOM).
-    # LLaVA-OV adds one image_newline token per frame (729+1=730 per frame);
-    # the pre-forward hook corrects image_token_length to exactly T*H*W=T*729.
-    model.model.image_token_start_index = torch.tensor(sys_tokens, dtype=torch.long)
-    model.model.image_token_length      = torch.tensor(n_frames * 730, dtype=torch.long)
-    model.model.num_frame               = torch.tensor(n_frames,       dtype=torch.long)
+    # self (model.model) to locate image tokens and build the quadtree.
+    # image_token_length must be exactly T*H*W = T*729 (SigLIP-SO400M 384px,
+    # patch 14 → 27*27=729 per frame). LLaVA-OV adds an image_newline token
+    # per frame (total 730/frame), but STTM's einops rearrange needs 729.
+    # We set 729 explicitly; the pre-forward hook is kept as a fallback.
+    try:
+        vt_cfg = model.model.vision_tower.vision_tower.config
+        tokens_per_frame = (vt_cfg.image_size // vt_cfg.patch_size) ** 2  # 27^2=729
+    except AttributeError:
+        tokens_per_frame = 729  # SigLIP-SO400M-patch14-384 fallback
+    model.model.image_token_start_index = torch.tensor(sys_tokens,                  dtype=torch.long)
+    model.model.image_token_length      = torch.tensor(n_frames * tokens_per_frame, dtype=torch.long)
+    model.model.num_frame               = torch.tensor(n_frames,                    dtype=torch.long)
 
     input_len = input_ids.shape[1]
 
