@@ -73,6 +73,11 @@ def load_model(model_path: str):
     # Guard: ensure bfloat16 regardless of which builder version handled the kwarg
     if next(model.parameters()).dtype != torch.bfloat16:
         model = model.to(torch.bfloat16)
+    # LLaVA-OV-7B config attributes STTM's forward pass reads
+    if not hasattr(model.config, "mm_spatial_pool_stride"):
+        model.config.mm_spatial_pool_stride = 2
+    if not hasattr(model.config, "mm_newline_position"):
+        model.config.mm_newline_position = "grid"
     model.eval()
     return tokenizer, model, image_processor
 
