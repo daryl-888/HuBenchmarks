@@ -208,9 +208,9 @@ def run_inference(tokenizer, model, image_processor, frames, question):
         use_cache=True,
     )
 
-    input_len = input_ids.shape[1]
-    generated = output_ids[:, input_len:]
-    return tokenizer.batch_decode(generated, skip_special_tokens=True)[0].strip()
+    # STTM's generate() uses inputs_embeds internally, so HF returns only
+    # the newly generated tokens (not prompt+output). Decode directly.
+    return tokenizer.batch_decode(output_ids, skip_special_tokens=True)[0].strip()
 
 
 # ---------------------------------------------------------------------------
