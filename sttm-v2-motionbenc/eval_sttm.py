@@ -65,11 +65,14 @@ def load_model(model_path: str):
 
     tokenizer, model, image_processor, _ = load_pretrained_model(
         model_path, None, "llava_qwen",
-        torch_dtype=torch.bfloat16,
+        torch_dtype="bfloat16",
         attn_implementation="flash_attention_2",
         device_map="auto",
     )
     model.config.max_batch_size = 256
+    # Guard: ensure bfloat16 regardless of which builder version handled the kwarg
+    if next(model.parameters()).dtype != torch.bfloat16:
+        model = model.to(torch.bfloat16)
     model.eval()
     return tokenizer, model, image_processor
 
