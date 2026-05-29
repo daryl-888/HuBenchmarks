@@ -92,7 +92,7 @@ def load_model(model_path: str):
     tokenizer, model, image_processor, _ = load_pretrained_model(
         model_path, None, "llava_qwen", device_map="auto",
         attn_implementation="sdpa",
-        torch_dtype=torch.float16,
+        torch_dtype=torch.bfloat16,
     )
 
     # LlavaQwenConfig lacks max_batch_size; STTM's Qwen2Model_forward reads it.
@@ -193,7 +193,7 @@ def run_inference(tokenizer, model, image_processor, frames, question):
     images = process_images(frames, image_processor, model.config)
     if isinstance(images, list):
         images = torch.stack(images)
-    images = images.cuda().half()
+    images = images.cuda().to(torch.bfloat16)
     n_frames = images.shape[0]
 
     # Set the three attributes STTM's patched Qwen2Model_forward reads from
