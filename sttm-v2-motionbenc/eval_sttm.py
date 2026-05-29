@@ -92,6 +92,7 @@ def load_model(model_path: str):
     tokenizer, model, image_processor, _ = load_pretrained_model(
         model_path, None, "llava_qwen", device_map="auto",
         attn_implementation="sdpa",
+        torch_dtype=torch.float16,
     )
 
     # LlavaQwenConfig lacks max_batch_size; STTM's Qwen2Model_forward reads it.
