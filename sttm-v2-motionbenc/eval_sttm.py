@@ -155,15 +155,10 @@ def run_inference(tokenizer, model, image_processor, frames, question):
     images = images.to(torch.bfloat16).cuda()
     n_frames = images.shape[0]
 
-    # SigLIP-SO400M-patch14-384: 27×27 = 729 tokens per frame
-    try:
-        vt_cfg = model.model.vision_tower.vision_tower.config
-        tokens_per_frame = (vt_cfg.image_size // vt_cfg.patch_size) ** 2
-    except AttributeError:
-        tokens_per_frame = 729
-
-    # prompt_stat tells STTM's patched attention where visual tokens live
-    prompt_stat = {"sys": sys_len, "inst": inst_len, "frame": tokens_per_frame}
+    # prompt_stat tells STTM's patched attention where visual tokens live.
+    # "frame" is the number of frames (T), not tokens per frame — STTM uses it
+    # as the T axis in the (T H W) rearrange pattern.
+    prompt_stat = {"sys": sys_len, "inst": inst_len, "frame": n_frames}
 
     h, w = images.shape[-2], images.shape[-1]
     image_sizes = [(h, w)] * n_frames
