@@ -118,7 +118,7 @@ def load_frames(video_path: str, num_frames: int):
 # ---------------------------------------------------------------------------
 @torch.inference_mode()
 def run_inference(tokenizer, model, image_processor, frames, question):
-    from llava.mm_utils import process_images, tokenizer_image_token
+    from llava.mm_utils import tokenizer_image_token
     from llava.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN
     from llava.conversation import conv_templates, SeparatorStyle
 
@@ -139,10 +139,11 @@ def run_inference(tokenizer, model, image_processor, frames, question):
     sys_len  = img_pos[0].item()
     inst_len = input_ids.shape[1] - sys_len - 1  # exclude the single image placeholder
 
-    # Process frames
-    images = process_images(frames, image_processor, model.config)
-    if isinstance(images, list):
-        images = torch.stack(images)
+    # Process frames: use image_processor directly (no LLaVA-OV dynamic tiling).
+    # process_images() from llava.mm_utils tiles each frame into N sub-images,
+    # producing [T, N, C, H, W] which STTM's conv2d patch_embed cannot accept.
+    # Direct preprocess() gives [T, C, H, W] — one tensor per frame.
+    images = image_processor.preprocess(frames, return_tensors="pt")["pixel_values"]
     images = images.to(torch.bfloat16).cuda()
     n_frames = images.shape[0]
 
