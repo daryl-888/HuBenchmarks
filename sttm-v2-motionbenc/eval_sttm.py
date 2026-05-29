@@ -28,6 +28,7 @@ import os
 import re
 import sys
 
+import math
 import torch
 from tqdm import tqdm
 
@@ -77,7 +78,7 @@ def load_model(model_path: str):
     if not hasattr(model.config, "mm_spatial_pool_stride"):
         model.config.mm_spatial_pool_stride = 2
     if not hasattr(model.config, "mm_newline_position"):
-        model.config.mm_newline_position = "grid"
+        model.config.mm_newline_position = "no_token"
     model.eval()
     return tokenizer, model, image_processor
 
@@ -163,7 +164,7 @@ def run_inference(tokenizer, model, image_processor, frames, question):
         patch_per_side = vt_cfg.image_size // vt_cfg.patch_size  # 27
     except AttributeError:
         patch_per_side = 27
-    spatial_per_side = patch_per_side // pool_stride  # 13
+    spatial_per_side = math.ceil(patch_per_side / pool_stride)  # ceil(27/2)=14
     tokens_per_frame_llm = spatial_per_side * spatial_per_side  # 169
 
     # STTM's patched attention reads image boundaries from model.model attributes;
