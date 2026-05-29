@@ -22,6 +22,7 @@ unset HF_DATASETS_OFFLINE
 export PYTHONPATH=/project/rhu/dpalfaro/code/STTM:/project/rhu/dpalfaro/code/DyCoke:$PYTHONPATH
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
 export TRANSFORMERS_OFFLINE=1
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
 cd /project/rhu/dpalfaro
 
