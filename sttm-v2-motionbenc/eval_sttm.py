@@ -175,11 +175,14 @@ def run_inference(tokenizer, model, image_processor, frames, question):
     model.model.image_token_start_index = torch.tensor(sys_len, dtype=torch.long)
     model.model.image_token_length      = torch.tensor(total_visual_tokens, dtype=torch.long)
     model.model.num_frame               = torch.tensor(n_frames, dtype=torch.long)
+    # STTM's generate() always recomputes: video = inputs_embeds.size(1) - sys - inst
+    # LLaVA-OV appends 1 grid-newline token at the end of the visual block, making
+    # the visual block 3137 = 16*196+1. Adding +1 to inst absorbs that newline so
+    # STTM sees video = 3137-1 = 3136 = T*H*W = 16*14*14 (exactly divisible).
     prompt_stat = {
         "sys":   sys_len,
-        "inst":  inst_len,
+        "inst":  inst_len + 1,
         "frame": n_frames,
-        "video": total_visual_tokens,  # overrides image_token_length inside generate()
     }
 
     h, w = images.shape[-2], images.shape[-1]
