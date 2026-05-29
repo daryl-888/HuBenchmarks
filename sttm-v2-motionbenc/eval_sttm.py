@@ -65,7 +65,7 @@ def load_model(model_path: str):
 
     tokenizer, model, image_processor, _ = load_pretrained_model(
         model_path, None, "llava_qwen",
-        torch_dtype="bfloat16",
+        torch_dtype=torch.bfloat16,
         attn_implementation="flash_attention_2",
         device_map="auto",
     )
