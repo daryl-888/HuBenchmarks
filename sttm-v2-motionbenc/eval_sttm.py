@@ -167,12 +167,20 @@ def run_inference(tokenizer, model, image_processor, frames, question):
     spatial_per_side = math.ceil(patch_per_side / pool_stride)  # ceil(27/2)=14
     tokens_per_frame_llm = spatial_per_side * spatial_per_side  # 169
 
-    # STTM's patched attention reads image boundaries from model.model attributes;
-    # prompt_stat["frame"] provides T for the (T H W) rearrange.
+    # STTM reads boundaries from model.model attrs AND from prompt_stat["video"].
+    # llava_qwen.py:generate() does: self.model.image_token_length = prompt_stat["video"]
+    # "video" must be the visual token count excluding any trailing newline so that
+    # it divides exactly as T * H * W = n_frames * 14 * 14 = 3136.
+    total_visual_tokens = n_frames * tokens_per_frame_llm
     model.model.image_token_start_index = torch.tensor(sys_len, dtype=torch.long)
-    model.model.image_token_length      = torch.tensor(n_frames * tokens_per_frame_llm, dtype=torch.long)
+    model.model.image_token_length      = torch.tensor(total_visual_tokens, dtype=torch.long)
     model.model.num_frame               = torch.tensor(n_frames, dtype=torch.long)
-    prompt_stat = {"sys": sys_len, "inst": inst_len, "frame": n_frames}
+    prompt_stat = {
+        "sys":   sys_len,
+        "inst":  inst_len,
+        "frame": n_frames,
+        "video": total_visual_tokens,  # overrides image_token_length inside generate()
+    }
 
     h, w = images.shape[-2], images.shape[-1]
     image_sizes = [(h, w)] * n_frames
