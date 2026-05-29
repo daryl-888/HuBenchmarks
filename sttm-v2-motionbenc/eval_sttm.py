@@ -155,9 +155,22 @@ def run_inference(tokenizer, model, image_processor, frames, question):
     images = images.to(torch.bfloat16).cuda()
     n_frames = images.shape[0]
 
-    # prompt_stat tells STTM's patched attention where visual tokens live.
-    # "frame" is the number of frames (T), not tokens per frame — STTM uses it
-    # as the T axis in the (T H W) rearrange pattern.
+    # How many visual tokens per frame land in the LLM after spatial pooling.
+    # SigLIP-SO400M-patch14-384: 384/14=27 patches/side. pool_stride=2 → 13/side.
+    pool_stride = getattr(model.config, "mm_spatial_pool_stride", 2)
+    try:
+        vt_cfg = model.model.vision_tower.vision_tower.config
+        patch_per_side = vt_cfg.image_size // vt_cfg.patch_size  # 27
+    except AttributeError:
+        patch_per_side = 27
+    spatial_per_side = patch_per_side // pool_stride  # 13
+    tokens_per_frame_llm = spatial_per_side * spatial_per_side  # 169
+
+    # STTM's patched attention reads image boundaries from model.model attributes;
+    # prompt_stat["frame"] provides T for the (T H W) rearrange.
+    model.model.image_token_start_index = torch.tensor(sys_len, dtype=torch.long)
+    model.model.image_token_length      = torch.tensor(n_frames * tokens_per_frame_llm, dtype=torch.long)
+    model.model.num_frame               = torch.tensor(n_frames, dtype=torch.long)
     prompt_stat = {"sys": sys_len, "inst": inst_len, "frame": n_frames}
 
     h, w = images.shape[-2], images.shape[-1]
