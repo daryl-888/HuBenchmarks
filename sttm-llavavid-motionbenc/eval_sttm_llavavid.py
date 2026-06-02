@@ -232,11 +232,16 @@ def main():
     parser.add_argument("--sa_tree_thresh",           type=float, default=0.85)
     parser.add_argument("--sa_tree_temporal_thresh",  type=float, default=0.65)
     parser.add_argument("--sa_tree_root_level",       type=int,   default=1)
+    parser.add_argument("--no_sttm", action="store_true", default=False,
+                        help="Skip STTM patch — run vanilla LLaVA-Video-7B (baseline)")
     args = parser.parse_args()
 
     os.makedirs(args.output_dir, exist_ok=True)
 
-    apply_sttm_patch(args)
+    if not args.no_sttm:
+        apply_sttm_patch(args)
+    else:
+        print("STTM patch disabled — vanilla LLaVA-Video-7B baseline", flush=True)
 
     print("Loading model...", flush=True)
     tokenizer, model, image_processor = load_model(args.model_path)

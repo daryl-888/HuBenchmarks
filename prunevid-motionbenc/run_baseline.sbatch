@@ -1,11 +1,12 @@
 #!/bin/bash
-#SBATCH -J baseline_motionbench
-#SBATCH -o /project/rhu/dpalfaro/results/baseline_%j.out
-#SBATCH -e /project/rhu/dpalfaro/results/baseline_%j.err
+# PLLaVA-7B baseline — no PruneVid pruning, same backbone as PruneVid run.
+#SBATCH -J pllava_baseline
+#SBATCH -o /project/rhu/dpalfaro/results/pllava_baseline_%j.out
+#SBATCH -e /project/rhu/dpalfaro/results/pllava_baseline_%j.err
 #SBATCH -N 1
 #SBATCH -n 8
 #SBATCH --gpus=ada:1
-#SBATCH --mem=32G
+#SBATCH --mem=124G
 #SBATCH -t 12:00:00
 #SBATCH --mail-type=END
 #SBATCH --mail-user=dpalfaro@cougarnet.uh.edu
@@ -16,17 +17,16 @@ module load Miniforge3/py3.10
 export PYTHONNOUSERSITE=1
 unset HF_HUB_OFFLINE
 unset HF_DATASETS_OFFLINE
-export PYTHONPATH=/project/rhu/dpalfaro/code/DyCoke:$PYTHONPATH
+export PYTHONPATH=/project/rhu/dpalfaro/code/PruneVid:$PYTHONPATH
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
 export TRANSFORMERS_OFFLINE=1
 
 cd /project/rhu/dpalfaro
 
-/project/rhu/dpalfaro/conda/envs/dycoke11/bin/python3 -m lmms_eval \
-    --include_path /project/rhu/dpalfaro/code/dycoke-motionbenc/tasks \
-    --model llava_onevision \
-    --model_args pretrained=/project/rhu/dpalfaro/weights/llava-ov-7b,conv_template=qwen_1_5,model_name=llava_qwen,dycoke=False \
-    --tasks motionbench \
-    --batch_size 1 \
-    --output_path /project/rhu/dpalfaro/results/baseline_run1 \
-    --log_samples
+/project/rhu/dpalfaro/conda/envs/dycoke11/bin/python3 \
+    /project/rhu/dpalfaro/code/prunevid-motionbenc/eval_prunevid.py \
+    --model_path /project/rhu/dpalfaro/weights/pllava-7b \
+    --meta_path  /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
+    --output_dir /project/rhu/dpalfaro/results/pllava_baseline \
+    --num_frames 16 \
+    --no_pruning

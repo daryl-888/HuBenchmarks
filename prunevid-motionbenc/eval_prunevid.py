@@ -111,7 +111,13 @@ def main():
     parser.add_argument("--selected_layer",         type=int,   default=10)
     parser.add_argument("--alpha",                  type=float, default=0.4)
     parser.add_argument("--tau",                    type=float, default=0.8)
+    parser.add_argument("--no_pruning", action="store_true", default=False,
+                        help="Disable PruneVid — run vanilla PLLaVA-7B (baseline)")
     args = parser.parse_args()
+
+    if args.no_pruning:
+        args.cluster_ratio          = 1.0
+        args.temporal_segment_ratio = 1.0
 
     os.makedirs(args.output_dir, exist_ok=True)
 
@@ -210,6 +216,7 @@ def main():
         "total_scoreable":  total,
         "total_na_skipped": na_count,
         "total_samples":    len(results),
+        "pruning_enabled":  not args.no_pruning,
         "prunevid_params": {
             "cluster_ratio":          args.cluster_ratio,
             "temporal_segment_ratio": args.temporal_segment_ratio,
