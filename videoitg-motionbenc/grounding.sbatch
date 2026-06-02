@@ -1,17 +1,16 @@
 #!/bin/bash
 # VideoITG Stage 1: Frame Grounding
-# Scores 512 uniformly sampled frames per video using the VideoITG-8B selector model.
-# Outputs a JSONL with per-sample frame scores → used by run_videoitg.sbatch (Stage 2).
-#
-# Run this first. Once complete, submit run_videoitg.sbatch.
+# Scores 512 uniformly sampled frames per video using VideoITG-8B.
+# Outputs frame_scores.jsonl with top-32 frame indices per sample.
+# Run this first, then submit run_videoitg.sbatch.
 #SBATCH -J videoitg_grounding
 #SBATCH -o /project/rhu/dpalfaro/results/videoitg_grounding_%j.out
 #SBATCH -e /project/rhu/dpalfaro/results/videoitg_grounding_%j.err
 #SBATCH -N 1
 #SBATCH -n 8
 #SBATCH --gpus=ada:1
-#SBATCH --mem=32G
-#SBATCH -t 12:00:00
+#SBATCH --mem=64G
+#SBATCH -t 24:00:00
 #SBATCH --mail-type=END
 #SBATCH --mail-user=dpalfaro@cougarnet.uh.edu
 
@@ -24,17 +23,15 @@ unset HF_DATASETS_OFFLINE
 export PYTHONPATH=/project/rhu/dpalfaro/code/VideoITG:$PYTHONPATH
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
 export TRANSFORMERS_OFFLINE=1
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
 cd /project/rhu/dpalfaro
 
-# Stage 1: VideoITG-8B scores 512 frames per video for relevance to the question.
-# num_frames=512: uniformly sampled frames to score
-# target_fps=1: frame extraction rate
-# output_dir: where per-sample frame-score JSONL lands (input to Stage 2)
-/project/rhu/dpalfaro/conda/envs/videoitg/bin/python3 -m lmms_eval \
-    --model videoitg \
-    --model_args pretrained=/project/rhu/dpalfaro/weights/videoitg-8b,num_frames=512,target_fps=1,output_dir=/project/rhu/dpalfaro/results/videoitg_grounding \
-    --include_path /project/rhu/dpalfaro/code/videoitg-motionbenc/tasks \
-    --tasks motionbench \
-    --batch_size 1 \
-    --output_path /project/rhu/dpalfaro/results/videoitg_grounding_lmms
+/project/rhu/dpalfaro/conda/envs/videoitg/bin/python3 \
+    /project/rhu/dpalfaro/code/videoitg-motionbenc/eval_videoitg_grounding.py \
+    --model_path       /project/rhu/dpalfaro/weights/videoitg-8b \
+    --meta_path        /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
+    --output_dir       /project/rhu/dpalfaro/results/videoitg_grounding \
+    --num_frames_sample 512 \
+    --num_frames_select 32 \
+    --target_fps       2
