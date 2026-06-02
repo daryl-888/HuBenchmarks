@@ -115,8 +115,8 @@ def main():
 
     os.makedirs(args.output_dir, exist_ok=True)
 
-    from tasks.eval.model_utils import load_pllava, pllava_answer
-    from tasks.eval.eval_utils import conv_eval_mvbench
+    from model_utils import load_pllava, pllava_answer
+    from eval_utils import conv_eval_mvbench
 
     # pooling_shape temporal dim matches num_frames so all loaded frames contribute
     pooling_shape = (args.num_frames, 12, 12)
