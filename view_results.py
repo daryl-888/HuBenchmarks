@@ -74,11 +74,28 @@ def main():
     na_count  = len(results) - total
     accuracy  = correct / total if total > 0 else 0.0
 
+    # Per-category breakdown
+    from collections import defaultdict
+    cat_correct = defaultdict(int)
+    cat_total   = defaultdict(int)
+    for r in scoreable:
+        qt = r.get("question_type", "Unknown")
+        cat_total[qt]   += 1
+        cat_correct[qt] += r["correct"]
+
     label = os.path.basename(os.path.dirname(args.results))
     print("=" * 70)
     print(f"  {label}")
     print(f"  Accuracy : {correct}/{total} = {accuracy:.4f}  ({accuracy*100:.2f}%)")
     print(f"  NA skipped: {na_count}   Total samples: {len(results)}")
+    print()
+    print(f"  {'Category':<35}  {'Correct':>7}  {'Total':>7}  {'Acc':>7}")
+    print(f"  {'-'*35}  {'-'*7}  {'-'*7}  {'-'*7}")
+    for qt in sorted(cat_total.keys()):
+        n  = cat_total[qt]
+        c  = cat_correct[qt]
+        a  = c / n if n > 0 else 0.0
+        print(f"  {qt:<35}  {c:>7}  {n:>7}  {a*100:>6.2f}%")
     print("=" * 70)
 
     # Detailed table for first N scoreable samples
