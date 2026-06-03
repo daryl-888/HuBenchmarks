@@ -170,6 +170,16 @@ def main():
         temporal_segment_ratio=args.temporal_segment_ratio,
     )
 
+    # HF generate() doesn't forward media_type to forward() via prepare_inputs_for_generation.
+    # Patch this model instance so forward always defaults to media_type='video'.
+    import functools as _functools
+    _orig_forward = model.forward
+    @_functools.wraps(_orig_forward)
+    def _forward_video(*args, **kwargs):
+        kwargs.setdefault('media_type', 'video')
+        return _orig_forward(*args, **kwargs)
+    model.forward = _forward_video
+
     samples = []
     with open(args.meta_path) as f:
         for line in f:
@@ -200,7 +210,6 @@ def main():
                 conv.user_query(
                     question + POST_PROMPT,
                     is_mm=True,
-                    media_type='video',
                     num_mm_token=args.num_frames,
                 )
                 conv.assistant_response(None)
