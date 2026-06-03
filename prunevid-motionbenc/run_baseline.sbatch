@@ -20,8 +20,11 @@ unset HF_DATASETS_OFFLINE
 export PYTHONPATH=/project/rhu/dpalfaro/code/PruneVid:$PYTHONPATH
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
 export TRANSFORMERS_OFFLINE=1
-mkdir -p /tmp/cv2_stub_${SLURM_JOB_ID} && echo "" > /tmp/cv2_stub_${SLURM_JOB_ID}/cv2.py
-export PYTHONPATH=/tmp/cv2_stub_${SLURM_JOB_ID}:$PYTHONPATH
+mkdir -p /tmp/stubs_${SLURM_JOB_ID}/moviepy
+echo "" > /tmp/stubs_${SLURM_JOB_ID}/cv2.py
+echo "" > /tmp/stubs_${SLURM_JOB_ID}/moviepy/__init__.py
+echo "VideoFileClip = None" > /tmp/stubs_${SLURM_JOB_ID}/moviepy/editor.py
+export PYTHONPATH=/tmp/stubs_${SLURM_JOB_ID}:$PYTHONPATH
 
 cd /project/rhu/dpalfaro
 
