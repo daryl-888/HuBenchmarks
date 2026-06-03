@@ -125,10 +125,13 @@ def main():
     # and matplotlib — none of which are available/usable in the prunevid env.
     # Stub them out before the deferred PruneVid imports below resolve eval_utils.
     import types as _types
+    from importlib.machinery import ModuleSpec as _ModuleSpec
     for _m in ("cv2", "moviepy", "moviepy.editor",
                "matplotlib", "matplotlib.colors", "matplotlib.cm", "matplotlib.pyplot"):
         if _m not in sys.modules:
-            sys.modules[_m] = _types.ModuleType(_m)
+            _mod = _types.ModuleType(_m)
+            _mod.__spec__ = _ModuleSpec(_m, None)  # importlib.util.find_spec rejects None __spec__
+            sys.modules[_m] = _mod
     sys.modules["moviepy.editor"].VideoFileClip = None
     sys.modules["matplotlib.colors"].XKCD_COLORS = {}
 
