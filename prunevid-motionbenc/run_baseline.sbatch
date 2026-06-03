@@ -20,7 +20,8 @@ unset HF_DATASETS_OFFLINE
 export PYTHONPATH=/project/rhu/dpalfaro/code/PruneVid:$PYTHONPATH
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
 export TRANSFORMERS_OFFLINE=1
-export LD_LIBRARY_PATH=/project/rhu/dpalfaro/conda/envs/prunevid/lib/python3.11/site-packages/opencv_python_headless.libs:$LD_LIBRARY_PATH
+mkdir -p /tmp/cv2_stub_${SLURM_JOB_ID} && echo "" > /tmp/cv2_stub_${SLURM_JOB_ID}/cv2.py
+export PYTHONPATH=/tmp/cv2_stub_${SLURM_JOB_ID}:$PYTHONPATH
 
 cd /project/rhu/dpalfaro
 
