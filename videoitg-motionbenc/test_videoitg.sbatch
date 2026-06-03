@@ -24,8 +24,8 @@ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
 cd /project/rhu/dpalfaro
 
-# Set to the output dir from test_grounding.sbatch
-GROUNDING_JSONL=/project/rhu/dpalfaro/results/videoitg_test_grounding_<JOBID>/frame_scores.jsonl
+# Pass GROUNDING_JOBID via: sbatch --export=ALL,GROUNDING_JOBID=<jobid> test_videoitg.sbatch
+GROUNDING_JSONL=/project/rhu/dpalfaro/results/videoitg_test_grounding_${GROUNDING_JOBID}/frame_scores.jsonl
 
 /project/rhu/dpalfaro/conda/envs/dycoke11/bin/python3 \
     /project/rhu/dpalfaro/code/videoitg-motionbenc/eval_videoitg_infer.py \
