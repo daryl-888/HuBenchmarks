@@ -135,6 +135,22 @@ def main():
     sys.modules["moviepy.editor"].VideoFileClip = None
     sys.modules["matplotlib.colors"].XKCD_COLORS = {}
 
+    # mmcv.runner.load_checkpoint — used only for optical flow model weights.
+    # mmcv can't be pip-installed (pkg_resources missing); provide a torch equivalent.
+    if "mmcv" not in sys.modules:
+        import torch as _torch
+        def _load_checkpoint(model, filename, map_location="cpu", strict=False, **kw):
+            ckpt = _torch.load(filename, map_location=map_location)
+            sd = ckpt.get("state_dict", ckpt) if isinstance(ckpt, dict) else ckpt
+            model.load_state_dict(sd, strict=strict)
+            return ckpt
+        _mmcv = _types.ModuleType("mmcv");           _mmcv.__spec__ = _ModuleSpec("mmcv", None)
+        _mmcv_runner = _types.ModuleType("mmcv.runner"); _mmcv_runner.__spec__ = _ModuleSpec("mmcv.runner", None)
+        _mmcv_runner.load_checkpoint = _load_checkpoint
+        _mmcv.runner = _mmcv_runner
+        sys.modules["mmcv"] = _mmcv
+        sys.modules["mmcv.runner"] = _mmcv_runner
+
     from tasks.eval.model_utils import load_pllava, pllava_answer
     from tasks.eval.eval_utils import conv_eval_mvbench
 
