@@ -219,7 +219,6 @@ def main():
                 conv.user_query(
                     question + POST_PROMPT,
                     is_mm=True,
-                    num_mm_token=args.num_frames,
                 )
                 conv.assistant_response(None)
 
