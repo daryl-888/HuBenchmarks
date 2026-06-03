@@ -121,6 +121,17 @@ def main():
 
     os.makedirs(args.output_dir, exist_ok=True)
 
+    # eval_utils.py has module-level imports for cv2 (needs libpng16), moviepy,
+    # and matplotlib — none of which are available/usable in the prunevid env.
+    # Stub them out before the deferred PruneVid imports below resolve eval_utils.
+    import types as _types
+    for _m in ("cv2", "moviepy", "moviepy.editor",
+               "matplotlib", "matplotlib.colors", "matplotlib.cm", "matplotlib.pyplot"):
+        if _m not in sys.modules:
+            sys.modules[_m] = _types.ModuleType(_m)
+    sys.modules["moviepy.editor"].VideoFileClip = None
+    sys.modules["matplotlib.colors"].XKCD_COLORS = {}
+
     from tasks.eval.model_utils import load_pllava, pllava_answer
     from tasks.eval.eval_utils import conv_eval_mvbench
 
