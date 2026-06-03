@@ -170,13 +170,22 @@ def main():
         temporal_segment_ratio=args.temporal_segment_ratio,
     )
 
-    # HF generate() doesn't forward media_type to forward() via prepare_inputs_for_generation.
-    # Patch this model instance so forward always defaults to media_type='video'.
+    # HF generate() strips media_type before calling prepare_inputs_for_generation.
+    # Patch both prepare_inputs_for_generation (so it's in the inputs dict passed
+    # to each forward call) and forward itself (force-assign, not setdefault, in
+    # case the key is present but explicitly None).
     import functools as _functools
+    _orig_pipg = model.prepare_inputs_for_generation
+    def _pipg_video(*args, **kwargs):
+        result = _orig_pipg(*args, **kwargs)
+        result['media_type'] = 'video'
+        return result
+    model.prepare_inputs_for_generation = _pipg_video
+
     _orig_forward = model.forward
     @_functools.wraps(_orig_forward)
     def _forward_video(*args, **kwargs):
-        kwargs.setdefault('media_type', 'video')
+        kwargs['media_type'] = 'video'
         return _orig_forward(*args, **kwargs)
     model.forward = _forward_video
 
