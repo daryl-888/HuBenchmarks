@@ -28,6 +28,6 @@ cd /project/rhu/dpalfaro
     /project/rhu/dpalfaro/code/videoitg-motionbenc/eval_videoitg_infer.py \
     --model_path      /project/rhu/dpalfaro/weights/llava-ov-7b \
     --meta_path       /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
-    --grounding_jsonl /project/rhu/dpalfaro/results/videoitg_grounding_${GROUNDING_JOBID}/frame_scores.jsonl \
+    --grounding_jsonl /project/rhu/dpalfaro/results/videoitg_grounding/frame_scores.jsonl \
     --output_dir      /project/rhu/dpalfaro/results/videoitg_run1 \
     --num_frames      32
