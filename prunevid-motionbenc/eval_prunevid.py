@@ -232,8 +232,10 @@ def main():
                     temperature=1.0,
                 )
             except Exception as e:
+                import traceback
                 print(f"  [WARN] sample {i} ({sample['video_path']}): {e}",
                       file=sys.stderr)
+                traceback.print_exc(file=sys.stderr)
                 prediction = ""
 
         s = score_prediction(prediction, ground_truth)
