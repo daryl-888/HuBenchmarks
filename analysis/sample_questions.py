@@ -14,10 +14,10 @@ import json
 import os
 import random
 import shutil
-import sys
 
 VIDEO_BASE = "/project/rhu/MotionBench_Data/MotionBench"
 DEFAULT_STAGE = "/project/rhu/dpalfaro/sample_videos"
+DEFAULT_META = "/project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl"
 
 
 def find_video(video_path):
@@ -36,11 +36,22 @@ def pick(pool_by_cat, n, exclude_cats=()):
     return [random.choice(pool_by_cat[c]) for c in chosen_cats]
 
 
+def load_meta(meta_path):
+    meta = {}
+    with open(meta_path) as f:
+        for i, line in enumerate(f):
+            line = line.strip()
+            if line:
+                meta[i] = json.loads(line)
+    return meta
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("results_dir")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--stage_dir", default=DEFAULT_STAGE)
+    parser.add_argument("--meta_path", default=DEFAULT_META)
     args = parser.parse_args()
 
     random.seed(args.seed)
@@ -51,6 +62,8 @@ def main():
             line = line.strip()
             if line:
                 results.append(json.loads(line))
+
+    meta = load_meta(args.meta_path)
 
     wrong_by_cat = {}
     right_by_cat = {}
@@ -75,8 +88,13 @@ def main():
     staged = []
     for i, s in enumerate(selected):
         label = "WRONG" if s["correct"] == 0 else "RIGHT"
+        m = meta.get(s["idx"], {})
+        qa = m.get("qa", [{}])[0]
+        question = qa.get("question", "(question not found)")
+
         print(f"\n[{i+1}] {label} — {s.get('question_type', 'Unknown')}")
-        print(f"  Video:      {s['video_path']}")
+        print(f"  Video:    {s['video_path']}")
+        print(f"  Question: {question}")
         print(f"  Truth:      {s['ground_truth']}")
         print(f"  Prediction: {s['prediction'] or '(empty)'}")
 
@@ -92,10 +110,9 @@ def main():
     if staged:
         user = "dpalfaro"
         host = "carya.rcdc.uh.edu"
-        remote_dir = args.stage_dir
         print(f"\n{'='*70}")
         print("SCP command (run on your local machine):")
-        print(f"  scp {user}@{host}:\"{remote_dir}/*.mp4\" .")
+        print(f"  scp {user}@{host}:\"{args.stage_dir}/*.mp4\" .")
         print("\nOr individual files:")
         for dst in staged:
             print(f"  scp {user}@{host}:\"{dst}\" .")
