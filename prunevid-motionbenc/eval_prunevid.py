@@ -230,6 +230,7 @@ def main():
                     do_sample=False,
                     max_new_tokens=16,
                     temperature=1.0,
+                    print_res=(i < 3),
                 )
             except Exception as e:
                 import traceback
