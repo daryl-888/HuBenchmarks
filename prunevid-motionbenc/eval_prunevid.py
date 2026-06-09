@@ -161,7 +161,8 @@ def main():
     model, processor = load_pllava(
         args.model_path,
         num_frames=args.num_frames,
-        use_lora=False,
+        use_lora=True,
+        weight_dir=args.model_path,
         pooling_shape=pooling_shape,
         selected_layer=args.selected_layer,
         alpha=args.alpha,
@@ -169,26 +170,6 @@ def main():
         cluster_ratio=args.cluster_ratio,
         temporal_segment_ratio=args.temporal_segment_ratio,
     )
-
-    # The pllava-7b checkpoint uses PEFT-merged keys:
-    #   language_model.base_model.model.X  →  language_model.X
-    # HF from_pretrained misses them and leaves the LLM randomly initialized.
-    # Remap and reload here.
-    import glob as _glob
-    import re as _re
-    from safetensors import safe_open as _safe_open
-    _weight_dir = args.model_path
-    _state_dict = {}
-    for _fn in sorted(_glob.glob(f"{_weight_dir}/model-*.safetensors")):
-        with _safe_open(_fn, framework="pt", device="cpu") as _f:
-            for _k in _f.keys():
-                _new_k = _re.sub(r"^language_model\.base_model\.model\.", "language_model.", _k)
-                _state_dict[_new_k] = _f.get_tensor(_k)
-    if _state_dict:
-        _msg = model.load_state_dict(_state_dict, strict=False)
-        print(f"Key remap: {len(_msg.missing_keys)} missing, {len(_msg.unexpected_keys)} unexpected", flush=True)
-    else:
-        print("WARNING: no model-*.safetensors found for key remap", flush=True)
 
     # HF generate() strips media_type before calling prepare_inputs_for_generation.
     # Patch both prepare_inputs_for_generation (so it's in the inputs dict passed
