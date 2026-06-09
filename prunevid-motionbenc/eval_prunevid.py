@@ -170,6 +170,7 @@ def main():
         cluster_ratio=args.cluster_ratio,
         temporal_segment_ratio=args.temporal_segment_ratio,
     )
+    model = model.cuda()
 
     # HF generate() strips media_type before calling prepare_inputs_for_generation.
     # Patch both prepare_inputs_for_generation (so it's in the inputs dict passed
