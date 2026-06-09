@@ -116,7 +116,7 @@ def run_inference(tokenizer, model, image_processor, frames, question):
 
     # [F, C, H, W] — no dynamic tiling for video modality
     images = image_processor.preprocess(frames, return_tensors="pt")["pixel_values"]
-    images = images.to(torch.bfloat16).cuda()
+    images = images.to(dtype=model.dtype, device="cuda")
 
     # Original frame dimensions for position encoding
     w, h = frames[0].size  # PIL: (width, height)

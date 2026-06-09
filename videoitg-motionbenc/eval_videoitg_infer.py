@@ -109,7 +109,7 @@ def run_inference(tokenizer, model, image_processor, frames, question):
     ).unsqueeze(0).cuda()
 
     images = image_processor.preprocess(frames, return_tensors="pt")["pixel_values"]
-    images = images.to(torch.bfloat16).cuda()
+    images = images.to(dtype=model.dtype, device="cuda")
 
     w, h = frames[0].size  # PIL: (width, height)
     image_sizes = [(h, w)] * len(frames)
