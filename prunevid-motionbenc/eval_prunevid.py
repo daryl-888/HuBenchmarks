@@ -215,14 +215,16 @@ def main():
             try:
                 frames = load_frames(video_path, args.num_frames)
 
+                ANSWER_PROMPT = "Best option:("
+
                 conv = conv_eval_mvbench.copy()
                 conv.user_query(
                     question + POST_PROMPT,
                     is_mm=True,
                 )
-                conv.assistant_response(None)
+                conv.assistant_response(ANSWER_PROMPT)
 
-                prediction, _ = pllava_answer(
+                raw_pred, _ = pllava_answer(
                     conv=conv,
                     model=model,
                     processor=processor,
@@ -232,6 +234,8 @@ def main():
                     temperature=1.0,
                     print_res=(i < 3),
                 )
+                # strip the pre-seeded prefix from the response
+                prediction = "".join(raw_pred.split(ANSWER_PROMPT)[1:])
             except Exception as e:
                 import traceback
                 print(f"  [WARN] sample {i} ({sample['video_path']}): {e}",
