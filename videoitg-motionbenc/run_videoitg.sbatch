@@ -21,6 +21,8 @@ unset HF_DATASETS_OFFLINE
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
 export TRANSFORMERS_OFFLINE=1
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+# DyCoke repo contains the llava package (LLaVA-NeXT source)
+export PYTHONPATH=/project/rhu/dpalfaro/code/DyCoke:$PYTHONPATH
 
 cd /project/rhu/dpalfaro
 
