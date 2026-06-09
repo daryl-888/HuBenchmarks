@@ -61,9 +61,8 @@ def load_frames_at_indices(video_path: str, frame_indices: list, fallback_n: int
             from decord import VideoReader, cpu
             vr = VideoReader(p, ctx=cpu(0))
             total = len(vr)
-            if indices:
-                idx = sorted(set(i for i in indices if 0 <= i < total))
-            if not idx if indices else True:
+            idx = sorted(set(i for i in indices if 0 <= i < total)) if indices else []
+            if not idx:
                 idx = np.linspace(0, total - 1, fallback, dtype=int).tolist()
             frames = vr.get_batch(idx).asnumpy()
             q.put(("ok", frames))
