@@ -48,10 +48,10 @@ def load_model(model_path: str):
 
     tokenizer, model, image_processor, _ = load_pretrained_model(
         model_path, None, "llava_qwen",
-        device_map="auto",
         attn_implementation="sdpa",
     )
     model = apply_holitom(model)
+    model = model.cuda()
     model.eval()
     return tokenizer, model, image_processor
 
