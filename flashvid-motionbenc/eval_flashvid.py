@@ -4,15 +4,20 @@ FlashVID × MotionBench — training-free spatiotemporal token compression.
 
 FlashVID (ICLR 2026 Oral) applies attention-and-diversity-based token selection
 + tree-based spatiotemporal merging before the LLM, reducing visual token count
-without retraining.  Backbone: LLaVA-OV-7B (Qwen2).
+without retraining.  Backbone: LLaVA-OV-7B with Qwen2 LLM (NOT the Qwen1.5-based
+llava-ov-7b weights used by DyCoke/HoliTom/VideoITG).
 
 Source: /project/rhu/dpalfaro/code/FlashVID
 PYTHONPATH: FlashVID : HoliTom/LLaVA-NeXT (for llava loader)
 Conda env: flashvid
 
+Model weights: lmm-lab/llava-onevision-qwen2-7b-ov
+  Download: huggingface-cli download lmm-lab/llava-onevision-qwen2-7b-ov \
+            --local-dir /project/rhu/dpalfaro/weights/llava-ov-7b-qwen2
+
 Usage:
     python eval_flashvid.py \\
-        --model_path /project/rhu/dpalfaro/weights/llava-ov-7b \\
+        --model_path /project/rhu/dpalfaro/weights/llava-ov-7b-qwen2 \\
         --meta_path  /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \\
         --output_dir /project/rhu/dpalfaro/results/flashvid_run1 \\
         [--num_frames 8] [--limit 50] \\
@@ -105,7 +110,7 @@ def run_inference(tokenizer, model, image_processor, frames, question):
     from llava.conversation import conv_templates
 
     user_msg = DEFAULT_IMAGE_TOKEN + "\n" + question + POST_PROMPT
-    conv = conv_templates["qwen_1_5"].copy()
+    conv = conv_templates["qwen_2"].copy()
     conv.append_message(conv.roles[0], user_msg)
     conv.append_message(conv.roles[1], None)
     prompt_str = conv.get_prompt()

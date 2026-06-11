@@ -235,6 +235,7 @@ def motionbench_aggregate_results(results):
 | `prunevid` | `/project/rhu/dpalfaro/conda/envs/prunevid` | PruneVid / PLLaVA-7B |
 | `holitom` | `/project/rhu/dpalfaro/conda/envs/holitom` | HoliTom |
 | `videoitg` | `/project/rhu/dpalfaro/conda/envs/videoitg` | VideoITG |
+| `flashvid` | `/project/rhu/dpalfaro/conda/envs/flashvid` | FlashVID (clone dycoke11, add flash-attn + flashvid) |
 
 Create sttm (if missing): `conda create --name sttm --clone dycoke11`
 
@@ -297,19 +298,34 @@ Two files need patching. See `patches/README.md`.
 
 ---
 
+## Backbone / LLM version map
+
+| Backbone weights | LLM | Conv template | Used by |
+|---|---|---|---|
+| `llava-ov-7b` | Qwen 1.5 | `qwen_1_5` | DyCoke, HoliTom, VideoITG, OV baseline |
+| `llava-video-7b` | Qwen 2 | `qwen_2` | STTM (primary run), Video baseline |
+| LLaVA-OV Qwen2 (TBD path) | Qwen 2 | `qwen_2` | FlashVID |
+| `pllava-7b` | LLaMA-2 | — | PruneVid, PLLaVA baseline |
+
+Note: `qwen_1_5` is the conversation template used with Qwen1.5-based LLaVA-OV weights.
+FlashVID uses a Qwen2-based LLaVA-OV — different weights from the existing `llava-ov-7b`.
+Weights path on Carya TBD (may need `huggingface-cli download lmm-lab/llava-onevision-qwen2-7b-ov`).
+
+---
+
 ## Results Summary (2026-06)
 
-| Model | Backbone | Frames | Accuracy | Notes |
-|-------|----------|--------|----------|-------|
-| LLaVA-OV-7B baseline | LLaVA-OV-7B | 32 | 52.69% | DyCoke sbatch `--no_pruning` |
-| LLaVA-Video-7B baseline | LLaVA-Video-7B | 32 | 56.39% | Strongest baseline |
-| DyCoke | LLaVA-OV-7B | 32 | 53.46% | l=3, p=0.8, k=0.3 |
-| STTM (LLaVA-OV-7B) | LLaVA-OV-7B | 32 | 51.76% | Quadtree LLM attn |
-| STTM (LLaVA-Video-7B) | LLaVA-Video-7B | 32 | 54.28% | Quadtree LLM attn |
-| HoliTom | LLaVA-OV-7B | 32 | 53.11% | RETAIN_RATIO=0.15 |
-| VideoITG | LLaVA-OV-7B | 32 | 52.51% | Two-stage grounding |
-| PruneVid | PLLaVA-7B | 16 | 43.80% | VTP; weak backbone |
-| PLLaVA-7B baseline | PLLaVA-7B | 16 | 43.35% | Confirms backbone |
+| Model | Backbone | LLM | Frames | Accuracy | Notes |
+|-------|----------|-----|--------|----------|-------|
+| LLaVA-OV-7B baseline | LLaVA-OV | Qwen 1.5 | 32 | 52.69% | DyCoke sbatch `--no_pruning` |
+| LLaVA-Video-7B baseline | LLaVA-Video | Qwen 2 | 32 | 56.39% | Strongest baseline |
+| DyCoke | LLaVA-OV | Qwen 1.5 | 32 | 53.46% | l=3, p=0.8→**0.7** rerun |
+| STTM | LLaVA-Video | Qwen 2 | 32 | 54.28% | Quadtree LLM attn |
+| HoliTom | LLaVA-OV | Qwen 1.5 | 32 | 53.11% | RETAIN_RATIO=0.15 |
+| VideoITG | LLaVA-OV | Qwen 1.5 | 32 | 52.51% | Two-stage grounding |
+| PruneVid | PLLaVA-7B | LLaMA-2 | 16→**32** rerun | 43.80% | VTP; weak backbone |
+| PLLaVA-7B baseline | PLLaVA-7B | LLaMA-2 | 16 | 43.35% | Confirms backbone |
+| FlashVID | LLaVA-OV | Qwen 2 | 8 | pending | ICLR 2026 Oral; pre-LLM merge |
 
 VideoITG per-category highlights: Motion-related Objects 70.1%, Repetition Count 26.5%.
 TrajViT and iMove: not runnable (retrieval-only / no weights released).

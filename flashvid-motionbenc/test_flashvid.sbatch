@@ -25,7 +25,7 @@ cd /project/rhu/dpalfaro
 
 /project/rhu/dpalfaro/conda/envs/flashvid/bin/python3 \
     /project/rhu/dpalfaro/code/flashvid-motionbenc/eval_flashvid.py \
-    --model_path /project/rhu/dpalfaro/weights/llava-ov-7b \
+    --model_path /project/rhu/dpalfaro/weights/llava-ov-7b-qwen2 \
     --meta_path  /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
     --output_dir /project/rhu/dpalfaro/results/flashvid_test_${SLURM_JOB_ID} \
     --num_frames 8 \
