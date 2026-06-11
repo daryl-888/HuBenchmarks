@@ -1,3 +1,4 @@
-PruneVid/
-STTM/
+/PruneVid/
+/STTM/
 __pycache__/
+*.mp4
