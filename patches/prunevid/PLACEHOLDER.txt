@@ -1,0 +1,2 @@
+Run patches/collect_patches.sh on Carya to populate this directory.
+See patches/README.md for what each file contains and why.

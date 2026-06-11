@@ -31,13 +31,21 @@ SSH: `ssh -l dpalfaro carya.rcdc.uh.edu`
 | `/project/rhu/dpalfaro/code/dycoke-motionbenc` | synced from this repo |
 | `/project/rhu/dpalfaro/code/STTM` | STTM source (github.com/HYUNJS/STTM) |
 | `/project/rhu/dpalfaro/code/sttm-motionbenc` | synced from this repo |
-| `/project/rhu/dpalfaro/weights/llava-ov-7b` | model weights |
+| `/project/rhu/dpalfaro/code/PruneVid` | PruneVid source (patched) |
+| `/project/rhu/dpalfaro/code/prunevid-motionbenc` | synced from this repo |
+| `/project/rhu/dpalfaro/code/HoliTom` | HoliTom source (patched) |
+| `/project/rhu/dpalfaro/code/holitom-motionbenc` | synced from this repo |
+| `/project/rhu/dpalfaro/weights/llava-ov-7b` | LLaVA-OV-7B model weights |
+| `/project/rhu/dpalfaro/weights/pllava-7b` | PLLaVA-7B weights (PruneVid) |
 | `/project/rhu/dpalfaro/conda/envs/dycoke11` | main conda env |
 | `/project/rhu/dpalfaro/conda/envs/sttm` | STTM env (cloned from dycoke11) |
+| `/project/rhu/dpalfaro/conda/envs/prunevid` | PruneVid env |
+| `/project/rhu/dpalfaro/conda/envs/holitom` | HoliTom env (transformers==4.45.2) |
 | `/project/rhu/dpalfaro/cache/huggingface` | HF cache |
 | `/project/rhu/dpalfaro/results` | job output + eval results |
 | `/project/rhu/dpalfaro/sttm_features` | STTM pre-extracted features |
 | `/project/rhu/dpalfaro/bad_videos` | NFS-broken videos, skipped at runtime |
+| `/project/rhu/dpalfaro/sample_videos` | staged videos for local SCP |
 | `/project/rhu/MotionBench_Data/MotionBench` | videos + metadata JSONL |
 
 ### Uploading to Carya
@@ -220,9 +228,88 @@ def motionbench_aggregate_results(results):
 
 ## Conda Envs
 
-| Env | Path |
-|-----|------|
-| `dycoke11` | `/project/rhu/dpalfaro/conda/envs/dycoke11` |
-| `sttm` | `/project/rhu/dpalfaro/conda/envs/sttm` |
+| Env | Path | Used for |
+|-----|------|----------|
+| `dycoke11` | `/project/rhu/dpalfaro/conda/envs/dycoke11` | DyCoke, STTM baseline |
+| `sttm` | `/project/rhu/dpalfaro/conda/envs/sttm` | STTM (cloned from dycoke11) |
+| `prunevid` | `/project/rhu/dpalfaro/conda/envs/prunevid` | PruneVid / PLLaVA-7B |
+| `holitom` | `/project/rhu/dpalfaro/conda/envs/holitom` | HoliTom |
+| `videoitg` | `/project/rhu/dpalfaro/conda/envs/videoitg` | VideoITG |
 
 Create sttm (if missing): `conda create --name sttm --clone dycoke11`
+
+---
+
+## HoliTom Setup Notes
+
+HoliTom uses LLaVA-OV-7B with a custom hierarchical token pruning patch.
+Source: `/project/rhu/dpalfaro/code/HoliTom`
+PYTHONPATH: `HoliTom/LLaVA-NeXT:HoliTom`
+
+### transformers version
+
+The holitom conda env must have transformers==4.45.2 (not ≥4.47).
+HoliTom's `holitom/modeling_qwen2.py` patches Qwen2 attention and was written for 4.45.
+Newer versions added symbols it doesn't expect (`FlashAttentionKwargs`, etc.).
+
+To install:
+```bash
+/project/rhu/dpalfaro/conda/envs/holitom/bin/pip install "transformers==4.45.2"
+```
+
+Then hand-patch the rope_parameters None guard in the installed qwen2 modeling file
+(see `patches/README.md` for exact lines).
+
+### Source file patches
+
+Four files in the HoliTom repo need patching. See `patches/README.md` and run
+`patches/collect_patches.sh` on Carya to get the current fixed versions.
+
+Key changes:
+- `holitom/modeling_qwen2.py` — stubs for all transformers 4.47+ symbols not in 4.45.2
+- `LLaVA-NeXT/llava/model/multimodal_encoder/siglip_encoder.py` — removed `device_map=device_map` from inner `SigLipVisionModel.from_pretrained` to avoid nested meta device context
+- `LLaVA-NeXT/llava/__init__.py` — LlavaLlamaForCausalLM import wrapped in try/except
+- `LLaVA-NeXT/llava/model/builder.py` — `low_cpu_mem_usage=True` kept (required by device_map)
+
+`eval_holitom.py` calls `load_pretrained_model` WITHOUT `device_map="auto"`, then
+calls `model = model.cuda()` explicitly.
+
+---
+
+## PruneVid Setup Notes
+
+PruneVid uses PLLaVA-7B (not LLaVA-OV-7B) as its backbone + VTP (Video Token Pruning).
+Source: `/project/rhu/dpalfaro/code/PruneVid`
+PYTHONPATH: `PruneVid`
+
+### Checkpoint format
+
+`/project/rhu/dpalfaro/weights/pllava-7b` contains unmerged PEFT/LoRA format.
+`load_pllava` MUST be called with `use_lora=True, weight_dir=args.model_path`.
+Using `use_lora=False` loads only 291 base weights and silently drops 128 LoRA deltas
+→ garbage output at 43% accuracy (barely above random).
+
+### Source file patches
+
+Two files need patching. See `patches/README.md`.
+- `models/pllava/llama.py` — custom dataclass + `getattr(config, 'mlp_bias', False)` fix
+- `models/pllava/modeling_pllava.py` — shape mismatch fix in VTP token selection
+
+---
+
+## Results Summary (2026-06)
+
+| Model | Backbone | Frames | Accuracy | Notes |
+|-------|----------|--------|----------|-------|
+| LLaVA-OV-7B baseline | LLaVA-OV-7B | 32 | 52.69% | DyCoke sbatch `--no_pruning` |
+| LLaVA-Video-7B baseline | LLaVA-Video-7B | 32 | 56.39% | Strongest baseline |
+| DyCoke | LLaVA-OV-7B | 32 | 53.46% | l=3, p=0.8, k=0.3 |
+| STTM (LLaVA-OV-7B) | LLaVA-OV-7B | 32 | 51.76% | Quadtree LLM attn |
+| STTM (LLaVA-Video-7B) | LLaVA-Video-7B | 32 | 54.28% | Quadtree LLM attn |
+| HoliTom | LLaVA-OV-7B | 32 | 53.11% | RETAIN_RATIO=0.15 |
+| VideoITG | LLaVA-OV-7B | 32 | 52.51% | Two-stage grounding |
+| PruneVid | PLLaVA-7B | 16 | 43.80% | VTP; weak backbone |
+| PLLaVA-7B baseline | PLLaVA-7B | 16 | 43.35% | Confirms backbone |
+
+VideoITG per-category highlights: Motion-related Objects 70.1%, Repetition Count 26.5%.
+TrajViT and iMove: not runnable (retrieval-only / no weights released).
