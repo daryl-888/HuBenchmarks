@@ -12,26 +12,22 @@ HOLITOM=/project/rhu/dpalfaro/code/HoliTom
 PRUNEVID=/project/rhu/dpalfaro/code/PruneVid
 DEST=$(dirname "$0")
 
-echo "Collecting HoliTom patches..."
-cp "$HOLITOM/holitom/modeling_qwen2.py"                                \
-   "$DEST/holitom/modeling_qwen2.py"
-cp "$HOLITOM/LLaVA-NeXT/llava/model/builder.py"                       \
-   "$DEST/holitom/builder.py"
-cp "$HOLITOM/LLaVA-NeXT/llava/model/multimodal_encoder/siglip_encoder.py" \
-   "$DEST/holitom/siglip_encoder.py"
-cp "$HOLITOM/LLaVA-NeXT/llava/__init__.py"                            \
-   "$DEST/holitom/llava_init.py"
+# HoliTom patches are already in the repo (committed 2026-06-11).
+# Uncomment these lines only if you need to refresh them from Carya.
+#
+# echo "Collecting HoliTom patches..."
+# cp "$HOLITOM/holitom/modeling_qwen2.py"                                \
+#    "$DEST/holitom/modeling_qwen2.py"
+# cp "$HOLITOM/LLaVA-NeXT/llava/model/builder.py"                       \
+#    "$DEST/holitom/builder.py"
+# cp "$HOLITOM/LLaVA-NeXT/llava/model/multimodal_encoder/siglip_encoder.py" \
+#    "$DEST/holitom/siglip_encoder.py"
+# cp "$HOLITOM/LLaVA-NeXT/llava/__init__.py"                            \
+#    "$DEST/holitom/llava_init.py"
+# TQWEN=/project/rhu/dpalfaro/conda/envs/holitom/lib/python3.11/site-packages/transformers/models/qwen2/modeling_qwen2.py
+# [ -f "$TQWEN" ] && cp "$TQWEN" "$DEST/holitom/transformers_qwen2.py"
 
-# Conda env transformers patch (installed package — copy for reference)
-TQWEN=/project/rhu/dpalfaro/conda/envs/holitom/lib/python3.11/site-packages/transformers/models/qwen2/modeling_qwen2.py
-if [ -f "$TQWEN" ]; then
-    cp "$TQWEN" "$DEST/holitom/transformers_qwen2.py"
-    echo "  Copied transformers qwen2 modeling file"
-else
-    echo "  [WARN] transformers qwen2 not found at expected path"
-fi
-
-echo "Collecting PruneVid patches..."
+echo "Collecting PruneVid patches (still missing from repo)..."
 cp "$PRUNEVID/models/pllava/llama.py"           "$DEST/prunevid/llama.py"
 cp "$PRUNEVID/models/pllava/modeling_pllava.py" "$DEST/prunevid/modeling_pllava.py"
 
