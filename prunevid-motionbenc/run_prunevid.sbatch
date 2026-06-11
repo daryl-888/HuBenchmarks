@@ -31,8 +31,8 @@ cd /project/rhu/dpalfaro
     /project/rhu/dpalfaro/code/prunevid-motionbenc/eval_prunevid.py \
     --model_path /project/rhu/dpalfaro/weights/pllava-7b \
     --meta_path  /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
-    --output_dir /project/rhu/dpalfaro/results/prunevid_run1 \
-    --num_frames 16 \
+    --output_dir /project/rhu/dpalfaro/results/prunevid_run2 \
+    --num_frames 32 \
     --cluster_ratio 0.5 \
     --temporal_segment_ratio 0.25 \
     --selected_layer 10 \
