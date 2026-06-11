@@ -16,7 +16,7 @@ module load Miniforge3/py3.10
 export PYTHONNOUSERSITE=1
 unset HF_HUB_OFFLINE
 unset HF_DATASETS_OFFLINE
-export PYTHONPATH=/project/rhu/dpalfaro/code/FlashVID:/project/rhu/dpalfaro/code/HoliTom/LLaVA-NeXT:$PYTHONPATH
+export PYTHONPATH=/project/rhu/dpalfaro/code/FlashVID:$PYTHONPATH
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
 export TRANSFORMERS_OFFLINE=1
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
