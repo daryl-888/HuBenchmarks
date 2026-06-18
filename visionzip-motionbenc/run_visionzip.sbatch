@@ -16,9 +16,9 @@ module load Miniforge3/py3.10
 export PYTHONNOUSERSITE=1
 unset HF_HUB_OFFLINE
 unset HF_DATASETS_OFFLINE
-# VisionZip targets LLaVA-1.5 (CLIP encoder). LLaVA-OV uses SigLIP.
-# Using DyCoke's LLaVA-NeXT for llava package (it includes LLaVA-1.5 support).
-export PYTHONPATH=/project/rhu/dpalfaro/code/DyCoke:${PYTHONPATH:-}
+# VisionZip patches CLIPVisionTower — requires liuhaotian/LLaVA (not LLaVA-NeXT).
+# Clone: git clone https://github.com/haotian-liu/LLaVA && pip install -e LLaVA/
+export PYTHONPATH=/project/rhu/dpalfaro/code/LLaVA:${PYTHONPATH:-}
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
 export TRANSFORMERS_OFFLINE=1
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
