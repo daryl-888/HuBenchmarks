@@ -16,8 +16,7 @@ module load Miniforge3/py3.10
 export PYTHONNOUSERSITE=1
 unset HF_HUB_OFFLINE
 unset HF_DATASETS_OFFLINE
-# FlashVID package first, then HoliTom's LLaVA-NeXT for llava.model.builder
-export PYTHONPATH=/project/rhu/dpalfaro/code/FlashVID:$PYTHONPATH
+export PYTHONPATH=/project/rhu/dpalfaro/code/FlashVID:${PYTHONPATH:-}
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
 export TRANSFORMERS_OFFLINE=1
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
@@ -25,11 +24,17 @@ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 cd /project/rhu/dpalfaro
 
 /project/rhu/dpalfaro/conda/envs/flashvid/bin/python3 \
-    /project/rhu/dpalfaro/code/flashvid-motionbenc/eval_flashvid.py \
-    --model_path /project/rhu/dpalfaro/weights/llava-ov-7b-qwen2 \
-    --meta_path  /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
-    --output_dir /project/rhu/dpalfaro/results/flashvid_run1 \
-    --num_frames 8 \
-    --retention_ratio 0.1 \
+    /project/rhu/dpalfaro/code/flashvid-motionbenc/eval_flashvid_motionbench.py \
+    --meta-file    /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
+    --video-roots  /project/rhu/MotionBench_Data/MotionBench \
+    --model-path   /project/rhu/dpalfaro/weights/llava-ov-7b-qwen2 \
+    --output-dir   /project/rhu/dpalfaro/results/flashvid_run2 \
+    --frame-counts 8 \
+    --conv-template qwen_2 \
+    --enable-flashvid \
+    --retention-ratio 0.1 \
     --alpha 0.7 \
-    --temporal_threshold 0.8
+    --temporal-threshold 0.8 \
+    --prompt-style strict \
+    --max-new-tokens 16 \
+    --resume
