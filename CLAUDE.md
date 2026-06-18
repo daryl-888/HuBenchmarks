@@ -304,12 +304,12 @@ Two files need patching. See `patches/README.md`.
 |---|---|---|---|
 | `llava-ov-7b` | Qwen 1.5 | `qwen_1_5` | DyCoke, HoliTom, VideoITG, OV baseline |
 | `llava-video-7b` | Qwen 2 | `qwen_2` | STTM (primary run), Video baseline |
-| LLaVA-OV Qwen2 (TBD path) | Qwen 2 | `qwen_2` | FlashVID |
+| `llava-ov-7b-qwen2` | Qwen 2 | `qwen_2` | FlashVID |
 | `pllava-7b` | LLaMA-2 | — | PruneVid, PLLaVA baseline |
 
 Note: `qwen_1_5` is the conversation template used with Qwen1.5-based LLaVA-OV weights.
 FlashVID uses a Qwen2-based LLaVA-OV — different weights from the existing `llava-ov-7b`.
-Weights path on Carya TBD (may need `huggingface-cli download lmm-lab/llava-onevision-qwen2-7b-ov`).
+Weights: `lmms-lab/llava-onevision-qwen2-7b-ov` → `/project/rhu/dpalfaro/weights/llava-ov-7b-qwen2`
 
 ---
 
@@ -319,13 +319,13 @@ Weights path on Carya TBD (may need `huggingface-cli download lmm-lab/llava-onev
 |-------|----------|-----|--------|----------|-------|
 | LLaVA-OV-7B baseline | LLaVA-OV | Qwen 1.5 | 32 | 52.69% | DyCoke sbatch `--no_pruning` |
 | LLaVA-Video-7B baseline | LLaVA-Video | Qwen 2 | 32 | 56.39% | Strongest baseline |
-| DyCoke | LLaVA-OV | Qwen 1.5 | 32 | 53.46% | l=3, p=0.8→**0.7** rerun |
+| DyCoke | LLaVA-OV | Qwen 1.5 | 32 | 53.46% | l=3, p=0.7 (p=0.8 identical) |
 | STTM | LLaVA-Video | Qwen 2 | 32 | 54.28% | Quadtree LLM attn |
 | HoliTom | LLaVA-OV | Qwen 1.5 | 32 | 53.11% | RETAIN_RATIO=0.15 |
 | VideoITG | LLaVA-OV | Qwen 1.5 | 32 | 52.51% | Two-stage grounding |
-| PruneVid | PLLaVA-7B | LLaMA-2 | 16→**32** rerun | 43.80% | VTP; weak backbone |
+| PruneVid | PLLaVA-7B | LLaMA-2 | 32 | 44.00% | VTP; 16f=43.80%, backbone bottleneck |
 | PLLaVA-7B baseline | PLLaVA-7B | LLaMA-2 | 16 | 43.35% | Confirms backbone |
-| FlashVID | LLaVA-OV | Qwen 2 | 8 | pending | ICLR 2026 Oral; pre-LLM merge |
+| FlashVID | LLaVA-OV Qwen2 | Qwen 2 | 8 | pending | ICLR 2026 Oral; pre-LLM merge; job 7187228 |
 
 VideoITG per-category highlights: Motion-related Objects 70.1%, Repetition Count 26.5%.
 TrajViT and iMove: not runnable (retrieval-only / no weights released).
