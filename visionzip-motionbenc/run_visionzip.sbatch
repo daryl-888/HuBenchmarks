@@ -18,7 +18,7 @@ unset HF_HUB_OFFLINE
 unset HF_DATASETS_OFFLINE
 # VisionZip patches CLIPVisionTower — requires liuhaotian/LLaVA (not LLaVA-NeXT).
 # Clone: git clone https://github.com/haotian-liu/LLaVA && pip install -e LLaVA/
-export PYTHONPATH=/project/rhu/dpalfaro/code/LLaVA:${PYTHONPATH:-}
+export PYTHONPATH=/project/rhu/dpalfaro/code/VisionZip:/project/rhu/dpalfaro/code/LLaVA:${PYTHONPATH:-}
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
 export TRANSFORMERS_OFFLINE=1
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
