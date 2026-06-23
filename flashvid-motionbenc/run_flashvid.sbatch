@@ -16,6 +16,7 @@ module load Miniforge3/py3.10
 export PYTHONNOUSERSITE=1
 unset HF_HUB_OFFLINE
 unset HF_DATASETS_OFFLINE
+export WORLD_SIZE=1
 export PYTHONPATH=/project/rhu/dpalfaro/code/FlashVID:${PYTHONPATH:-}
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
 export TRANSFORMERS_OFFLINE=1
@@ -28,7 +29,7 @@ cd /project/rhu/dpalfaro
     --meta-file    /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
     --video-roots  /project/rhu/MotionBench_Data/MotionBench \
     --model-path   /project/rhu/dpalfaro/weights/llava-ov-7b-qwen2 \
-    --output-dir   /project/rhu/dpalfaro/results/flashvid_run2 \
+    --output-dir   /project/rhu/dpalfaro/results/flashvid_run3 \
     --frame-counts 8 \
     --conv-template qwen_2 \
     --enable-flashvid \
