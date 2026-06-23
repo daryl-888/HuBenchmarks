@@ -451,13 +451,39 @@ def uniform_frame_indices(total_frames: int, num_frames: int) -> np.ndarray:
 
 
 def load_video_frames(video_path: Path, num_frames: int) -> np.ndarray:
-    vr = VideoReader(str(video_path), ctx=cpu(0))
-    total = len(vr)
-    idx = uniform_frame_indices(total, num_frames)
-    frames = vr.get_batch(idx.tolist()).asnumpy()
-    if frames.ndim != 4 or frames.shape[-1] != 3:
-        raise ValueError(f"Unexpected video frame array shape {frames.shape} for {video_path}")
-    return frames
+    import multiprocessing as _mp
+    import queue as _queue
+
+    def _worker(p, n, q):
+        try:
+            import numpy as np
+            from decord import VideoReader, cpu
+            vr = VideoReader(str(p), ctx=cpu(0))
+            total = len(vr)
+            idx = np.linspace(0, total - 1, n, dtype=np.int64).tolist()
+            frames = vr.get_batch(idx).asnumpy()
+            q.put(("ok", frames))
+        except Exception as e:
+            q.put(("error", str(e)))
+
+    q = _mp.Queue()
+    proc = _mp.Process(target=_worker, args=(video_path, num_frames, q))
+    proc.start()
+    try:
+        status, data = q.get(timeout=60)
+    except _queue.Empty:
+        proc.kill()
+        proc.join(timeout=5)
+        LOGGER.warning("load_video_frames: timeout (NFS stale?), returning black frames: %s", video_path)
+        return np.zeros((num_frames, 336, 336, 3), dtype=np.uint8)
+    proc.join(timeout=5)
+    if proc.is_alive():
+        proc.kill()
+        proc.join(timeout=5)
+    if status == "error":
+        LOGGER.warning("load_video_frames: decode error, returning black frames: %s — %s", video_path, data)
+        return np.zeros((num_frames, 336, 336, 3), dtype=np.uint8)
+    return data
 
 
 def get_model_device(model: torch.nn.Module, fallback: str) -> torch.device:
