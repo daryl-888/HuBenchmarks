@@ -29,13 +29,12 @@ cd /project/rhu/dpalfaro
     --meta-file    /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
     --video-roots  /project/rhu/MotionBench_Data/MotionBench \
     --model-path   /project/rhu/dpalfaro/weights/llava-ov-7b-qwen2 \
-    --output-dir   /project/rhu/dpalfaro/results/flashvid_run3 \
+    --output-dir   /project/rhu/dpalfaro/results/flashvid_run4 \
     --frame-counts 8 \
     --conv-template qwen_2 \
     --enable-flashvid \
-    --retention-ratio 0.1 \
+    --retention-ratio 0.25 \
     --alpha 0.7 \
     --temporal-threshold 0.8 \
     --prompt-style strict \
-    --max-new-tokens 16 \
-    --resume
+    --max-new-tokens 16

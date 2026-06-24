@@ -118,24 +118,24 @@ def run_inference(tokenizer, model, image_processor, conv_template, frames, ques
         prompt_str, tokenizer, IMAGE_TOKEN_INDEX, return_tensors="pt"
     ).unsqueeze(0).cuda()
 
+    # LLaVA-1.5 (liuhaotian/LLaVA): images is a plain tensor, no modalities/image_sizes kwargs.
+    # For multiple frames, stack into [N, C, H, W] — the model treats each as a separate image
+    # and the single <image> token in the prompt receives the concatenated visual features.
     images = image_processor.preprocess(frames, return_tensors="pt")["pixel_values"]
     images = images.to(dtype=model.dtype, device="cuda")
 
-    w, h = frames[0].size
-    image_sizes = [(h, w)] * len(frames)
-
     output_ids = model.generate(
         input_ids,
-        images=[images],
-        image_sizes=image_sizes,
-        modalities=["video"],
+        images=images,
         do_sample=False,
         temperature=0,
         max_new_tokens=16,
         use_cache=True,
     )
 
-    return tokenizer.batch_decode(output_ids, skip_special_tokens=True)[0].strip()
+    # Slice off the input tokens so we only decode the newly generated response.
+    new_tokens = output_ids[:, input_ids.shape[1]:]
+    return tokenizer.batch_decode(new_tokens, skip_special_tokens=True)[0].strip()
 
 
 # ---------------------------------------------------------------------------
