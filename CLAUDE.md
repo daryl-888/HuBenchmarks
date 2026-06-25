@@ -128,7 +128,10 @@ Both trigger at ~sample 1168 in lmms_eval's sorted order. The `load_video` patch
 | File | Notes |
 |------|-------|
 | `self-collected/bevgNkpc5dKYD8Un.mp4` | moved to `/project/rhu/dpalfaro/bad_videos/`; 3 JSONL entries |
-| `self-collected/l0w4V7yPdPJQQphx.mp4` | confirmed stale 2026-05-28 (DyCoke job 6990458) |
+| `self-collected/l0w4V7yPdPJQQphx.mp4` | confirmed stale 2026-05-28 (DyCoke job 6990458); appears multiple times in sorted order |
+| `self-collected/rWHIZ0zM6gbuCsSe.mp4` | confirmed stale 2026-06-25 (FastVID job 7454924) |
+| `self-collected/x4oT5lcBVwKl9s27.mp4` | confirmed stale 2026-06-25 (FastVID job 7454924) |
+| `self-collected/1KRj2QX5dGyyZig7.mp4` | confirmed stale 2026-06-25 (FastVID job 7454924) |
 
 Scan completed 2026-05-27: 5,385 scanned, found 1 (missed l0w4V7yPdPJQQphx.mp4). Re-scan: `sbatch dycoke-motionbenc/scan_videos.sbatch`.
 
@@ -327,6 +330,7 @@ Weights: `lmms-lab/llava-onevision-qwen2-7b-ov` → `/project/rhu/dpalfaro/weigh
 | PLLaVA-7B baseline | PLLaVA-7B | LLaMA-2 | 16 | 43.35% | Confirms backbone |
 | FlashVID (retention=0.10) | LLaVA-OV Qwen2 | Qwen 2 | 8 | 50.50% | ICLR 2026 Oral; pre-LLM merge; alpha=0.7; below baseline |
 | FlashVID (retention=0.25) | LLaVA-OV Qwen2 | Qwen 2 | 8 | 51.99% | Same config, higher retention; still below baseline |
+| FastVID (retention=0.10) | LLaVA-OV Qwen2 | Qwen 2 | 32 | 51.92% | DySeg+STPrune+DTM; shape errors on some videos (skipped); below baseline |
 | VisionZip (8f) | LLaVA-1.5-7B | CLIP | 8 | 40.09% | dominant=54, contextual=10; LLaVA-1.5 backbone bottleneck |
 | VisionZip (32f) | LLaVA-1.5-7B | CLIP | 32 | 39.97% | Same params; more frames made no difference — backbone bottleneck confirmed |
 
