@@ -308,12 +308,43 @@ Two files need patching. See `patches/README.md`.
 |---|---|---|---|
 | `llava-ov-7b` | Qwen 1.5 | `qwen_1_5` | DyCoke, HoliTom, VideoITG, OV baseline |
 | `llava-video-7b` | Qwen 2 | `qwen_2` | STTM (primary run), Video baseline |
-| `llava-ov-7b-qwen2` | Qwen 2 | `qwen_2` | FlashVID |
+| `llava-ov-7b-qwen2` | Qwen 2 | `qwen_2` | FlashVID, FastVID |
 | `pllava-7b` | LLaMA-2 | — | PruneVid, PLLaVA baseline |
+| `llava-v1.6-vicuna-7b` | LLaMA-2 (Vicuna) | `image_seq_v3` | DyTo |
+| `llava-v1.5-7b` | CLIP (LLaVA-1.5) | `llava_v1` | VisionZip |
 
 Note: `qwen_1_5` is the conversation template used with Qwen1.5-based LLaVA-OV weights.
 FlashVID uses a Qwen2-based LLaVA-OV — different weights from the existing `llava-ov-7b`.
 Weights: `lmms-lab/llava-onevision-qwen2-7b-ov` → `/project/rhu/dpalfaro/weights/llava-ov-7b-qwen2`
+
+---
+
+## DyTo Setup Notes
+
+DyTo (Beyond Training: Dynamic Token Merging, ICCV 2025) uses LLaVA-NeXT Vicuna-7B.
+Source: `/project/rhu/dpalfaro/code/DYTO`
+PYTHONPATH: `DYTO` only — do NOT add HoliTom/LLaVA-NeXT (DyTo ships its own `dyto.llava`)
+
+### Key design
+
+Two inference-time strategies, no training:
+- FINCH clustering: selects ~25 representative frames from 100 input frames
+- ToMe token merging: dynamic per-frame merge ratio → ~3,680 total visual tokens
+
+Triggered by a single kwarg: `temporal_aggregation="spatial_tome_finch_dynamic_all_frms"`
+
+### Env setup (fresh env required — pins torch==2.2.0, transformers==4.38.2)
+
+```bash
+conda create -n dyto python=3.10 -y
+/project/rhu/dpalfaro/conda/envs/dyto/bin/pip install torch==2.2.0 torchvision==0.17.0 \
+    --index-url https://download.pytorch.org/whl/cu121
+/project/rhu/dpalfaro/conda/envs/dyto/bin/pip install -e /project/rhu/dpalfaro/code/DYTO
+/project/rhu/dpalfaro/conda/envs/dyto/bin/pip install finch-clust==0.2.0 decord
+```
+
+`finch-clust` is a mandatory dependency (not in standard setups) — FINCH frame clustering.
+`rope_scaling_factor=2` is mandatory for Llama-2 to handle 100-frame token counts.
 
 ---
 
