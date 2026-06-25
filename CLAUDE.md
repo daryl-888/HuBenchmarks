@@ -16,6 +16,7 @@ When working on this project, follow these rules and use the reference below.
 - All `utils.py` files must return `[]` (not a fallback path) when a video is missing — never `return [os.path.join(...)]` unconditionally
 - When uploading directories to Carya via `scp`, create the destination first: `ssh dpalfaro@carya.rcdc.uh.edu "mkdir -p /path"`, then `scp -r`
 - lmms_eval has no checkpointing — if a job dies mid-run, it restarts from scratch
+- **Commit and push to the `claude/bold-knuth-YlJYI` branch immediately after any file changes are completed.** This keeps the repo in sync and provides a clear audit trail. Never leave uncommitted work sitting locally.
 
 ---
 
