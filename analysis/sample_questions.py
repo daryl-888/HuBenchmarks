@@ -7,8 +7,9 @@ Sample 5 questions from a results dir:
 Copies the videos to a staging dir and prints the scp command.
 
 Supports:
-  - Custom format (results.jsonl): FlashVID, PruneVid, HoliTom
+  - Custom format (results.jsonl): FlashVID, PruneVid, HoliTom, VisionZip
   - lmms_eval format (*/motionbench.json with 'logs'): DyCoke, STTM, VideoITG
+  - New lmms_eval format (*_samples_motionbench.jsonl): FastVID
 
 Usage (run on Carya):
     python sample_questions.py <results_dir> [--seed 42] [--stage_dir /project/rhu/dpalfaro/sample_videos]
@@ -101,6 +102,42 @@ def load_lmms_eval(results_dir):
     return records
 
 
+def load_lmms_samples(results_dir):
+    """New lmms_eval format: timestamped *_samples_motionbench.jsonl."""
+    matches = glob.glob(os.path.join(results_dir, "*", "*_samples_motionbench.jsonl"))
+    if not matches:
+        matches = glob.glob(os.path.join(results_dir, "*_samples_motionbench.jsonl"))
+    if not matches:
+        raise FileNotFoundError(f"No *_samples_motionbench.jsonl found under {results_dir}")
+
+    records = []
+    with open(matches[0]) as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            log = json.loads(line)
+            doc = log.get("doc", {})
+            resps = log.get("filtered_resps", [])
+            if resps and isinstance(resps[0], list):
+                pred = resps[0][0]
+            elif resps:
+                pred = resps[0]
+            else:
+                pred = ""
+            qa = doc.get("qa", [{}])[0]
+            records.append({
+                "idx":           log.get("doc_id", 0),
+                "video_path":    doc.get("video_path", ""),
+                "question_type": log.get("category", doc.get("question_type", "Unknown")),
+                "ground_truth":  log.get("target", ""),
+                "prediction":    pred,
+                "correct":       log.get("motionbench_accuracy"),
+                "question":      qa.get("question", "(question not found)"),
+            })
+    return records
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("results_dir")
@@ -111,8 +148,12 @@ def main():
     random.seed(args.seed)
 
     results_jsonl = os.path.join(args.results_dir, "results.jsonl")
+    samples_glob = (glob.glob(os.path.join(args.results_dir, "*", "*_samples_motionbench.jsonl")) or
+                    glob.glob(os.path.join(args.results_dir, "*_samples_motionbench.jsonl")))
     if os.path.exists(results_jsonl):
         results = load_custom(args.results_dir)
+    elif samples_glob:
+        results = load_lmms_samples(args.results_dir)
     else:
         results = load_lmms_eval(args.results_dir)
 
