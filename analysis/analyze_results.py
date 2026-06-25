@@ -21,6 +21,14 @@ def _find_lmms_file(results_dir):
     return matches[0] if matches else None
 
 
+def _find_lmms_samples_file(results_dir):
+    """New lmms_eval format: timestamped *_samples_motionbench.jsonl under a model subdir."""
+    matches = glob.glob(os.path.join(results_dir, "*", "*_samples_motionbench.jsonl"))
+    if not matches:
+        matches = glob.glob(os.path.join(results_dir, "*_samples_motionbench.jsonl"))
+    return matches[0] if matches else None
+
+
 def _print_table(title, accuracy, correct, total_scoreable, na_skipped, by_cat, extra=""):
     print(f"\n{'='*65}")
     print(f"  {title}")
@@ -137,10 +145,61 @@ def analyze_lmms_eval(results_dir):
     )
 
 
+def analyze_lmms_samples(results_dir):
+    """New lmms_eval output format: *_samples_motionbench.jsonl with per-row metrics."""
+    samples_file = _find_lmms_samples_file(results_dir)
+    if not samples_file:
+        raise FileNotFoundError(f"No *_samples_motionbench.jsonl found under {results_dir}")
+
+    # Find the matching results json for model_args
+    results_json = samples_file.replace("_samples_motionbench.jsonl", "_results.json")
+    model_args = ""
+    if os.path.exists(results_json):
+        with open(results_json) as f:
+            rj = json.load(f)
+        model_args = rj.get("config", {}).get("model_args", "")
+
+    by_cat = defaultdict(lambda: {"correct": 0, "total": 0})
+    correct = 0
+    total_scoreable = 0
+    na_skipped = 0
+
+    with open(samples_file) as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            row = json.loads(line)
+            acc = row.get("motionbench_accuracy")
+            cat = row.get("category", row.get("doc", {}).get("question_type", "Unknown"))
+            if acc is None:
+                na_skipped += 1
+                continue
+            by_cat[cat]["total"] += 1
+            by_cat[cat]["correct"] += int(acc)
+            total_scoreable += 1
+            correct += int(acc)
+
+    accuracy = correct / total_scoreable if total_scoreable > 0 else 0.0
+    extra = f"  Model args: {model_args}" if model_args else ""
+
+    _print_table(
+        title=os.path.basename(results_dir.rstrip("/")),
+        accuracy=accuracy,
+        correct=correct,
+        total_scoreable=total_scoreable,
+        na_skipped=na_skipped,
+        by_cat=by_cat,
+        extra=extra,
+    )
+
+
 def analyze(results_dir):
     if (os.path.exists(os.path.join(results_dir, "results.jsonl")) and
             os.path.exists(os.path.join(results_dir, "summary.json"))):
         analyze_custom(results_dir)
+    elif _find_lmms_samples_file(results_dir):
+        analyze_lmms_samples(results_dir)
     else:
         analyze_lmms_eval(results_dir)
 
