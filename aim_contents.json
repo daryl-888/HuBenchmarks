@@ -1,0 +1,258 @@
+[
+  {
+    "name": ".dockerignore",
+    "path": ".dockerignore",
+    "sha": "e98058ee30350a2be1da90c47bf2f335ec21457b",
+    "size": 359,
+    "url": "https://api.github.com/repos/LaVi-Lab/AIM/contents/.dockerignore?ref=main",
+    "html_url": "https://github.com/LaVi-Lab/AIM/blob/main/.dockerignore",
+    "git_url": "https://api.github.com/repos/LaVi-Lab/AIM/git/blobs/e98058ee30350a2be1da90c47bf2f335ec21457b",
+    "download_url": "https://raw.githubusercontent.com/LaVi-Lab/AIM/main/.dockerignore",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/LaVi-Lab/AIM/contents/.dockerignore?ref=main",
+      "git": "https://api.github.com/repos/LaVi-Lab/AIM/git/blobs/e98058ee30350a2be1da90c47bf2f335ec21457b",
+      "html": "https://github.com/LaVi-Lab/AIM/blob/main/.dockerignore"
+    }
+  },
+  {
+    "name": ".editorconfig",
+    "path": ".editorconfig",
+    "sha": "d99a490bee397f969e93faa0c083b69674435ee8",
+    "size": 319,
+    "url": "https://api.github.com/repos/LaVi-Lab/AIM/contents/.editorconfig?ref=main",
+    "html_url": "https://github.com/LaVi-Lab/AIM/blob/main/.editorconfig",
+    "git_url": "https://api.github.com/repos/LaVi-Lab/AIM/git/blobs/d99a490bee397f969e93faa0c083b69674435ee8",
+    "download_url": "https://raw.githubusercontent.com/LaVi-Lab/AIM/main/.editorconfig",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/LaVi-Lab/AIM/contents/.editorconfig?ref=main",
+      "git": "https://api.github.com/repos/LaVi-Lab/AIM/git/blobs/d99a490bee397f969e93faa0c083b69674435ee8",
+      "html": "https://github.com/LaVi-Lab/AIM/blob/main/.editorconfig"
+    }
+  },
+  {
+    "name": ".gitattributes",
+    "path": ".gitattributes",
+    "sha": "5462cde720b76950382f4f83eb14d08ac438edaa",
+    "size": 772,
+    "url": "https://api.github.com/repos/LaVi-Lab/AIM/contents/.gitattributes?ref=main",
+    "html_url": "https://github.com/LaVi-Lab/AIM/blob/main/.gitattributes",
+    "git_url": "https://api.github.com/repos/LaVi-Lab/AIM/git/blobs/5462cde720b76950382f4f83eb14d08ac438edaa",
+    "download_url": "https://raw.githubusercontent.com/LaVi-Lab/AIM/main/.gitattributes",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/LaVi-Lab/AIM/contents/.gitattributes?ref=main",
+      "git": "https://api.github.com/repos/LaVi-Lab/AIM/git/blobs/5462cde720b76950382f4f83eb14d08ac438edaa",
+      "html": "https://github.com/LaVi-Lab/AIM/blob/main/.gitattributes"
+    }
+  },
+  {
+    "name": ".gitignore",
+    "path": ".gitignore",
+    "sha": "7d39e422a0804ef07803d88733abd8eb721f27e2",
+    "size": 916,
+    "url": "https://api.github.com/repos/LaVi-Lab/AIM/contents/.gitignore?ref=main",
+    "html_url": "https://github.com/LaVi-Lab/AIM/blob/main/.gitignore",
+    "git_url": "https://api.github.com/repos/LaVi-Lab/AIM/git/blobs/7d39e422a0804ef07803d88733abd8eb721f27e2",
+    "download_url": "https://raw.githubusercontent.com/LaVi-Lab/AIM/main/.gitignore",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/LaVi-Lab/AIM/contents/.gitignore?ref=main",
+      "git": "https://api.github.com/repos/LaVi-Lab/AIM/git/blobs/7d39e422a0804ef07803d88733abd8eb721f27e2",
+      "html": "https://github.com/LaVi-Lab/AIM/blob/main/.gitignore"
+    }
+  },
+  {
+    "name": "LICENSE",
+    "path": "LICENSE",
+    "sha": "261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64",
+    "size": 11357,
+    "url": "https://api.github.com/repos/LaVi-Lab/AIM/contents/LICENSE?ref=main",
+    "html_url": "https://github.com/LaVi-Lab/AIM/blob/main/LICENSE",
+    "git_url": "https://api.github.com/repos/LaVi-Lab/AIM/git/blobs/261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64",
+    "download_url": "https://raw.githubusercontent.com/LaVi-Lab/AIM/main/LICENSE",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/LaVi-Lab/AIM/contents/LICENSE?ref=main",
+      "git": "https://api.github.com/repos/LaVi-Lab/AIM/git/blobs/261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64",
+      "html": "https://github.com/LaVi-Lab/AIM/blob/main/LICENSE"
+    }
+  },
+  {
+    "name": "README.md",
+    "path": "README.md",
+    "sha": "cc05daaea4528de3d9535fe73c17704f3f892b88",
+    "size": 5430,
+    "url": "https://api.github.com/repos/LaVi-Lab/AIM/contents/README.md?ref=main",
+    "html_url": "https://github.com/LaVi-Lab/AIM/blob/main/README.md",
+    "git_url": "https://api.github.com/repos/LaVi-Lab/AIM/git/blobs/cc05daaea4528de3d9535fe73c17704f3f892b88",
+    "download_url": "https://raw.githubusercontent.com/LaVi-Lab/AIM/main/README.md",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/LaVi-Lab/AIM/contents/README.md?ref=main",
+      "git": "https://api.github.com/repos/LaVi-Lab/AIM/git/blobs/cc05daaea4528de3d9535fe73c17704f3f892b88",
+      "html": "https://github.com/LaVi-Lab/AIM/blob/main/README.md"
+    }
+  },
+  {
+    "name": "cog.yaml",
+    "path": "cog.yaml",
+    "sha": "55b739fd437a1897c1c1ec001f47aac2fbfdf68b",
+    "size": 981,
+    "url": "https://api.github.com/repos/LaVi-Lab/AIM/contents/cog.yaml?ref=main",
+    "html_url": "https://github.com/LaVi-Lab/AIM/blob/main/cog.yaml",
+    "git_url": "https://api.github.com/repos/LaVi-Lab/AIM/git/blobs/55b739fd437a1897c1c1ec001f47aac2fbfdf68b",
+    "download_url": "https://raw.githubusercontent.com/LaVi-Lab/AIM/main/cog.yaml",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/LaVi-Lab/AIM/contents/cog.yaml?ref=main",
+      "git": "https://api.github.com/repos/LaVi-Lab/AIM/git/blobs/55b739fd437a1897c1c1ec001f47aac2fbfdf68b",
+      "html": "https://github.com/LaVi-Lab/AIM/blob/main/cog.yaml"
+    }
+  },
+  {
+    "name": "docs",
+    "path": "docs",
+    "sha": "deac42893d6aef792c408326874d199e89d5edc0",
+    "size": 0,
+    "url": "https://api.github.com/repos/LaVi-Lab/AIM/contents/docs?ref=main",
+    "html_url": "https://github.com/LaVi-Lab/AIM/tree/main/docs",
+    "git_url": "https://api.github.com/repos/LaVi-Lab/AIM/git/trees/deac42893d6aef792c408326874d199e89d5edc0",
+    "download_url": null,
+    "type": "dir",
+    "_links": {
+      "self": "https://api.github.com/repos/LaVi-Lab/AIM/contents/docs?ref=main",
+      "git": "https://api.github.com/repos/LaVi-Lab/AIM/git/trees/deac42893d6aef792c408326874d199e89d5edc0",
+      "html": "https://github.com/LaVi-Lab/AIM/tree/main/docs"
+    }
+  },
+  {
+    "name": "llava",
+    "path": "llava",
+    "sha": "0ee7df96a318ea90ffe98ef99c3f31cbca588c8e",
+    "size": 0,
+    "url": "https://api.github.com/repos/LaVi-Lab/AIM/contents/llava?ref=main",
+    "html_url": "https://github.com/LaVi-Lab/AIM/tree/main/llava",
+    "git_url": "https://api.github.com/repos/LaVi-Lab/AIM/git/trees/0ee7df96a318ea90ffe98ef99c3f31cbca588c8e",
+    "download_url": null,
+    "type": "dir",
+    "_links": {
+      "self": "https://api.github.com/repos/LaVi-Lab/AIM/contents/llava?ref=main",
+      "git": "https://api.github.com/repos/LaVi-Lab/AIM/git/trees/0ee7df96a318ea90ffe98ef99c3f31cbca588c8e",
+      "html": "https://github.com/LaVi-Lab/AIM/tree/main/llava"
+    }
+  },
+  {
+    "name": "other_packages",
+    "path": "other_packages",
+    "sha": "983435f483fdf536abb9198e60a67132fffe0485",
+    "size": 0,
+    "url": "https://api.github.com/repos/LaVi-Lab/AIM/contents/other_packages?ref=main",
+    "html_url": "https://github.com/LaVi-Lab/AIM/tree/main/other_packages",
+    "git_url": "https://api.github.com/repos/LaVi-Lab/AIM/git/trees/983435f483fdf536abb9198e60a67132fffe0485",
+    "download_url": null,
+    "type": "dir",
+    "_links": {
+      "self": "https://api.github.com/repos/LaVi-Lab/AIM/contents/other_packages?ref=main",
+      "git": "https://api.github.com/repos/LaVi-Lab/AIM/git/trees/983435f483fdf536abb9198e60a67132fffe0485",
+      "html": "https://github.com/LaVi-Lab/AIM/tree/main/other_packages"
+    }
+  },
+  {
+    "name": "playground",
+    "path": "playground",
+    "sha": "5bf5d5c6b6a008b4d7e1f9bb5517339ac3e7ab66",
+    "size": 0,
+    "url": "https://api.github.com/repos/LaVi-Lab/AIM/contents/playground?ref=main",
+    "html_url": "https://github.com/LaVi-Lab/AIM/tree/main/playground",
+    "git_url": "https://api.github.com/repos/LaVi-Lab/AIM/git/trees/5bf5d5c6b6a008b4d7e1f9bb5517339ac3e7ab66",
+    "download_url": null,
+    "type": "dir",
+    "_links": {
+      "self": "https://api.github.com/repos/LaVi-Lab/AIM/contents/playground?ref=main",
+      "git": "https://api.github.com/repos/LaVi-Lab/AIM/git/trees/5bf5d5c6b6a008b4d7e1f9bb5517339ac3e7ab66",
+      "html": "https://github.com/LaVi-Lab/AIM/tree/main/playground"
+    }
+  },
+  {
+    "name": "pyproject.toml",
+    "path": "pyproject.toml",
+    "sha": "b1866536b5452a744ff13bd2bc09ae67db3e14e3",
+    "size": 1845,
+    "url": "https://api.github.com/repos/LaVi-Lab/AIM/contents/pyproject.toml?ref=main",
+    "html_url": "https://github.com/LaVi-Lab/AIM/blob/main/pyproject.toml",
+    "git_url": "https://api.github.com/repos/LaVi-Lab/AIM/git/blobs/b1866536b5452a744ff13bd2bc09ae67db3e14e3",
+    "download_url": "https://raw.githubusercontent.com/LaVi-Lab/AIM/main/pyproject.toml",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/LaVi-Lab/AIM/contents/pyproject.toml?ref=main",
+      "git": "https://api.github.com/repos/LaVi-Lab/AIM/git/blobs/b1866536b5452a744ff13bd2bc09ae67db3e14e3",
+      "html": "https://github.com/LaVi-Lab/AIM/blob/main/pyproject.toml"
+    }
+  },
+  {
+    "name": "requirements.txt",
+    "path": "requirements.txt",
+    "sha": "1a81cb8947d418a0bf88ca550114659e281438ff",
+    "size": 6026,
+    "url": "https://api.github.com/repos/LaVi-Lab/AIM/contents/requirements.txt?ref=main",
+    "html_url": "https://github.com/LaVi-Lab/AIM/blob/main/requirements.txt",
+    "git_url": "https://api.github.com/repos/LaVi-Lab/AIM/git/blobs/1a81cb8947d418a0bf88ca550114659e281438ff",
+    "download_url": "https://raw.githubusercontent.com/LaVi-Lab/AIM/main/requirements.txt",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/LaVi-Lab/AIM/contents/requirements.txt?ref=main",
+      "git": "https://api.github.com/repos/LaVi-Lab/AIM/git/blobs/1a81cb8947d418a0bf88ca550114659e281438ff",
+      "html": "https://github.com/LaVi-Lab/AIM/blob/main/requirements.txt"
+    }
+  },
+  {
+    "name": "scripts",
+    "path": "scripts",
+    "sha": "dc3ae70cc7638ffb0860491777cf0c946c844b8e",
+    "size": 0,
+    "url": "https://api.github.com/repos/LaVi-Lab/AIM/contents/scripts?ref=main",
+    "html_url": "https://github.com/LaVi-Lab/AIM/tree/main/scripts",
+    "git_url": "https://api.github.com/repos/LaVi-Lab/AIM/git/trees/dc3ae70cc7638ffb0860491777cf0c946c844b8e",
+    "download_url": null,
+    "type": "dir",
+    "_links": {
+      "self": "https://api.github.com/repos/LaVi-Lab/AIM/contents/scripts?ref=main",
+      "git": "https://api.github.com/repos/LaVi-Lab/AIM/git/trees/dc3ae70cc7638ffb0860491777cf0c946c844b8e",
+      "html": "https://github.com/LaVi-Lab/AIM/tree/main/scripts"
+    }
+  },
+  {
+    "name": "trl",
+    "path": "trl",
+    "sha": "56ab84a00b6b4d655c03f7f366a0df4afb7f284e",
+    "size": 0,
+    "url": "https://api.github.com/repos/LaVi-Lab/AIM/contents/trl?ref=main",
+    "html_url": "https://github.com/LaVi-Lab/AIM/tree/main/trl",
+    "git_url": "https://api.github.com/repos/LaVi-Lab/AIM/git/trees/56ab84a00b6b4d655c03f7f366a0df4afb7f284e",
+    "download_url": null,
+    "type": "dir",
+    "_links": {
+      "self": "https://api.github.com/repos/LaVi-Lab/AIM/contents/trl?ref=main",
+      "git": "https://api.github.com/repos/LaVi-Lab/AIM/git/trees/56ab84a00b6b4d655c03f7f366a0df4afb7f284e",
+      "html": "https://github.com/LaVi-Lab/AIM/tree/main/trl"
+    }
+  },
+  {
+    "name": "video_bench_eval.sh",
+    "path": "video_bench_eval.sh",
+    "sha": "e00c7e4e781369a94824864a53b0b9b2cb0bcf62",
+    "size": 1840,
+    "url": "https://api.github.com/repos/LaVi-Lab/AIM/contents/video_bench_eval.sh?ref=main",
+    "html_url": "https://github.com/LaVi-Lab/AIM/blob/main/video_bench_eval.sh",
+    "git_url": "https://api.github.com/repos/LaVi-Lab/AIM/git/blobs/e00c7e4e781369a94824864a53b0b9b2cb0bcf62",
+    "download_url": "https://raw.githubusercontent.com/LaVi-Lab/AIM/main/video_bench_eval.sh",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/LaVi-Lab/AIM/contents/video_bench_eval.sh?ref=main",
+      "git": "https://api.github.com/repos/LaVi-Lab/AIM/git/blobs/e00c7e4e781369a94824864a53b0b9b2cb0bcf62",
+      "html": "https://github.com/LaVi-Lab/AIM/blob/main/video_bench_eval.sh"
+    }
+  }
+]
