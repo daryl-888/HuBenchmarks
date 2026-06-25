@@ -327,7 +327,8 @@ Weights: `lmms-lab/llava-onevision-qwen2-7b-ov` → `/project/rhu/dpalfaro/weigh
 | PLLaVA-7B baseline | PLLaVA-7B | LLaMA-2 | 16 | 43.35% | Confirms backbone |
 | FlashVID (retention=0.10) | LLaVA-OV Qwen2 | Qwen 2 | 8 | 50.50% | ICLR 2026 Oral; pre-LLM merge; alpha=0.7; below baseline |
 | FlashVID (retention=0.25) | LLaVA-OV Qwen2 | Qwen 2 | 8 | 51.99% | Same config, higher retention; still below baseline |
-| VisionZip | LLaVA-1.5-7B | CLIP | 8 | 40.09% | dominant=54, contextual=10; LLaVA-1.5 backbone bottleneck |
+| VisionZip (8f) | LLaVA-1.5-7B | CLIP | 8 | 40.09% | dominant=54, contextual=10; LLaVA-1.5 backbone bottleneck |
+| VisionZip (32f) | LLaVA-1.5-7B | CLIP | 32 | 39.97% | Same params; more frames made no difference — backbone bottleneck confirmed |
 
 VideoITG per-category highlights: Motion-related Objects 70.1%, Repetition Count 26.5%.
 TrajViT and iMove: not runnable (retrieval-only / no weights released).
