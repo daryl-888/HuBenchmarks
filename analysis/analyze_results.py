@@ -194,10 +194,81 @@ def analyze_lmms_samples(results_dir):
     )
 
 
+# Fixed MotionBench scoreable totals per category (4,018 total, 4,034 NA).
+# Confirmed consistent across DyCoke, STTM, FastVID, VisionZip runs.
+_MB_CAT_TOTALS = {
+    "Motion Recognition":      1478,
+    "Motion-related Objects":   690,
+    "Location-related Motion":  546,
+    "Action Order":             519,
+    "Camera Motion":            385,
+    "Repetition Count":         400,
+}
+
+
+def _is_flashvid_native(results_dir):
+    """Detect FlashVID's own eval format: summary.json whose top-level key is a frame count."""
+    path = os.path.join(results_dir, "summary.json")
+    if not os.path.exists(path):
+        return False
+    if os.path.exists(os.path.join(results_dir, "results.jsonl")):
+        return False
+    try:
+        with open(path) as f:
+            d = json.load(f)
+        return any(k.isdigit() for k in d)
+    except Exception:
+        return False
+
+
+def analyze_flashvid_native(results_dir):
+    """FlashVID eval_flashvid_motionbench.py format: per-category accuracy ratios in summary.json."""
+    with open(os.path.join(results_dir, "summary.json")) as f:
+        d = json.load(f)
+
+    # Key is the frame count string (e.g. "8")
+    frame_key = next(k for k in d if k.isdigit())
+    s = d[frame_key]
+
+    right_num        = s["valid_non_na_right"]
+    valid_total      = s["valid_non_na_total"]
+    na_skipped       = s["total_qa_num"] - valid_total
+    accuracy         = s["valid_non_na_acc"]
+
+    # Reconstruct per-category correct counts from accuracy × known totals
+    by_cat = {}
+    for cat, total in _MB_CAT_TOTALS.items():
+        cat_acc = s.get(cat, 0.0)
+        correct = round(cat_acc * total)
+        by_cat[cat] = {"correct": correct, "total": total}
+
+    # Pull retention ratio from run_metadata.json if present
+    extra = f"  Frames:    {frame_key}"
+    meta_path = os.path.join(results_dir, "run_metadata.json")
+    if os.path.exists(meta_path):
+        with open(meta_path) as f:
+            meta = json.load(f)
+        retention = meta.get("retention_ratio") or meta.get("fastvid_retention_ratio")
+        if retention is not None:
+            extra += f"   retention_ratio={retention}"
+
+    _print_table(
+        title=os.path.basename(results_dir.rstrip("/")),
+        accuracy=accuracy,
+        correct=right_num,
+        total_scoreable=valid_total,
+        na_skipped=na_skipped,
+        by_cat=by_cat,
+        extra=extra,
+    )
+
+
 def analyze(results_dir):
     if (os.path.exists(os.path.join(results_dir, "results.jsonl")) and
             os.path.exists(os.path.join(results_dir, "summary.json"))):
         analyze_custom(results_dir)
+    elif _is_flashvid_native(results_dir):
+        analyze_flashvid_native(results_dir)
     elif _find_lmms_samples_file(results_dir):
         analyze_lmms_samples(results_dir)
     else:
