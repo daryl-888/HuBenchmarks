@@ -177,7 +177,6 @@ def main():
     args = parser.parse_args()
 
     random.seed(args.seed)
-    print(f"\nSampled from: {args.results_dir}")
 
     results_jsonl = os.path.join(args.results_dir, "results.jsonl")
     samples_glob = (glob.glob(os.path.join(args.results_dir, "*", "*_samples_motionbench.jsonl")) or
