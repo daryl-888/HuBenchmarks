@@ -110,26 +110,22 @@ def select_frames_mdp3(frames_np: np.ndarray, question: str, num_select: int) ->
     Run MDP3 frame selector on frames_np (N, H, W, C uint8).
     Returns list of PIL Images (length == num_select).
 
-    MDP3.select() API (from vlmeval/smp/mdp3_frame_selector.py):
-      selector = MDP3(num_frames=K)
-      selected = selector.select(pil_frame_list, question_text)
-      # returns list of PIL Images of length K
-
-    If MDP3 API changes, verify against the cloned repo on Carya.
+    Actual MDP3 API (vlmeval/smp/mdp3_frame_selector.py, ICCV 2025):
+      selector = MDP3("cuda")          # __init__(self, device="cuda")
+      selector.n_selection = K         # override default of 8
+      selected = selector(pil_list, question)   # __call__, returns List[PIL.Image]
     """
     from vlmeval.smp.mdp3_frame_selector import MDP3
 
     pil_frames = [Image.fromarray(f) for f in frames_np]
-    selector = MDP3(num_frames=num_select)
-    selected = selector.select(pil_frames, question)
-
-    # Normalize: if select() returns indices, convert to PIL
-    if selected and isinstance(selected[0], int):
-        selected = [pil_frames[i] for i in selected]
+    selector = MDP3("cuda")
+    selector.n_selection = num_select
+    selected = selector(pil_frames, question)
 
     # Fallback: if fewer frames returned than requested, pad with uniform sample
-    if len(selected) < num_select:
-        LOGGER.warning("MDP3 returned %d frames (expected %d), padding uniformly", len(selected), num_select)
+    if not selected or len(selected) < num_select:
+        LOGGER.warning("MDP3 returned %d frames (expected %d), padding uniformly",
+                       len(selected) if selected else 0, num_select)
         idxs = np.linspace(0, len(pil_frames) - 1, num_select, dtype=int)
         selected = [pil_frames[i] for i in idxs]
 
@@ -236,7 +232,7 @@ def main():
     args = parser.parse_args()
 
     os.makedirs(args.output_dir, exist_ok=True)
-    out_file = os.path.join(args.output_dir, "predictions.jsonl")
+    out_file = os.path.join(args.output_dir, "results.jsonl")
 
     done = set()
     if args.resume and os.path.exists(out_file):
@@ -327,6 +323,7 @@ def main():
     summary_file = os.path.join(args.output_dir, "summary.json")
     with open(summary_file, "w") as f:
         json.dump(summary, f, indent=2)
+    print(f"\nAccuracy: {correct}/{total} = {accuracy:.4f}  ({na_count} NA skipped)", flush=True)
     LOGGER.info("Results: %s", out_file)
     LOGGER.info("Summary: %s", summary_file)
 
