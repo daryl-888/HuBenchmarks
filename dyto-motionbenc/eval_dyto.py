@@ -1,43 +1,48 @@
 #!/usr/bin/env python3
 """
-DyTo × MotionBench — native DyTo pipeline (ICCV 2025).
+DyTo x MotionBench — Dynamic Token Merging for Zero-Shot Video Understanding (ICCV 2025).
 
-DyTo (Dynamic Token Merging) is a training-free zero-shot video understanding
-method that optimizes token efficiency through:
-  1. Hierarchical frame selection (temporal clustering)
-  2. Bipartite token merging inside the LLM
+DyTo applies two complementary strategies at inference time (no training):
+  1. FINCH-based hierarchical frame clustering → selects ~25 representative frames from 100
+  2. ToMe (Token Merging) with dynamic per-frame merge ratio → constrains total tokens to ~3,680
 
-Backbone: LLaVA-NeXT-Vicuna-7B (NOT LLaVA-OV-Qwen — different architecture)
+The temporal aggregation is triggered by a single keyword arg to model.generate():
+    temporal_aggregation="spatial_tome_finch_dynamic_all_frms"
+
+Source:     https://github.com/Jam1ezhang/DYTO
+            /project/rhu/dpalfaro/code/DYTO
+
+Backbone: LLaVA-NeXT Vicuna-7B (Llama-2 LLM, CLIP vision encoder).
+  NOT LLaVA-OV — different weights from the rest of the benchmark.
   Weights: /project/rhu/dpalfaro/weights/llava-v1.6-vicuna-7b
-  Conv template: vicuna_v1
+  Conv template: image_seq_v3 (DyTo-specific)
+  RoPE scaling factor: 2 (required for Llama-2 context extension)
 
-Source:     /project/rhu/dpalfaro/code/DYTO
-PYTHONPATH: DYTO/dyto/llava (patched LLaVA) : DYTO (dataset, prompt, utils)
-Conda env:  dyto
+--- ONE-TIME SETUP ON CARYA (login node) ---
 
-Env vars:
-    TEMPORAL_AGGREGATION=cluster   DyTo token merging mode (default: cluster).
-                                   Set to empty string to disable (baseline).
+1. Clone DyTo:
+   cd /project/rhu/dpalfaro/code
+   git clone https://github.com/Jam1ezhang/DYTO
 
-Setup on Carya:
-    1. Clone DYTO:
-       cd /project/rhu/dpalfaro/code && git clone https://github.com/Jam1ezhang/DYTO
+2. Download LLaVA-NeXT Vicuna-7B weights:
+   huggingface-cli download liuhaotian/llava-v1.6-vicuna-7b \\
+       --local-dir /project/rhu/dpalfaro/weights/llava-v1.6-vicuna-7b
 
-    2. Create conda env:
-       conda create --name dyto --clone dycoke11
-       /project/rhu/dpalfaro/conda/envs/dyto/bin/pip install -e /project/rhu/dpalfaro/code/DYTO
+3. Create conda env (fresh — DyTo needs torch==2.2.0, transformers==4.38.2):
+   conda create -n dyto python=3.10 -y
+   /project/rhu/dpalfaro/conda/envs/dyto/bin/pip install torch==2.2.0 torchvision==0.17.0 --index-url https://download.pytorch.org/whl/cu121
+   /project/rhu/dpalfaro/conda/envs/dyto/bin/pip install -e /project/rhu/dpalfaro/code/DYTO
+   /project/rhu/dpalfaro/conda/envs/dyto/bin/pip install finch-clust==0.2.0 decord
 
-    3. Download weights:
-       git lfs clone https://huggingface.co/liuhaotian/llava-v1.6-vicuna-7b \
-           /project/rhu/dpalfaro/weights/llava-v1.6-vicuna-7b
+4. Cache model (sets HF_HOME before offline job):
+   export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
+   # weights downloaded in step 2 are already local; no extra caching needed.
 
-Usage:
-    TEMPORAL_AGGREGATION=cluster \\
-    python eval_dyto.py \\
-        --model-path /project/rhu/dpalfaro/weights/llava-v1.6-vicuna-7b \\
-        --meta-file  /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \\
-        --output-dir /project/rhu/dpalfaro/results/dyto_run1 \\
-        [--num-frames 32] [--limit 10]
+Notes:
+- DyTo provides its own dyto.llava package — do NOT put HoliTom/LLaVA-NeXT on PYTHONPATH.
+- finch-clust (not just scikit-learn) is required for FINCH clustering inside DyTo.
+- RoPE scaling factor 2 is mandatory for Llama-2 to handle 100-frame token counts.
+- temporal_aggregation kwarg is intercepted in dyto/llava/model/llava_arch.py.
 """
 
 import argparse
@@ -46,7 +51,6 @@ import logging
 import os
 import re
 import sys
-from pathlib import Path
 
 import numpy as np
 import torch
@@ -56,23 +60,26 @@ from tqdm import tqdm
 LOGGER = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
+VIDEO_BASE  = "/project/rhu/MotionBench_Data/MotionBench"
+POST_PROMPT = "\nAnswer with the option's letter from the given choices directly."
+
 
 # ---------------------------------------------------------------------------
 # Video loading — subprocess-isolated for NFS stale-handle safety
 # ---------------------------------------------------------------------------
-def load_video_frames(video_path: Path, num_frames: int) -> np.ndarray:
+def load_video_frames(video_path: str, num_frames: int):
     """
-    Load video frames in a subprocess with a 60s timeout.
-    Returns (N, H, W, 3) uint8 numpy array.
-    On NFS stale-handle timeout or decode error, returns black frames.
+    Returns (pil_frames, image_sizes) matching DyTo's load_video() output format.
+    image_sizes: list of (width, height) tuples, one per frame.
     """
     import multiprocessing as _mp
     import queue as _queue
 
     def _worker(p, n, q):
         try:
+            import numpy as np
             from decord import VideoReader, cpu
-            vr = VideoReader(str(p), ctx=cpu(0))
+            vr = VideoReader(p, ctx=cpu(0))
             total = len(vr)
             idx = np.linspace(0, total - 1, n, dtype=np.int64).tolist()
             frames = vr.get_batch(idx).asnumpy()
@@ -88,108 +95,92 @@ def load_video_frames(video_path: Path, num_frames: int) -> np.ndarray:
     except _queue.Empty:
         proc.kill()
         proc.join(timeout=5)
-        LOGGER.warning("load_video_frames: timeout (NFS stale?), returning black frames: %s", video_path)
-        return np.zeros((num_frames, 336, 336, 3), dtype=np.uint8)
+        LOGGER.warning("load_video_frames: NFS timeout, returning black frames: %s", video_path)
+        black = np.zeros((num_frames, 336, 336, 3), dtype=np.uint8)
+        pil = [Image.fromarray(f) for f in black]
+        return pil, [pil[0].size] * num_frames
     proc.join(timeout=5)
     if proc.is_alive():
         proc.kill()
         proc.join(timeout=5)
     if status == "error":
-        LOGGER.warning("load_video_frames: decode error, returning black frames: %s — %s", video_path, data)
-        return np.zeros((num_frames, 336, 336, 3), dtype=np.uint8)
-    return data
+        LOGGER.warning("load_video_frames: decode error, returning black frames: %s — %s",
+                       video_path, data)
+        black = np.zeros((num_frames, 336, 336, 3), dtype=np.uint8)
+        pil = [Image.fromarray(f) for f in black]
+        return pil, [pil[0].size] * num_frames
+
+    pil_frames = [Image.fromarray(f) for f in data]
+    image_sizes = [img.size for img in pil_frames]  # (width, height) per PIL convention
+    return pil_frames, image_sizes
 
 
 # ---------------------------------------------------------------------------
-# Model loading — DyTo's patched LLaVA-NeXT (Vicuna backbone)
+# Model loading
 # ---------------------------------------------------------------------------
-def load_model(model_path: str, model_base: str = None):
-    """
-    Load DyTo's patched LLaVA-NeXT model.
-    Requires PYTHONPATH to include DYTO/dyto/llava (for `from llava...` imports).
-    """
-    from llava.model.builder import load_pretrained_model
-    from llava.mm_utils import get_model_name_from_path
-    from llava.utils import disable_torch_init
-
-    disable_torch_init()
+def load_model(model_path: str, rope_scaling_factor: int = 2):
+    from dyto.llava.model.builder import load_pretrained_model
+    from dyto.llava.mm_utils import get_model_name_from_path
 
     model_name = get_model_name_from_path(model_path)
-    tokenizer, model, image_processor, context_len = load_pretrained_model(
-        model_path, model_base, model_name,
+    tokenizer, model, image_processor, _ = load_pretrained_model(
+        model_path,
+        model_base=None,
+        model_name=model_name,
         device=torch.cuda.current_device(),
         device_map="cuda",
+        rope_scaling_factor=rope_scaling_factor,
     )
-    model = model.eval()
+    model.eval()
     return tokenizer, model, image_processor
 
 
 # ---------------------------------------------------------------------------
-# Inference — DyTo native generate() with temporal_aggregation
+# Inference
 # ---------------------------------------------------------------------------
 @torch.inference_mode()
-def run_inference(tokenizer, model, image_processor, frames: list,
-                  question: str, temporal_aggregation: str = None) -> str:
-    """
-    Run DyTo inference on a set of video frames.
-    Uses vicuna_v1 conv template (DyTo's backbone).
-    If temporal_aggregation is set, DyTo's token merging is applied.
-    """
-    from llava.mm_utils import tokenizer_image_token, process_images
-    from llava.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN
-    from llava.conversation import conv_templates
+def run_inference(tokenizer, model, image_processor, pil_frames, image_sizes,
+                  question: str, conv_template: str,
+                  temporal_aggregation: str) -> str:
+    from dyto.llava.mm_utils import tokenizer_image_token, process_images
+    from dyto.llava.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN
+    from dyto.llava.conversation import conv_templates
 
-    post_prompt = "\nAnswer with the option's letter from the given choices directly."
-    user_msg = DEFAULT_IMAGE_TOKEN + "\n" + question + post_prompt
-    conv = conv_templates["vicuna_v1"].copy()
+    user_msg = DEFAULT_IMAGE_TOKEN + "\n" + question + POST_PROMPT
+    conv = conv_templates[conv_template].copy()
     conv.append_message(conv.roles[0], user_msg)
     conv.append_message(conv.roles[1], None)
-    prompt_str = conv.get_prompt()
+    prompt = conv.get_prompt()
 
-    # Tokenize
     input_ids = tokenizer_image_token(
-        prompt_str, tokenizer, IMAGE_TOKEN_INDEX, return_tensors="pt"
+        prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors="pt"
     ).unsqueeze(0).cuda()
 
-    # Process images
-    image_tensor = process_images(frames, image_processor, model.config)
-    image_tensor = image_tensor.to(dtype=torch.float16, device="cuda", non_blocking=True)
-
-    # Get original frame sizes
-    w, h = frames[0].size
-    image_sizes = [(h, w)] * len(frames)
-
-    # Build generation kwargs
-    gen_kwargs = dict(
-        do_sample=False,
-        temperature=0,
-        max_new_tokens=16,
-        use_cache=True,
-    )
-
-    # Pass temporal_aggregation if set (DyTo's token merging hook)
-    if temporal_aggregation:
-        gen_kwargs["temporal_aggregation"] = temporal_aggregation
+    image_tensor = process_images(pil_frames, image_processor, model.config)
+    image_tensor = image_tensor.to(dtype=torch.float16, device="cuda")
 
     output_ids = model.generate(
         input_ids,
         images=image_tensor,
         image_sizes=image_sizes,
-        **gen_kwargs,
+        do_sample=False,
+        temperature=0,
+        max_new_tokens=16,
+        use_cache=True,
+        temporal_aggregation=temporal_aggregation,
     )
 
-    outputs = tokenizer.batch_decode(output_ids, skip_special_tokens=True)[0].strip()
-    return outputs
+    # Vicuna output includes full prompt — split on ASSISTANT:
+    full_text = tokenizer.batch_decode(output_ids, skip_special_tokens=True)[0].strip()
+    if "ASSISTANT:" in full_text:
+        return full_text.split("ASSISTANT:")[-1].strip()
+    return full_text
 
 
 # ---------------------------------------------------------------------------
 # Dataset helpers
 # ---------------------------------------------------------------------------
-VIDEO_BASE = "/project/rhu/MotionBench_Data/MotionBench"
-
-
-def find_video(video_path: str):
-    """Search for video in MotionBench subdirectories."""
+def find_video(video_path: str) -> str | None:
     for subdir in ("self-collected", "public-dataset"):
         full = os.path.join(VIDEO_BASE, subdir, video_path)
         if os.path.exists(full):
@@ -198,7 +189,6 @@ def find_video(video_path: str):
 
 
 def score_prediction(prediction: str, ground_truth: str):
-    """Score a prediction against ground truth. Returns None for NA samples."""
     gt = ground_truth.strip().upper()
     if gt == "NA":
         return None
@@ -211,99 +201,90 @@ def score_prediction(prediction: str, ground_truth: str):
 # Main
 # ---------------------------------------------------------------------------
 def main():
-    parser = argparse.ArgumentParser(description="DyTo × MotionBench evaluation")
-    parser.add_argument("--model-path", required=True,
-                        help="Path to LLaVA-NeXT-Vicuna-7B weights")
-    parser.add_argument("--model-base", default=None,
-                        help="Optional model base path")
-    parser.add_argument("--meta-file", required=True,
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model-path",     required=True,
+                        help="Path to llava-v1.6-vicuna-7b weights")
+    parser.add_argument("--meta-path",      required=True,
                         help="MotionBench JSONL metadata file")
-    parser.add_argument("--output-dir", required=True,
-                        help="Directory for results")
-    parser.add_argument("--num-frames", type=int, default=32,
-                        help="Number of frames to sample (default: 32)")
-    parser.add_argument("--limit", type=int, default=None,
-                        help="Cap number of samples for test runs (default: all)")
-    parser.add_argument("--resume", action="store_true",
-                        help="Skip samples already in results.jsonl")
+    parser.add_argument("--output-dir",     required=True)
+    parser.add_argument("--conv-template",  default="image_seq_v3",
+                        help="DyTo conversation template (default: image_seq_v3)")
+    parser.add_argument("--num-frames",     type=int, default=100,
+                        help="Frames extracted from video before DyTo selection (default: 100)")
+    parser.add_argument("--temporal-aggregation", default="spatial_tome_finch_dynamic_all_frms",
+                        help="DyTo temporal aggregation strategy")
+    parser.add_argument("--rope-scaling",   type=int, default=2,
+                        help="RoPE scaling factor for Llama-2 context extension (default: 2)")
+    parser.add_argument("--limit",          type=int, default=None)
+    parser.add_argument("--resume",         action="store_true",
+                        help="Skip samples already written to results.jsonl")
     args = parser.parse_args()
-
-    # DyTo temporal aggregation mode from env var
-    temporal_aggregation = os.environ.get("TEMPORAL_AGGREGATION", None)
-    if temporal_aggregation:
-        LOGGER.info("DyTo token merging enabled: TEMPORAL_AGGREGATION=%s", temporal_aggregation)
-    else:
-        LOGGER.info("DyTo token merging disabled (baseline mode)")
 
     os.makedirs(args.output_dir, exist_ok=True)
     out_file = os.path.join(args.output_dir, "results.jsonl")
 
-    # Resume support
     done = set()
     if args.resume and os.path.exists(out_file):
         with open(out_file) as f:
             for line in f:
                 r = json.loads(line)
-                done.add(r.get("uid", str(r.get("idx", ""))))
+                done.add(str(r.get("idx", "")))
         LOGGER.info("Resuming: %d samples already done", len(done))
 
-    # Load model
     LOGGER.info("Loading model from %s ...", args.model_path)
-    tokenizer, model, image_processor = load_model(args.model_path, args.model_base)
+    tokenizer, model, image_processor = load_model(
+        args.model_path, rope_scaling_factor=args.rope_scaling
+    )
 
-    # Load samples
     samples = []
-    with open(args.meta_file) as f:
+    with open(args.meta_path) as f:
         for line in f:
             line = line.strip()
             if line:
                 samples.append(json.loads(line))
     if args.limit:
         samples = samples[:args.limit]
-    LOGGER.info("Evaluating %d samples (%d frames each)",
-                len(samples), args.num_frames)
+    LOGGER.info("Evaluating %d samples (num_frames=%d, temporal_aggregation=%s)",
+                len(samples), args.num_frames, args.temporal_aggregation)
 
     results = []
-    scores = []
+    scores  = []
 
     with open(out_file, "a") as fout:
         for i, sample in enumerate(tqdm(samples, desc="Evaluating")):
-            uid = sample.get("uid", str(i))
-            if uid in done:
+            if str(i) in done:
                 continue
 
-            video_rel_path = sample["video_path"]
-            question = sample["qa"][0]["question"]
-            gt = sample["qa"][0]["answer"]
-            q_type = sample.get("question_type", "Unknown")
+            video_rel  = sample["video_path"]
+            question   = sample["qa"][0]["question"]
+            gt         = sample["qa"][0]["answer"]
+            q_type     = sample.get("question_type", "Unknown")
+            video_path = find_video(video_rel)
 
             prediction = ""
-            video_path = find_video(video_rel_path)
             if video_path is None:
-                LOGGER.warning("Video not found: %s", video_rel_path)
+                LOGGER.warning("Video not found: %s", video_rel)
             else:
                 try:
-                    frames_np = load_video_frames(Path(video_path), args.num_frames)
-                    frames_pil = [Image.fromarray(f) for f in frames_np]
-
+                    pil_frames, image_sizes = load_video_frames(video_path, args.num_frames)
                     prediction = run_inference(
                         tokenizer, model, image_processor,
-                        frames_pil, question,
-                        temporal_aggregation=temporal_aggregation,
+                        pil_frames, image_sizes,
+                        question, args.conv_template,
+                        args.temporal_aggregation,
                     )
                 except Exception as e:
-                    LOGGER.warning("Sample %d (%s): %s", i, video_rel_path, e)
+                    LOGGER.warning("Sample %d (%s): %s", i, video_rel, e)
                     torch.cuda.empty_cache()
 
             s = score_prediction(prediction, gt)
             rec = {
-                "uid": uid,
-                "idx": i,
-                "video_path": video_rel_path,
+                "idx":           i,
+                "video_path":    video_rel,
                 "question_type": q_type,
-                "ground_truth": gt,
-                "prediction": prediction,
-                "correct": s,
+                "ground_truth":  gt,
+                "prediction":    prediction,
+                "correct":       s,
             }
             fout.write(json.dumps(rec) + "\n")
             fout.flush()
@@ -311,30 +292,32 @@ def main():
             if s is not None:
                 scores.append(s)
 
-    total = len(scores)
-    correct = sum(scores)
+    total    = len(scores)
+    correct  = sum(scores)
     na_count = len(results) - total
     accuracy = correct / total if total > 0 else 0.0
 
-    LOGGER.info("Accuracy: %d/%d = %.4f  (%d NA skipped)", correct, total, accuracy, na_count)
+    print(f"\nAccuracy: {correct}/{total} = {accuracy:.4f}  ({na_count} NA skipped)", flush=True)
 
     summary = {
-        "accuracy": accuracy,
-        "correct": correct,
-        "total_scoreable": total,
+        "accuracy":         accuracy,
+        "correct":          correct,
+        "total_scoreable":  total,
         "total_na_skipped": na_count,
-        "total_samples": len(results),
-        "model": args.model_path,
-        "num_frames": args.num_frames,
-        "temporal_aggregation": temporal_aggregation,
+        "total_samples":    len(results),
+        "model":            args.model_path,
+        "dyto_params": {
+            "num_frames":            args.num_frames,
+            "temporal_aggregation":  args.temporal_aggregation,
+            "rope_scaling":          args.rope_scaling,
+            "conv_template":         args.conv_template,
+        },
     }
     summary_file = os.path.join(args.output_dir, "summary.json")
     with open(summary_file, "w") as f:
         json.dump(summary, f, indent=2)
-
-    print(f"\nAccuracy: {correct}/{total} = {accuracy:.4f}  ({na_count} NA skipped)", flush=True)
-    LOGGER.info("Results: %s", out_file)
-    LOGGER.info("Summary: %s", summary_file)
+    LOGGER.info("Results:  %s", out_file)
+    LOGGER.info("Summary:  %s", summary_file)
 
 
 if __name__ == "__main__":
