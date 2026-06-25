@@ -102,6 +102,16 @@ def load_lmms_eval(results_dir):
     return records
 
 
+def _extract_pred(resps):
+    """Extract prediction string from filtered_resps regardless of nesting."""
+    if not resps:
+        return ""
+    r = resps[0]
+    if isinstance(r, (list, tuple)):
+        return str(r[0]) if r else ""
+    return str(r)
+
+
 def load_lmms_samples(results_dir):
     """New lmms_eval format: timestamped *_samples_motionbench.jsonl."""
     matches = glob.glob(os.path.join(results_dir, "*", "*_samples_motionbench.jsonl"))
@@ -110,30 +120,51 @@ def load_lmms_samples(results_dir):
     if not matches:
         raise FileNotFoundError(f"No *_samples_motionbench.jsonl found under {results_dir}")
 
+    # Load full metadata to recover questions (full_docs:false strips doc fields)
+    meta_by_path = {}
+    try:
+        with open(DEFAULT_META) as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    m = json.loads(line)
+                    meta_by_path[m.get("video_path", "")] = m
+    except Exception:
+        pass
+
     records = []
     with open(matches[0]) as f:
         for line in f:
             line = line.strip()
             if not line:
                 continue
-            log = json.loads(line)
-            doc = log.get("doc", {})
-            resps = log.get("filtered_resps", [])
-            if resps and isinstance(resps[0], list):
-                pred = resps[0][0]
-            elif resps:
-                pred = resps[0]
-            else:
-                pred = ""
-            qa = doc.get("qa", [{}])[0]
+            try:
+                log = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            doc = log.get("doc") or {}
+            video_path = doc.get("video_path", "")
+            pred = _extract_pred(log.get("filtered_resps") or [])
+            acc = log.get("motionbench_accuracy")
+            cat = log.get("category") or doc.get("question_type", "Unknown")
+
+            # Recover question from metadata if doc is stripped
+            qa_list = doc.get("qa") or []
+            question = qa_list[0].get("question", "") if qa_list else ""
+            if not question and video_path in meta_by_path:
+                meta_qa = meta_by_path[video_path].get("qa", [{}])
+                question = meta_qa[0].get("question", "(question not found)") if meta_qa else "(question not found)"
+            if not question:
+                question = "(question not found)"
+
             records.append({
                 "idx":           log.get("doc_id", 0),
-                "video_path":    doc.get("video_path", ""),
-                "question_type": log.get("category", doc.get("question_type", "Unknown")),
+                "video_path":    video_path,
+                "question_type": cat,
                 "ground_truth":  log.get("target", ""),
                 "prediction":    pred,
-                "correct":       log.get("motionbench_accuracy"),
-                "question":      qa.get("question", "(question not found)"),
+                "correct":       acc,
+                "question":      question,
             })
     return records
 
@@ -146,6 +177,7 @@ def main():
     args = parser.parse_args()
 
     random.seed(args.seed)
+    print(f"\nSampled from: {args.results_dir}")
 
     results_jsonl = os.path.join(args.results_dir, "results.jsonl")
     samples_glob = (glob.glob(os.path.join(args.results_dir, "*", "*_samples_motionbench.jsonl")) or
