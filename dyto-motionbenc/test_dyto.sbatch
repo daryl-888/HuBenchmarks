@@ -19,7 +19,7 @@ export PYTHONNOUSERSITE=1
 unset HF_HUB_OFFLINE
 unset HF_DATASETS_OFFLINE
 export WORLD_SIZE=1
-export PYTHONPATH=/project/rhu/dpalfaro/code/DYTO:${PYTHONPATH:-}
+export PYTHONPATH=/project/rhu/dpalfaro/DYTO:${PYTHONPATH:-}
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
 export TRANSFORMERS_OFFLINE=1
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True

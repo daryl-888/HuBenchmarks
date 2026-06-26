@@ -36,6 +36,8 @@ SSH: `ssh -l dpalfaro carya.rcdc.uh.edu`
 | `/project/rhu/dpalfaro/code/prunevid-motionbenc` | synced from this repo |
 | `/project/rhu/dpalfaro/code/HoliTom` | HoliTom source (patched) |
 | `/project/rhu/dpalfaro/code/holitom-motionbenc` | synced from this repo |
+| `/project/rhu/dpalfaro/DYTO` | DyTo source (dpalfaro-owned clone, patched) |
+| `/project/rhu/dpalfaro/code/dyto-motionbenc` | synced from this repo |
 | `/project/rhu/dpalfaro/weights/llava-ov-7b` | LLaVA-OV-7B model weights |
 | `/project/rhu/dpalfaro/weights/pllava-7b` | PLLaVA-7B weights (PruneVid) |
 | `/project/rhu/dpalfaro/conda/envs/dycoke11` | main conda env |
@@ -322,8 +324,8 @@ Weights: `lmms-lab/llava-onevision-qwen2-7b-ov` → `/project/rhu/dpalfaro/weigh
 ## DyTo Setup Notes
 
 DyTo (Beyond Training: Dynamic Token Merging, ICCV 2025) uses LLaVA-NeXT Vicuna-7B.
-Source: `/project/rhu/dpalfaro/code/DYTO`
-PYTHONPATH: `DYTO` only — do NOT add HoliTom/LLaVA-NeXT (DyTo ships its own `dyto.llava`)
+Source: `/project/rhu/dpalfaro/DYTO` (dpalfaro-owned clone — `/code/DYTO` is owned by mahern69, not writable)
+PYTHONPATH: `/project/rhu/dpalfaro/DYTO` only — do NOT add HoliTom/LLaVA-NeXT (DyTo ships its own `dyto.llava`)
 
 ### Key design
 
@@ -339,7 +341,7 @@ Triggered by a single kwarg: `temporal_aggregation="spatial_tome_finch_dynamic_a
 conda create -n dyto python=3.10 -y
 /project/rhu/dpalfaro/conda/envs/dyto/bin/pip install torch==2.2.0 torchvision==0.17.0 \
     --index-url https://download.pytorch.org/whl/cu121
-/project/rhu/dpalfaro/conda/envs/dyto/bin/pip install -e /project/rhu/dpalfaro/code/DYTO
+/project/rhu/dpalfaro/conda/envs/dyto/bin/pip install -e /project/rhu/dpalfaro/DYTO
 /project/rhu/dpalfaro/conda/envs/dyto/bin/pip install finch-clust==0.2.0 decord
 ```
 
