@@ -109,6 +109,33 @@ To re-apply:
 
 ---
 
+---
+
+## DyTo
+
+Source repo: `/project/rhu/dpalfaro/code/DYTO`
+
+| Patch | Target on Carya |
+|---|---|
+| `dyto/patch_dyto_init.py` | run once; patches `DYTO/dyto/llava/__init__.py` in place |
+
+### Problem
+`dyto/llava/__init__.py` has `from .model import LlavaLlamaForCausalLM` at the top.
+DyTo ships its own `dyto.llava` package but `LlavaLlamaForCausalLM` is not exported from
+`dyto/llava/model/__init__.py`, causing an `ImportError` before any eval code runs.
+
+### Fix
+Wrap the import in try/except (same pattern as HoliTom's `llava_init.py` patch).
+
+Apply:
+```bash
+python3 /project/rhu/dpalfaro/code/dyto-motionbenc/patches/dyto/patch_dyto_init.py
+```
+
+Re-apply if DYTO repo is re-cloned or reset.
+
+---
+
 ## Why transformers 4.45.2?
 
 HoliTom's `holitom/modeling_qwen2.py` patches Qwen2's attention to read attention weights.
