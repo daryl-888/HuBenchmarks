@@ -16,7 +16,9 @@ module load Miniforge3/py3.10
 unset HF_HUB_OFFLINE
 unset HF_DATASETS_OFFLINE
 
-export PYTHONPATH=/project/rhu/dpalfaro/AIM/llava:/project/rhu/dpalfaro/AIM/other_packages/transformers/src:/project/rhu/dpalfaro/AIM/other_packages/lmms-eval:/project/rhu/dpalfaro/AIM:$PYTHONPATH
+# ~/.local packages (torch 2.3.1, torchvision 0.18.1) must come before conda env's
+# older torchvision to avoid register_fake AttributeError
+export PYTHONPATH=/home/dpalfaro/.local/lib/python3.11/site-packages:/project/rhu/dpalfaro/AIM/llava:/project/rhu/dpalfaro/AIM/other_packages/transformers/src:/project/rhu/dpalfaro/AIM/other_packages/lmms-eval:/project/rhu/dpalfaro/AIM:$PYTHONPATH
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
 export TRANSFORMERS_OFFLINE=1
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
