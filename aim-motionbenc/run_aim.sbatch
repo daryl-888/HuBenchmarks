@@ -21,7 +21,7 @@ unset HF_DATASETS_OFFLINE
 # AIM/llava — token merging in llava_arch.py
 # AIM/other_packages/transformers/src — patched Qwen2 with token pruning
 # AIM/other_packages/lmms-eval — patched lmms_eval with AIM configurations
-export PYTHONPATH=/project/rhu/dpalfaro/code/AIM/llava:/project/rhu/dpalfaro/code/AIM/other_packages/transformers/src:/project/rhu/dpalfaro/code/AIM/other_packages/lmms-eval:/project/rhu/dpalfaro/code/AIM:$PYTHONPATH
+export PYTHONPATH=/project/rhu/dpalfaro/AIM/llava:/project/rhu/dpalfaro/AIM/other_packages/transformers/src:/project/rhu/dpalfaro/AIM/other_packages/lmms-eval:/project/rhu/dpalfaro/AIM:$PYTHONPATH
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
 export TRANSFORMERS_OFFLINE=1
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True

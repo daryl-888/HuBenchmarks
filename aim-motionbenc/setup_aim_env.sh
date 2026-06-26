@@ -12,11 +12,11 @@ module purge
 module load Miniforge3/py3.10
 
 echo "=== Step 1: Clone AIM source ==="
-if [ ! -d /project/rhu/dpalfaro/code/AIM ]; then
-    cd /project/rhu/dpalfaro/code
-    git clone https://github.com/LaVi-Lab/AIM
+# Clone to dpalfaro-owned path — /code/ is owned by mahern69 (not writable)
+if [ ! -d /project/rhu/dpalfaro/AIM ]; then
+    git clone https://github.com/LaVi-Lab/AIM /project/rhu/dpalfaro/AIM
 else
-    echo "AIM already cloned at /project/rhu/dpalfaro/code/AIM, skipping."
+    echo "AIM already cloned at /project/rhu/dpalfaro/AIM, skipping."
 fi
 
 echo "=== Step 2: Create conda env ==="
@@ -33,16 +33,16 @@ $PIP install torch==2.3.1 torchvision==0.18.1 torchaudio==2.3.1 \
     --index-url https://download.pytorch.org/whl/cu121
 
 echo "=== Step 4: Install AIM (main package) ==="
-$PIP install -e "/project/rhu/dpalfaro/code/AIM[train]"
+$PIP install -e "/project/rhu/dpalfaro/AIM[train]"
 
 echo "=== Step 5: Install AIM's custom transformers ==="
-$PIP install -e /project/rhu/dpalfaro/code/AIM/other_packages/transformers
+$PIP install -e /project/rhu/dpalfaro/AIM/other_packages/transformers
 
 echo "=== Step 6: Install AIM's custom lmms-eval ==="
-$PIP install -e /project/rhu/dpalfaro/code/AIM/other_packages/lmms-eval
+$PIP install -e /project/rhu/dpalfaro/AIM/other_packages/lmms-eval
 
 echo "=== Step 7: Install qwen-vl-utils ==="
-$PIP install -e /project/rhu/dpalfaro/code/AIM/other_packages/qwen-vl-utils
+$PIP install -e /project/rhu/dpalfaro/AIM/other_packages/qwen-vl-utils
 
 echo "=== Step 8: Cache LLaVA-OV-Qwen2 model (if not already cached) ==="
 # Weights already at /project/rhu/dpalfaro/weights/llava-ov-7b-qwen2 from FlashVID run
