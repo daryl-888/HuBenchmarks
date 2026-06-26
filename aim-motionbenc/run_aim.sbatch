@@ -44,4 +44,4 @@ cd /project/rhu/dpalfaro
     --log_samples \
     --log_samples_suffix aim_motionbench \
     --output_path /project/rhu/dpalfaro/results/aim_run1 \
-    --include_path /project/rhu/dpalfaro/code/aim-motionbenc/tasks
+    --include_path /project/rhu/dpalfaro/aim-motionbenc/tasks

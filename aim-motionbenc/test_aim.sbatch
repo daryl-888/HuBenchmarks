@@ -36,4 +36,4 @@ cd /project/rhu/dpalfaro
     --log_samples \
     --log_samples_suffix aim_test \
     --output_path /project/rhu/dpalfaro/results/aim_test_${SLURM_JOB_ID} \
-    --include_path /project/rhu/dpalfaro/code/aim-motionbenc/tasks
+    --include_path /project/rhu/dpalfaro/aim-motionbenc/tasks
