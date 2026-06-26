@@ -62,7 +62,7 @@ unset HF_HUB_OFFLINE
 unset HF_DATASETS_OFFLINE
 export WORLD_SIZE=1
 # DyTo provides its own dyto.llava package — do NOT add HoliTom/LLaVA-NeXT to PYTHONPATH
-export PYTHONPATH=/project/rhu/dpalfaro/DYTO:${PYTHONPATH:-}
+export PYTHONPATH=/project/rhu/dpalfaro/DYTO:/project/rhu/dpalfaro/DYTO/dyto:${PYTHONPATH:-}
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
 export TRANSFORMERS_OFFLINE=1
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
