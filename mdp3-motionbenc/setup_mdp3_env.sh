@@ -32,7 +32,9 @@ echo "=== Step 3: Install MDP3 package ==="
 $PIP install -e /project/rhu/dpalfaro/code/MDP3
 
 echo "=== Step 4: Install extra deps ==="
-$PIP install torchvision pysubs2
+# --no-deps for torchvision: prevents pip from replacing conda's CUDA-bundled torch
+$PIP install torchvision --no-deps
+$PIP install pysubs2
 
 echo "=== Step 5: Cache SigLip model (requires internet) ==="
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
