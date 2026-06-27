@@ -32,11 +32,15 @@ echo "=== Step 3: Install MDP3 package ==="
 $PIP install -e /project/rhu/dpalfaro/code/MDP3
 
 echo "=== Step 4: Install extra deps ==="
-# --no-deps for torchvision: prevents pip from replacing conda's CUDA-bundled torch
-$PIP install torchvision --no-deps
 $PIP install pysubs2
 
-echo "=== Step 5: Cache SigLip model (requires internet) ==="
+echo "=== Step 5: Reinstall CUDA-bundled torch (pip install MDP3 overwrites conda's torch) ==="
+# MDP3's setup.py pulls in PyPI torch which lacks bundled CUDA libs → libcudart not found
+# Force-reinstall from pytorch.org/whl/cu121 which bundles libcudart, libcublas, etc.
+$PIP install torch==2.3.1 torchvision==0.18.1 \
+    --index-url https://download.pytorch.org/whl/cu121
+
+echo "=== Step 6: Cache SigLip model (requires internet) ==="
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
 $PYTHON -c "
 from transformers import AutoModel, AutoProcessor

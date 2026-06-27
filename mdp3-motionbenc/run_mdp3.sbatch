@@ -21,9 +21,11 @@
 # 2. Create conda env (clone holitom for compatible transformers==4.45.2):
 #    conda create --name mdp3 --clone holitom
 #
-# 3. Install MDP3 and extras:
+# 3. Install MDP3 and extras (torch reinstall required — MDP3's setup.py overwrites conda torch):
 #    /project/rhu/dpalfaro/conda/envs/mdp3/bin/pip install -e /project/rhu/dpalfaro/code/MDP3
-#    /project/rhu/dpalfaro/conda/envs/mdp3/bin/pip install torchvision pysubs2
+#    /project/rhu/dpalfaro/conda/envs/mdp3/bin/pip install pysubs2
+#    /project/rhu/dpalfaro/conda/envs/mdp3/bin/pip install torch==2.3.1 torchvision==0.18.1 \
+#        --index-url https://download.pytorch.org/whl/cu121
 #
 # 4. Cache SigLip (MDP3 frame selector uses it; must be cached before offline GPU job):
 #    /project/rhu/dpalfaro/conda/envs/mdp3/bin/python3 -c "
