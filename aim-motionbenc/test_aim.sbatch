@@ -16,8 +16,7 @@ module load Miniforge3/py3.10
 unset HF_HUB_OFFLINE
 unset HF_DATASETS_OFFLINE
 
-# ~/.local packages (torch 2.3.1, torchvision 0.18.1) must come before conda env's
-# older torchvision to avoid register_fake AttributeError
+# AIM's patched packages must come first in PYTHONPATH
 export PYTHONPATH=/home/dpalfaro/.local/lib/python3.11/site-packages:/project/rhu/dpalfaro/AIM/llava:/project/rhu/dpalfaro/AIM/other_packages/transformers/src:/project/rhu/dpalfaro/AIM/other_packages/lmms-eval:/project/rhu/dpalfaro/AIM:$PYTHONPATH
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
 export TRANSFORMERS_OFFLINE=1
@@ -26,7 +25,12 @@ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 cd /project/rhu/dpalfaro
 
 # Smoke test: 50 samples
-/project/rhu/dpalfaro/conda/envs/aim/bin/accelerate launch \
+# Use python -m accelerate.commands.launch instead of the accelerate binary.
+# The `accelerate` CLI binary imports accelerate_cli.py which eagerly imports estimate.py
+# which imports timm which imports torchvision against the conda env's old torch →
+# AttributeError: module 'torch.library' has no attribute 'register_fake'.
+# python -m accelerate.commands.launch bypasses that import chain entirely.
+/project/rhu/dpalfaro/conda/envs/aim/bin/python3 -m accelerate.commands.launch \
     --num_processes=1 --gpu_ids 0 --main_process_port 25666 \
     -m lmms_eval \
     --model llava_onevision \

@@ -33,7 +33,9 @@ cd /project/rhu/dpalfaro
 # attn_implementation=eager enables token pruning (reads attention weights)
 # merge_ratio=0.125: retain ~12.5% of visual tokens after merging (default paper: 25%)
 # l1=14, l2=22: pruning scheduler params (from paper Table 5, Exp 6)
-/project/rhu/dpalfaro/conda/envs/aim/bin/accelerate launch \
+# Use python -m accelerate.commands.launch (not the accelerate binary) to avoid
+# the accelerate_cli.py → estimate.py → timm → torchvision register_fake crash.
+/project/rhu/dpalfaro/conda/envs/aim/bin/python3 -m accelerate.commands.launch \
     --num_processes=1 --gpu_ids 0 --main_process_port 25666 \
     -m lmms_eval \
     --model llava_onevision \
