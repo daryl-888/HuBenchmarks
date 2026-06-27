@@ -35,10 +35,12 @@ echo "=== Step 4: Install extra deps ==="
 $PIP install pysubs2
 
 echo "=== Step 5: Reinstall CUDA-bundled torch (pip install MDP3 overwrites conda's torch) ==="
-# MDP3's setup.py pulls in PyPI torch which lacks bundled CUDA libs → libcudart not found
-# Force-reinstall from pytorch.org/whl/cu121 which bundles libcudart, libcublas, etc.
-$PIP install torch==2.3.1 torchvision==0.18.1 \
-    --index-url https://download.pytorch.org/whl/cu121
+# MDP3's setup.py pulls in PyPI torch which lacks bundled CUDA libs → libcudart not found.
+# Reinstall from pytorch.org/whl/cu121 which bundles libcudart, libcublas, etc.
+# --no-deps for torchvision: pip's resolver otherwise upgrades to 0.27.x (requires torch 2.7+)
+# because some package in the environment declares torchvision>=0.27.
+$PIP install torch==2.3.1 --index-url https://download.pytorch.org/whl/cu121
+$PIP install torchvision==0.18.1 --no-deps --index-url https://download.pytorch.org/whl/cu121
 
 echo "=== Step 6: Cache SigLip model (requires internet) ==="
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
