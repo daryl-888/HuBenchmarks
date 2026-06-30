@@ -23,7 +23,7 @@ echo "=== Step 2: Create conda env ==="
 if [ -d /project/rhu/dpalfaro/conda/envs/aim ]; then
     echo "aim env already exists, skipping."
 else
-    conda create -n aim python=3.10.14 -y
+    conda create -n aim python=3.11 -y
 fi
 
 PIP=/project/rhu/dpalfaro/conda/envs/aim/bin/pip

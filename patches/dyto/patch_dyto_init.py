@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
 """
-Patch /project/rhu/dpalfaro/code/DYTO/dyto/llava/__init__.py
+Patch /project/rhu/dpalfaro/DYTO/dyto/llava/__init__.py
 to wrap the LlavaLlamaForCausalLM import in try/except.
+
+DYTO is cloned to /project/rhu/dpalfaro/DYTO (dpalfaro-owned).
+/project/rhu/dpalfaro/code/DYTO is owned by mahern69 — do not use.
 
 Run on Carya login node (no GPU needed):
     python3 /project/rhu/dpalfaro/code/dyto-motionbenc/patches/dyto/patch_dyto_init.py
 """
 import sys
 
-TARGET = "/project/rhu/dpalfaro/code/DYTO/dyto/llava/__init__.py"
+TARGET = "/project/rhu/dpalfaro/DYTO/dyto/llava/__init__.py"
 
 OLD = "from .model import LlavaLlamaForCausalLM"
 NEW = "try:\n    from .model import LlavaLlamaForCausalLM\nexcept ImportError:\n    pass"
