@@ -21,10 +21,17 @@
 # 2. Create conda env (clone holitom for compatible transformers==4.45.2):
 #    conda create --name mdp3 --clone holitom
 #
-# 3. Install MDP3 and extras (torch reinstall required — MDP3's setup.py overwrites conda torch):
+# 3. Install MDP3 and extras:
 #    /project/rhu/dpalfaro/conda/envs/mdp3/bin/pip install -e /project/rhu/dpalfaro/code/MDP3
 #    /project/rhu/dpalfaro/conda/envs/mdp3/bin/pip install pysubs2
-#    /project/rhu/dpalfaro/conda/envs/mdp3/bin/pip install torch==2.3.1 torchvision==0.18.1 \
+#
+# 3b. Install torch==2.3.1 + torchvision==0.18.1 to a dpalfaro-owned target dir.
+#     The conda env (cloned from holitom) has torch 2.6.0; installing over it is
+#     unreliable (EACCES or broken libcudart). Use --target to shadow it via PYTHONPATH.
+#    mkdir -p /project/rhu/dpalfaro/mdp3_pkgs
+#    /project/rhu/dpalfaro/conda/envs/mdp3/bin/pip install \
+#        torch==2.3.1 torchvision==0.18.1 --no-deps \
+#        --target /project/rhu/dpalfaro/mdp3_pkgs \
 #        --index-url https://download.pytorch.org/whl/cu121
 #
 # 4. Cache SigLip (MDP3 frame selector uses it; must be cached before offline GPU job):
@@ -46,8 +53,11 @@ export PYTHONNOUSERSITE=1
 unset HF_HUB_OFFLINE
 unset HF_DATASETS_OFFLINE
 export WORLD_SIZE=1
-# MDP3 (vlmeval frame selector) must come first; LLaVA-NeXT provides the llava model loader
-export PYTHONPATH=/project/rhu/dpalfaro/code/MDP3:/project/rhu/dpalfaro/code/HoliTom/LLaVA-NeXT:${PYTHONPATH:-}
+# mdp3_pkgs: torch==2.3.1 + torchvision==0.18.1 installed via pip --target into a
+# dpalfaro-owned dir. The conda env's torch is broken (2.6.0→2.3.1 --ignore-installed
+# left libcudart.so.12 missing). mdp3_pkgs must be FIRST to shadow the conda env.
+# MDP3 (vlmeval frame selector) must come before LLaVA-NeXT (llava model loader).
+export PYTHONPATH=/project/rhu/dpalfaro/mdp3_pkgs:/project/rhu/dpalfaro/code/MDP3:/project/rhu/dpalfaro/code/HoliTom/LLaVA-NeXT:${PYTHONPATH:-}
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
 export TRANSFORMERS_OFFLINE=1
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True

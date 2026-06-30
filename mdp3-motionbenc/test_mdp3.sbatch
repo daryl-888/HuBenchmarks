@@ -19,7 +19,10 @@ export PYTHONNOUSERSITE=1
 unset HF_HUB_OFFLINE
 unset HF_DATASETS_OFFLINE
 export WORLD_SIZE=1
-export PYTHONPATH=/project/rhu/dpalfaro/code/MDP3:/project/rhu/dpalfaro/code/HoliTom/LLaVA-NeXT:${PYTHONPATH:-}
+# mdp3_pkgs: torch==2.3.1 + torchvision==0.18.1 installed via pip --target into a
+# dpalfaro-owned dir. The conda env's torch is broken (2.6.0→2.3.1 --ignore-installed
+# left libcudart.so.12 missing). mdp3_pkgs must be FIRST to shadow the conda env.
+export PYTHONPATH=/project/rhu/dpalfaro/mdp3_pkgs:/project/rhu/dpalfaro/code/MDP3:/project/rhu/dpalfaro/code/HoliTom/LLaVA-NeXT:${PYTHONPATH:-}
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
 export TRANSFORMERS_OFFLINE=1
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
