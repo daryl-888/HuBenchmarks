@@ -16,11 +16,13 @@ module load Miniforge3/py3.10
 unset HF_HUB_OFFLINE
 unset HF_DATASETS_OFFLINE
 
-# AIM's patched packages must come first in PYTHONPATH
+# aim_pkgs: dpalfaro-owned dir with torch==2.3.1 + torchvision==0.18.1 installed via
+# pip install --target (conda env is owned by mahern69 — can't force-reinstall into it).
+# Must come FIRST so these shadow the conda env's incompatible torch/torchvision.
 # AIM/llava — token merging in llava_arch.py
 # AIM/other_packages/transformers/src — patched Qwen2 with token pruning
 # AIM/other_packages/lmms-eval — patched lmms_eval with AIM configurations
-export PYTHONPATH=/home/dpalfaro/.local/lib/python3.11/site-packages:/project/rhu/dpalfaro/AIM/llava:/project/rhu/dpalfaro/AIM/other_packages/transformers/src:/project/rhu/dpalfaro/AIM/other_packages/lmms-eval:/project/rhu/dpalfaro/AIM:$PYTHONPATH
+export PYTHONPATH=/project/rhu/dpalfaro/aim_pkgs:/project/rhu/dpalfaro/AIM/llava:/project/rhu/dpalfaro/AIM/other_packages/transformers/src:/project/rhu/dpalfaro/AIM/other_packages/lmms-eval:/project/rhu/dpalfaro/AIM:$PYTHONPATH
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
 export TRANSFORMERS_OFFLINE=1
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
