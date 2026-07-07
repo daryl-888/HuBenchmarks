@@ -29,11 +29,11 @@ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 cd /project/rhu/dpalfaro
 
 /project/rhu/dpalfaro/conda/envs/dyto/bin/python3 \
-    /project/rhu/dpalfaro/code/dyto-motionbenc/eval_dyto.py \
+    /project/rhu/dpalfaro/dyto-motionbenc/eval_dyto.py \
     --model-path   /project/rhu/dpalfaro/weights/llava-v1.6-vicuna-7b \
     --meta-path    /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
     --output-dir   /project/rhu/dpalfaro/results/dyto_test_${SLURM_JOB_ID} \
-    --conv-template image_seq_v3 \
+    --conv-template vicuna_v1 \
     --num-frames   100 \
     --temporal-aggregation spatial_tome_finch_dynamic_all_frms \
     --rope-scaling 2 \
