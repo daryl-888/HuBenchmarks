@@ -21,7 +21,8 @@ unset HF_DATASETS_OFFLINE
 export WORLD_SIZE=1
 # DYTO/dyto must be on PYTHONPATH so builder.py's "from llava.model import *" resolves.
 # Also need finch-clust installed in the conda env.
-export PYTHONPATH=/project/rhu/dpalfaro/DYTO:/project/rhu/dpalfaro/DYTO/dyto:${PYTHONPATH:-}
+# dyto_pkgs: finch-clust installed via pip install --target (conda env is mahern69-owned)
+export PYTHONPATH=/project/rhu/dpalfaro/dyto_pkgs:/project/rhu/dpalfaro/DYTO:/project/rhu/dpalfaro/DYTO/dyto:${PYTHONPATH:-}
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
 export TRANSFORMERS_OFFLINE=1
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
