@@ -30,14 +30,20 @@ def load_video_frames(video_path: str, num_frames: int):
     except _queue.Empty:
         proc.kill(); proc.join(timeout=5)
         black = np.zeros((num_frames, 336, 336, 3), dtype=np.uint8)
-        return [Image.fromarray(f) for f in black], [black[0].shape[:2][::-1]] * num_frames
+        pil = [Image.fromarray(f) for f in black]
+        sizes = torch.tensor([[img.size[1], img.size[0]] for img in pil])
+        return pil, sizes
     proc.join(timeout=5)
     if proc.is_alive(): proc.kill(); proc.join(timeout=5)
     if status == "error":
         black = np.zeros((num_frames, 336, 336, 3), dtype=np.uint8)
-        return [Image.fromarray(f) for f in black], [black[0].shape[:2][::-1]] * num_frames
+        pil = [Image.fromarray(f) for f in black]
+        sizes = torch.tensor([[img.size[1], img.size[0]] for img in pil])
+        return pil, sizes
     pil = [Image.fromarray(f) for f in data]
-    return pil, [img.size for img in pil]
+    # image_sizes: (N, 2) tensor of (height, width) — model expects tensor, not list of tuples
+    sizes = torch.tensor([[img.size[1], img.size[0]] for img in pil])  # PIL.size = (w, h)
+    return pil, sizes
 
 # CRITICAL: Do NOT use device_map="auto" (the builder's default is "auto").
 # device_map causes meta-device loading which silently drops vision encoder weights.
