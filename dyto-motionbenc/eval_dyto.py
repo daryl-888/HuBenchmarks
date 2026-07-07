@@ -127,10 +127,9 @@ def load_model(model_path: str, rope_scaling_factor: int = 2):
         model_path,
         model_base=None,
         model_name=model_name,
-        device=torch.cuda.current_device(),
-        device_map="cuda",
         rope_scaling_factor=rope_scaling_factor,
     )
+    model = model.cuda()
     model.eval()
     return tokenizer, model, image_processor
 
