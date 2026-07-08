@@ -2,17 +2,27 @@
 
 ## Architecture
 
-Each model is a self-contained subdirectory with a consistent structure:
+Models are organized by backbone into three top-level directories:
+
+```
+llava-ov-7b/              # LLaVA-OV-7B (Qwen 1.5) — 5 original + 3 ported
+llava-ov-7b-qwen2/        # LLaVA-OV-7B-Qwen2 (Qwen2) — 3 original + 5 ported
+other_backbones/          # Non-LLaVA-OV models (STTM, DyTo, PruneVid, VisionZip, etc.)
+```
+
+Each model is a self-contained subdirectory:
 
 ```
 <model>-motionbenc/
-  test_<model>.sbatch     # --limit 50 smoke test
+  test_<model>.sbatch     # smoke test (limit varies)
   run_<model>.sbatch      # full evaluation (no limit)
-  run_baseline.sbatch     # vanilla LLaVA-OV-7B comparison (for applicable models)
+  run_baseline.sbatch     # vanilla backbone comparison
   eval_<model>.py         # custom evaluation script (or uses lmms_eval)
   tasks/motionbench/
     motionbench.yaml      # lmms_eval task definition
     utils.py              # doc_to_visual, doc_to_text, process_results, aggregate
+  strict/                 # strict evaluation variants
+  PORTED.md               # present if ported from other backbone (needs verification run)
 ```
 
 ## Key Design Patterns

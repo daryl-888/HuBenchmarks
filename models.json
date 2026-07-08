@@ -1,0 +1,48 @@
+{
+  "benchmark": "MotionBench",
+  "description": "Efficient video understanding LLMs benchmarked on MotionBench (8,052 samples, ~4,018 scoreable)",
+  "updated": "2026-07-07",
+  "backbones": {
+    "llava-ov-7b": {
+      "alias": "Qwen 1.5",
+      "weights": "/project/rhu/dpalfaro/weights/llava-ov-7b",
+      "conv_template": "qwen_1_5",
+      "baseline_accuracy": 52.69,
+      "models": [
+        {"name": "dycoke", "accuracy": 53.46, "status": "complete", "ported": false},
+        {"name": "holitom", "accuracy": 53.11, "status": "complete", "ported": false},
+        {"name": "videoitg", "accuracy": 52.51, "status": "complete", "ported": false},
+        {"name": "mdp3", "accuracy": 53.25, "status": "running_partial", "ported": false},
+        {"name": "fastv", "accuracy": null, "status": "not_run", "ported": false},
+        {"name": "aim", "accuracy": null, "status": "ported_needs_run", "ported": true, "ported_from": "llava-ov-7b-qwen2"},
+        {"name": "fastvid", "accuracy": null, "status": "ported_needs_run", "ported": true, "ported_from": "llava-ov-7b-qwen2"},
+        {"name": "flashvid", "accuracy": null, "status": "ported_needs_run", "ported": true, "ported_from": "llava-ov-7b-qwen2"}
+      ]
+    },
+    "llava-ov-7b-qwen2": {
+      "alias": "Qwen2",
+      "weights": "/project/rhu/dpalfaro/weights/llava-ov-7b-qwen2",
+      "conv_template": "qwen_2",
+      "baseline_accuracy": null,
+      "models": [
+        {"name": "aim", "accuracy": null, "status": "pending", "ported": false, "job_id": 7662787},
+        {"name": "fastvid", "accuracy": 51.92, "status": "complete", "ported": false},
+        {"name": "flashvid", "accuracy": 51.99, "status": "complete", "ported": false},
+        {"name": "dycoke", "accuracy": null, "status": "ported_needs_run", "ported": true, "ported_from": "llava-ov-7b"},
+        {"name": "fastv", "accuracy": null, "status": "ported_needs_run", "ported": true, "ported_from": "llava-ov-7b"},
+        {"name": "holitom", "accuracy": null, "status": "ported_needs_run", "ported": true, "ported_from": "llava-ov-7b"},
+        {"name": "mdp3", "accuracy": null, "status": "ported_needs_run", "ported": true, "ported_from": "llava-ov-7b"},
+        {"name": "videoitg", "accuracy": null, "status": "ported_needs_run", "ported": true, "ported_from": "llava-ov-7b"}
+      ]
+    },
+    "other": [
+      {"name": "sttm-llavavid", "accuracy": 54.28, "status": "complete", "backbone": "LLaVA-Video-7B", "note": "CORRECT STTM evaluation"},
+      {"name": "incorrect_sttm", "accuracy": 51.77, "status": "invalid", "backbone": "LLaVA-OV-7B (WRONG)", "note": "STTM requires Qwen2; results below baseline"},
+      {"name": "dyto", "accuracy": null, "status": "pending", "backbone": "LLaVA-NeXT-Vicuna-7B", "job_id": 7662788},
+      {"name": "prunevid", "accuracy": 43.80, "status": "complete", "backbone": "PLLaVA-7B"},
+      {"name": "visionzip", "accuracy": 40.09, "status": "complete", "backbone": "LLaVA-v1.5-7B"},
+      {"name": "imove", "accuracy": null, "status": "no_code", "backbone": "N/A"},
+      {"name": "trajvit", "accuracy": null, "status": "no_weights", "backbone": "N/A"}
+    ]
+  }
+}

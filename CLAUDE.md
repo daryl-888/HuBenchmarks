@@ -143,20 +143,42 @@ Scan completed 2026-05-27: 5,385 scanned, found 1 (missed l0w4V7yPdPJQQphx.mp4).
 ## Repo Structure
 
 ```
-dycoke-motionbenc/      DyCoke  (l=3, p=0.8, k=0.3)
-sttm-motionbenc/        STTM (two-step: extract features → inference)
-holitom-motionbenc/     HoliToM
-imove-motionbenc/       iMove
-prunevid-motionbenc/    PruneVid
-trajvit-motionbenc/     TrajViT
-videoitg-motionbenc/    VideoITG
+llava-ov-7b/                 LLaVA-OV-7B (Qwen 1.5 backbone)
+├── dycoke-motionbenc/       DyCoke (l=3, p=0.7, k=0.3)
+├── fastv-motionbenc/        FastV
+├── holitom-motionbenc/      HoliTom
+├── mdp3-motionbenc/         MDP3
+├── videoitg-motionbenc/     VideoITG
+├── aim-motionbenc/          ← PORTED from llava-ov-7b-qwen2 (needs run)
+├── fastvid-motionbenc/      ← PORTED from llava-ov-7b-qwen2 (needs run)
+└── flashvid-motionbenc/     ← PORTED from llava-ov-7b-qwen2 (needs run)
+
+llava-ov-7b-qwen2/           LLaVA-OV-7B-Qwen2 (Qwen2 backbone)
+├── aim-motionbenc/          AIM (Token merging + PageRank pruning)
+├── fastvid-motionbenc/      FastVID
+├── flashvid-motionbenc/     FlashVID
+├── dycoke-motionbenc/       ← PORTED from llava-ov-7b (needs run)
+├── fastv-motionbenc/        ← PORTED from llava-ov-7b (needs run)
+├── holitom-motionbenc/      ← PORTED from llava-ov-7b (needs run)
+├── mdp3-motionbenc/         ← PORTED from llava-ov-7b (needs run)
+└── videoitg-motionbenc/     ← PORTED from llava-ov-7b (needs run)
+
+other_backbones/             Non-LLaVA-OV models
+├── sttm-llavavid-motionbenc/  STTM (correct: LLaVA-Video-7B)
+├── incorrect_sttm/            STTM-v2 (WRONG: LLaVA-OV-7B, not paper backbone)
+├── dyto-motionbenc/           DyTo (LLaVA-NeXT-Vicuna-7B)
+├── prunevid-motionbenc/       PruneVid (PLLaVA-7B)
+├── visionzip-motionbenc/      VisionZip (LLaVA-v1.5-7B)
+├── imove-motionbenc/          iMove (no code released)
+└── trajvit-motionbenc/        TrajViT (no weights)
 ```
 
-Each dir:
+Each model dir:
 - `run_<model>.sbatch` — full eval
-- `test_<model>.sbatch` — 10-sample smoke test
-- `run_baseline.sbatch` — vanilla LLaVA-OV-7B
+- `test_<model>.sbatch` — smoke test (limit varies)
+- `run_baseline.sbatch` — vanilla backbone comparison
 - `tasks/motionbench/` — lmms_eval task (`motionbench.yaml` + `utils.py`)
+- `strict/` — strict evaluation variants (where applicable)
 
 ### STTM evaluation approach
 
