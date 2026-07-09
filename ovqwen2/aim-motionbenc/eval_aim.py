@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Standardized MotionBench eval script — flashvid × MotionBench.
+Standardized MotionBench eval script — aim × MotionBench.
 
 This is the canonical eval pattern used by all models in ovqwen/ovqwen2/ovqwen3.
 The model-loading function is a stub — fill it in per model.

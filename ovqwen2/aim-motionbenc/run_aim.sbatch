@@ -41,7 +41,7 @@ cd /project/rhu/dpalfaro
     --num_processes=1 --gpu_ids 0 --main_process_port 25666 \
     -m lmms_eval \
     --model llava_onevision \
-    --model_args pretrained=/project/rhu/dpalfaro/weights/llava-ov-7b-qwen2,conv_template=qwen_1_5,model_name=llava_qwen,attn_implementation=eager \
+    --model_args pretrained=/project/rhu/dpalfaro/weights/llava-ov-7b-qwen2,conv_template=qwen_2,model_name=llava_qwen,attn_implementation=eager \
     --tasks motionbench \
     --batch_size 1 \
     --log_samples \

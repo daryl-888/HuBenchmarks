@@ -1,45 +1,58 @@
-# Claude's Active Context — Post Memory-Bank Split (2026-07-09)
+# Claude's Active Context — Post-Standardization (2026-07-09)
 
-## Memory Bank Restructured
-
-Memory bank split into shared reference + per-agent working files:
+## Repository Structure
 
 ```
-memory-bank/
-├── shared/              Read-only reference (both agents)
-│   ├── projectbrief.md
-│   ├── productContext.md
-│   ├── systemPatterns.md
-│   ├── techContext.md
-│   └── paper-audit.md
-├── claude/              Claude's working state (THIS FILE)
-│   ├── activeContext.md
-│   └── progress.md
-└── deepseek/            Other agent's working state
-    └── (read their activeContext.md for status)
+ovqwen/       Qwen 1.5 — 8 OV models + sttm (native) + 6 NOG
+ovqwen2/      Qwen2   — 8 OV models + 7 NOG
+ovqwen3/      Qwen3   — 8 OV models (template) + 7 NOG
+other_backbones/       Non-OV reference (untouched)
 ```
 
-**Rule**: Only write to `claude/`. Read `deepseek/` files to understand what the other agent is doing. Rarely edit `shared/` (only for new models, new paths, new patterns).
+## Standardized Eval Pattern
 
-## Current Focus
+All models share a common eval script at `scripts/eval_template.py`. The standard:
+- 32 frames per video (uniform sampling)
+- Subprocess-isolated video loading (NFS safety)
+- Greedy decoding: `do_sample=False, max_new_tokens=16`
+- Letter-match scoring (A-D regex, NA-skip)
+- Output: `results.jsonl` + `summary.json` with `per_category` breakdown
 
-Repository restructured, all sbatch files corrected, 8 ported models need verification runs.
+### Models with standalone stubs (needs model-loading filled by other person)
 
-### Job Queue
+| Model | Folders | Eval Script | Status |
+|-------|---------|-------------|--------|
+| aim | ovqwen, ovqwen2, ovqwen3 | eval_aim.py | Stub — needs AIM's token merge + prune loader |
+| dycoke | ovqwen, ovqwen2, ovqwen3 | eval_dycoke.py | Stub — needs DyCoke's KV cache compression loader |
+| fastvid | ovqwen, ovqwen2, ovqwen3 | eval_fastvid.py | Stub — needs FastVID's DySeg+STPrune+DTM loader |
+| flashvid | ovqwen, ovqwen2, ovqwen3 | eval_flashvid.py | Stub — needs FlashVID's wrapper loader |
 
-| JobID | Model | Backbone | State | Notes |
-|-------|-------|----------|-------|-------|
-| 7662788 | DyTo full run | LLaVA-NeXT-Vicuna-7B | PENDING | Test: 3.7% (expected) |
-| 7662787 | AIM full run | LLaVA-OV-7B-Qwen2 | PENDING | boundaries fix applied |
-| 7662191 | MDP3 full run | LLaVA-OV-7B | RUNNING | compute-10-4, ~50% data |
+### Models with working standalone scripts (already complete)
 
-### 8 Ported Models Need Verification Runs
+| Model | Folders | Eval Script | Status |
+|-------|---------|-------------|--------|
+| holitom | ovqwen, ovqwen2, ovqwen3 | eval_holitom.py | ✅ Complete |
+| mdp3 | ovqwen, ovqwen2, ovqwen3 | eval_mdp3.py | ✅ Complete |
+| fastv | ovqwen, ovqwen2, ovqwen3 | eval_fastv.py | ✅ Complete |
+| videoitg | ovqwen, ovqwen2, ovqwen3 | eval_videoitg_infer.py | ✅ Complete (two-stage) |
+| sttm | ovqwen | eval_sttm.py | ✅ Complete (+ NOG copies) |
 
-- `llava-ov-7b/`: aim, fastvid, flashvid (ported from Qwen2)
-- `llava-ov-7b-qwen2/`: dycoke, fastv, holitom, mdp3, videoitg (ported from Qwen 1.5)
+## Fixes Applied (2026-07-09)
 
-### Open Fixes (from paper-audit.md)
+1. **AIM conv_template**: `qwen_1_5` → `qwen_2` (all 3 folders, run + test sbatch) — confirmed by paper audit
+2. **FlashVID 8f → 32f**: `--frame-counts 8` → `--num_frames 32`, removed `--prompt-style strict`
+3. **12 eval stubs created** from standardized template — `load_model()` is a stub, needs filling in
 
-1. 🔴 AIM conv_template: qwen_1_5 → qwen_2 (Qwen2 weights need Qwen2 template)
-2. 🟡 DyTo default arg: image_seq_v3 → vicuna_v1 in eval_dyto.py line 98
-3. 🟡 FastV: note LLaVA-1.5→LLaVA-OV extension in README
+## Results Gatherer
+
+Use `python analysis/gather_results_v2.py` to scan all folders and produce results table.
+Options: `--per-category`, `--json`, `--csv output.csv`
+
+## Open Issues
+
+| Priority | Action | Owner |
+|:--------:|--------|:-----:|
+| 🔴 HIGH | Fill in `load_model()` stubs in 12 eval scripts | Other person |
+| 🟡 MEDIUM | Run smoke tests on ovqwen2 ported models | Either |
+| 🟡 MEDIUM | Verify FlashVID 32f works with new eval | Either |
+| ℹ️ LOW | Update Carya paths to reflect new ovqwen* structure | Either |

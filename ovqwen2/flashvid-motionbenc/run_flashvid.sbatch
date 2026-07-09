@@ -25,16 +25,16 @@ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 cd /project/rhu/dpalfaro
 
 /project/rhu/dpalfaro/conda/envs/flashvid/bin/python3 \
-    /project/rhu/dpalfaro/code/flashvid-motionbenc/eval_flashvid_motionbench.py \
+    /project/rhu/dpalfaro/code/flashvid-motionbenc/eval_flashvid.py \
     --meta-file    /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
     --video-roots  /project/rhu/MotionBench_Data/MotionBench \
     --model-path   /project/rhu/dpalfaro/weights/llava-ov-7b-qwen2 \
     --output-dir   /project/rhu/dpalfaro/results/flashvid_run4 \
-    --frame-counts 8 \
+    --num_frames 32 \
     --conv-template qwen_2 \
     --enable-flashvid \
     --retention-ratio 0.25 \
     --alpha 0.7 \
     --temporal-threshold 0.8 \
-    --prompt-style strict \
+     \
     --max-new-tokens 16
