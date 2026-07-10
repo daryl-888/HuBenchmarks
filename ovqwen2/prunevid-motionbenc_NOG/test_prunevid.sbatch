@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J prunevid_test
+#SBATCH -J ovqwen2_prunevid_test
 #SBATCH -o /project/rhu/dpalfaro/results/prunevid_test_%j.out
 #SBATCH -e /project/rhu/dpalfaro/results/prunevid_test_%j.err
 #SBATCH -N 1
@@ -28,11 +28,11 @@ export PYTHONPATH=/tmp/stubs_${SLURM_JOB_ID}:$PYTHONPATH
 cd /project/rhu/dpalfaro
 
 /project/rhu/dpalfaro/conda/envs/prunevid/bin/python3 \
-    /project/rhu/dpalfaro/code/prunevid-motionbenc/eval_prunevid.py \
-    --model_path /project/rhu/dpalfaro/weights/pllava-7b \
+    /project/rhu/dpalfaro/code/ovqwen2/prunevid-motionbenc/eval_prunevid.py \
+    --model_path /project/rhu/dpalfaro/weights/llava-ov-7b-qwen2 \
     --meta_path  /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
     --output_dir /project/rhu/dpalfaro/results/prunevid_test_${SLURM_JOB_ID} \
-    --num_frames 32 \
+    --num_frames 32 --conv_template qwen_2 \
     --limit 50 \
     --cluster_ratio 0.5 \
     --temporal_segment_ratio 0.25 \

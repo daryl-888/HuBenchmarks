@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J imove_motionbench
+#SBATCH -J ovqwen2_imove_motionbench
 #SBATCH -o /project/rhu/dpalfaro/results/imove_%j.out
 #SBATCH -e /project/rhu/dpalfaro/results/imove_%j.err
 #SBATCH -N 1
@@ -26,7 +26,7 @@ cd /project/rhu/dpalfaro
 # possibly a different lmms_eval model backend. Check repo when code is released.
 # iMOVE may need its own conda env with different dependencies.
 /project/rhu/dpalfaro/conda/envs/imove/bin/python3 -m lmms_eval \
-    --include_path /project/rhu/dpalfaro/code/imove-motionbenc/tasks \
+    --include_path /project/rhu/dpalfaro/code/ovqwen2/imove-motionbenc/tasks \
     --model imove \
     --model_args pretrained=/project/rhu/dpalfaro/weights/imove \
     --tasks motionbench \

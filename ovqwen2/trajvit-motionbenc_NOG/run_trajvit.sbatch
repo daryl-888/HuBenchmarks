@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J trajvit_motionbench
+#SBATCH -J ovqwen2_trajvit_motionbench
 #SBATCH -o /project/rhu/dpalfaro/results/trajvit_%j.out
 #SBATCH -e /project/rhu/dpalfaro/results/trajvit_%j.err
 #SBATCH -N 1
@@ -26,7 +26,7 @@ cd /project/rhu/dpalfaro
 # Confirm whether TrajViT provides its own lmms_eval backend or requires a custom model wrapper.
 # May need a separate conda env and its own backbone weights.
 /project/rhu/dpalfaro/conda/envs/trajvit/bin/python3 -m lmms_eval \
-    --include_path /project/rhu/dpalfaro/code/trajvit-motionbenc/tasks \
+    --include_path /project/rhu/dpalfaro/code/ovqwen2/trajvit-motionbenc/tasks \
     --model trajvit \
     --model_args pretrained=/project/rhu/dpalfaro/weights/trajvit \
     --tasks motionbench \

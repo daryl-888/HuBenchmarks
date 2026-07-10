@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J flashvid_motionbench
+#SBATCH -J ovqwen2_flashvid_motionbench
 #SBATCH -o /project/rhu/dpalfaro/results/flashvid_%j.out
 #SBATCH -e /project/rhu/dpalfaro/results/flashvid_%j.err
 #SBATCH -N 1
@@ -25,7 +25,7 @@ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 cd /project/rhu/dpalfaro
 
 /project/rhu/dpalfaro/conda/envs/flashvid/bin/python3 \
-    /project/rhu/dpalfaro/code/flashvid-motionbenc/eval_flashvid.py \
+    /project/rhu/dpalfaro/code/ovqwen2/flashvid-motionbenc/eval_flashvid.py \
     --meta-file    /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
     --video-roots  /project/rhu/MotionBench_Data/MotionBench \
     --model-path   /project/rhu/dpalfaro/weights/llava-ov-7b-qwen2 \

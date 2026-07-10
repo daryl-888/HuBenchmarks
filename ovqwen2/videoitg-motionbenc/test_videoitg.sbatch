@@ -1,7 +1,7 @@
 #!/bin/bash
 # VideoITG Stage 2 test — 50 samples. Run after test_grounding.sbatch.
 # Update GROUNDING_JSONL with the job ID from the grounding step.
-#SBATCH -J videoitg_test
+#SBATCH -J ovqwen2_videoitg_test
 #SBATCH -o /project/rhu/dpalfaro/results/videoitg_test_%j.out
 #SBATCH -e /project/rhu/dpalfaro/results/videoitg_test_%j.err
 #SBATCH -N 1
@@ -29,8 +29,8 @@ cd /project/rhu/dpalfaro
 GROUNDING_JSONL=/project/rhu/dpalfaro/results/videoitg_test_grounding_${GROUNDING_JOBID}/frame_scores.jsonl
 
 /project/rhu/dpalfaro/conda/envs/dycoke11/bin/python3 \
-    /project/rhu/dpalfaro/code/videoitg-motionbenc/eval_videoitg_infer.py \
-    --model_path      /project/rhu/dpalfaro/weights/llava-ov-7b-qwen2 \
+    /project/rhu/dpalfaro/code/ovqwen2/videoitg-motionbenc/eval_videoitg_infer.py \
+    --model_path  --conv_template qwen_2     /project/rhu/dpalfaro/weights/llava-ov-7b-qwen2 \
     --meta_path       /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
     --grounding_jsonl ${GROUNDING_JSONL} \
     --output_dir      /project/rhu/dpalfaro/results/videoitg_test_${SLURM_JOB_ID} \

@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J fastvid_test
+#SBATCH -J ovqwen2_fastvid_test
 #SBATCH -o /project/rhu/dpalfaro/results/fastvid_test_%j.out
 #SBATCH -e /project/rhu/dpalfaro/results/fastvid_test_%j.err
 #SBATCH -N 1
@@ -24,9 +24,9 @@ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 cd /project/rhu/dpalfaro
 
 /project/rhu/dpalfaro/conda/envs/fastvid/bin/python3 -m lmms_eval \
-    --include_path /project/rhu/dpalfaro/code/fastvid-motionbenc/tasks \
+    --include_path /project/rhu/dpalfaro/code/ovqwen2/fastvid-motionbenc/tasks \
     --model llava_onevision \
-    --model_args pretrained=/project/rhu/dpalfaro/weights/llava-ov-7b-qwen2,conv_template=qwen_2,model_name=llava_qwen,max_frames_num=32,attn_implementation=sdpa,fastvid_retention_ratio=0.10,fastvid_DySeg_c=8,fastvid_DySeg_tau=0.9,fastvid_STPrune_d=0.4,fastvid_DTM_p=4,fastvid_DTM_beta=0.6 \
+    --model_path /project/rhu/dpalfaro/weights/llava-ov-7b-qwen2 --conv_template qwen_2 --meta_path /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl --num_frames 32 \
     --tasks motionbench \
     --batch_size 1 \
     --output_path /project/rhu/dpalfaro/results/fastvid_test_${SLURM_JOB_ID} \

@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J aim_motionbench
+#SBATCH -J ovqwen2_aim_motionbench
 #SBATCH -o /project/rhu/dpalfaro/results/aim_%j.out
 #SBATCH -e /project/rhu/dpalfaro/results/aim_%j.err
 #SBATCH -N 1
@@ -37,14 +37,14 @@ cd /project/rhu/dpalfaro
 # l1=14, l2=22: pruning scheduler params (from paper Table 5, Exp 6)
 # Use python -m accelerate.commands.launch (not the accelerate binary) to avoid
 # the accelerate_cli.py → estimate.py → timm → torchvision register_fake crash.
-/project/rhu/dpalfaro/conda/envs/aim/bin/python3 -m accelerate.commands.launch \
-    --num_processes=1 --gpu_ids 0 --main_process_port 25666 \
-    -m lmms_eval \
+/project/rhu/dpalfaro/conda/envs/aim/bin/python3 \
+     \
+    /project/rhu/dpalfaro/code/ovqwen2/aim-motionbenc/eval_aim.py \
     --model llava_onevision \
-    --model_args pretrained=/project/rhu/dpalfaro/weights/llava-ov-7b-qwen2,conv_template=qwen_2,model_name=llava_qwen,attn_implementation=eager \
-    --tasks motionbench \
-    --batch_size 1 \
-    --log_samples \
-    --log_samples_suffix aim_motionbench \
-    --output_path /project/rhu/dpalfaro/results/aim_run1 \
-    --include_path /project/rhu/dpalfaro/aim-motionbenc/tasks
+    --model_path /project/rhu/dpalfaro/weights/llava-ov-7b-qwen2 --conv_template qwen_2 --meta_path /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
+     \
+     \
+     \
+    _suffix aim_motionbench \
+    --output_dir /project/rhu/dpalfaro/results/aim_run1 \
+    

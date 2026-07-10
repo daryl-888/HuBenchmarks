@@ -1,7 +1,7 @@
 #!/bin/bash
 # VideoITG Stage 2: LLaVA-OV-7B inference with VideoITG-selected frames.
 # Requires grounding.sbatch to have completed first.
-#SBATCH -J videoitg_motionbench
+#SBATCH -J ovqwen2_videoitg_motionbench
 #SBATCH -o /project/rhu/dpalfaro/results/videoitg_%j.out
 #SBATCH -e /project/rhu/dpalfaro/results/videoitg_%j.err
 #SBATCH -N 1
@@ -27,7 +27,7 @@ export PYTHONPATH=/project/rhu/dpalfaro/code/DyCoke:$PYTHONPATH
 cd /project/rhu/dpalfaro
 
 /project/rhu/dpalfaro/conda/envs/dycoke11/bin/python3 \
-    /project/rhu/dpalfaro/code/videoitg-motionbenc/eval_videoitg_infer.py \
+    /project/rhu/dpalfaro/code/ovqwen2/videoitg-motionbenc/eval_videoitg_infer.py \
     --model_path      /project/rhu/dpalfaro/weights/llava-ov-7b-qwen2 \
     --meta_path       /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
     --grounding_jsonl /project/rhu/dpalfaro/results/videoitg_grounding/frame_scores.jsonl \

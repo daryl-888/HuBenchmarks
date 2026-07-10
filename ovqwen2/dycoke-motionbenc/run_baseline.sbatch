@@ -23,7 +23,7 @@ export TRANSFORMERS_OFFLINE=1
 cd /project/rhu/dpalfaro
 
 /project/rhu/dpalfaro/conda/envs/dycoke11/bin/python3 -m lmms_eval \
-    --include_path /project/rhu/dpalfaro/code/dycoke-motionbenc/tasks \
+    --include_path /project/rhu/dpalfaro/code/ovqwen2/dycoke-motionbenc/tasks \
     --model llava_onevision \
     --model_args pretrained=/project/rhu/dpalfaro/weights/llava-ov-7b-qwen2,conv_template=qwen_2,model_name=llava_qwen,dycoke=False \
     --tasks motionbench \

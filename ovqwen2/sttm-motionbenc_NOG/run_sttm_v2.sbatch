@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J sttm_v2_motionbench
+#SBATCH -J ovqwen2_sttm_v2_motionbench
 #SBATCH -o /project/rhu/dpalfaro/results/sttm_v2_%j.out
 #SBATCH -e /project/rhu/dpalfaro/results/sttm_v2_%j.err
 #SBATCH -N 1
@@ -26,7 +26,7 @@ cd /project/rhu/dpalfaro
 
 /project/rhu/dpalfaro/conda/envs/sttm_new/bin/python3 \
     /project/rhu/dpalfaro/code/sttm-v2-motionbenc/eval_sttm.py \
-    --model_path /project/rhu/dpalfaro/weights/llava-ov-7b \
+    --model_path /project/rhu/dpalfaro/weights/llava-ov-7b-qwen2 \
     --meta_path  /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
     --output_dir /project/rhu/dpalfaro/results/sttm_v2_run1 \
     --num_frames 32 \

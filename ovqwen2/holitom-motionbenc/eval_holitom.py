@@ -105,7 +105,7 @@ def run_inference(tokenizer, model, image_processor, frames, question):
     from llava.conversation import conv_templates, SeparatorStyle
 
     user_msg = DEFAULT_IMAGE_TOKEN + "\n" + question + POST_PROMPT
-    conv = conv_templates["qwen_1_5"].copy()
+    conv = conv_templates["qwen_2"].copy()
     conv.append_message(conv.roles[0], user_msg)
     conv.append_message(conv.roles[1], None)
     prompt_str = conv.get_prompt()

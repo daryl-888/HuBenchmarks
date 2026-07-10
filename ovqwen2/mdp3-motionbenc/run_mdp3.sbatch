@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J mdp3_motionbench
+#SBATCH -J ovqwen2_mdp3_motionbench
 #SBATCH -o /project/rhu/dpalfaro/results/mdp3_%j.out
 #SBATCH -e /project/rhu/dpalfaro/results/mdp3_%j.err
 #SBATCH -N 1
@@ -61,7 +61,7 @@ export WORLD_SIZE=1
 # LD_LIBRARY_PATH: torch's .so files (libcublas, libcudart) live in mdp3_pkgs/torch/lib/
 # and need to be on the dynamic linker path.
 export PYTHONPATH=/project/rhu/dpalfaro/mdp3_pkgs:/project/rhu/dpalfaro/code/MDP3:/project/rhu/dpalfaro/code/HoliTom/LLaVA-NeXT:${PYTHONPATH:-}
-export LD_LIBRARY_PATH=/project/rhu/dpalfaro/mdp3_pkgs/torch/lib:${LD_LIBRARY_PATH:-}
+export LD_LIBRARY_PATH=/project/rhu/dpalfaro/mdp3_pkgs/torch/lib:/project/rhu/dpalfaro/conda/envs/mdp3/lib/python3.11/site-packages/nvidia/nccl/lib:/project/rhu/dpalfaro/conda/envs/mdp3/lib/python3.11/site-packages/nvidia/nccl/lib:${LD_LIBRARY_PATH:-}
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
 export TRANSFORMERS_OFFLINE=1
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True

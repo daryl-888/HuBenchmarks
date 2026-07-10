@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J visionzip_32f_test
+#SBATCH -J ovqwen2_visionzip_test
 #SBATCH -o /project/rhu/dpalfaro/results/visionzip_test_%j.out
 #SBATCH -e /project/rhu/dpalfaro/results/visionzip_test_%j.err
 #SBATCH -N 1
@@ -26,10 +26,10 @@ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 cd /project/rhu/dpalfaro
 
 /project/rhu/dpalfaro/conda/envs/visionzip/bin/python3 \
-    /project/rhu/dpalfaro/code/visionzip-motionbenc/eval_visionzip.py \
-    --model_path   /project/rhu/dpalfaro/weights/llava-v1.5-7b \
-    --model_name   llava_v1.5_7b \
-    --conv_template llava_v1 \
+    /project/rhu/dpalfaro/code/ovqwen2/visionzip-motionbenc/eval_visionzip.py \
+    --model_path   /project/rhu/dpalfaro/weights/llava-ov-7b-qwen2 \
+    --model_name   qwen_2.5_7b \
+    --conv_template qwen_2 \
     --meta_path    /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
     --output_dir   /project/rhu/dpalfaro/results/visionzip_test_32f_${SLURM_JOB_ID} \
     --num_frames   32 \

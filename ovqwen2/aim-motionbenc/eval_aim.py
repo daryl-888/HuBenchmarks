@@ -1,24 +1,17 @@
 #!/usr/bin/env python3
 """
-Standardized MotionBench eval script — aim × MotionBench.
+AIM × MotionBench — ovqwen2 (Qwen2 backbone).
 
-This is the canonical eval pattern used by all models in ovqwen/ovqwen2/ovqwen3.
-The model-loading function is a stub — fill it in per model.
+AIM (Adaptive Inference of Multi-Modal LLMs via Token Merging and Pruning, ICCV 2025)
+uses token merging (bipartite soft matching) before LLM + PageRank-based token pruning
+inside LLM layers. Both are built into AIM's patched llava_arch.py.
 
-Standard pattern:
-  - 32 frames per video, uniformly sampled
-  - Subprocess-isolated video loading (NFS stale-handle safety)
-  - Greedy decoding (do_sample=False, max_new_tokens=16)
-  - Letter-match scoring (A-D regex, NA-skip)
-  - Output: results.jsonl (per-sample) + summary.json (aggregate)
+Backbone: LLaVA-OV-7B-Qwen2 (llava-ov-7b-qwen2 weights)
+Conv template: qwen_2
+Attention: eager (required for token pruning — reads attention weights)
 
-Usage:
-    python eval_<model>.py \\
-        --model_path /project/rhu/dpalfaro/weights/llava-ov-7b-qwen2 \\
-        --meta_path  /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \\
-        --output_dir /project/rhu/dpalfaro/results/<model>_run1 \\
-        --num_frames 32 \\
-        [--limit 50]
+Requires: aim conda env
+PYTHONPATH: /project/rhu/dpalfaro/aim_pkgs (torch 2.3.1) : AIM/llava : AIM/other_packages/transformers/src : AIM/other_packages/lmms-eval : AIM
 """
 
 import argparse
@@ -36,29 +29,35 @@ POST_PROMPT = "\nAnswer with the option's letter from the given choices directly
 
 
 # ---------------------------------------------------------------------------
-# TODO: MODEL LOADING — Fill this in per model
+# Model loading — AIM native (token merge + prune built into llava_arch.py)
 # ---------------------------------------------------------------------------
 def load_model(model_path: str):
     """
-    Load the model with its specific patches/compression applied.
+    Load AIM's patched LLaVA model. AIM modifies llava_arch.py:
+      - Token merging: bipartite_soft_matching_merge at 4 merge steps (50%→25%→12.5%→6.25%)
+      - Token pruning: PageRank-based, inside LlavaQwenForCausalLM forward
 
-    TODO: Replace this stub with the actual model loading code.
-
-    The model must be loaded with its compression method applied
-    (e.g., DyCoke's dycoke_l/dycoke_p/dycoke_k, or FlashVID's flashvid() wrapper,
-    or AIM's token merge + prune).
-
-    Returns: (tokenizer, model, image_processor)
+    eager attention is required so AIM can read attention weights for pruning.
     """
-    raise NotImplementedError(
-        "load_model() is a stub — fill in the model-specific loading code.\n"
-        "See the original sbatch file / eval script for reference."
+    import sys as _sys
+    # AIM source must come first for the patched llava_arch.py
+    _sys.path.insert(0, "/project/rhu/dpalfaro/AIM/llava")
+    _sys.path.insert(0, "/project/rhu/dpalfaro/AIM/other_packages/transformers/src")
+    _sys.path.insert(0, "/project/rhu/dpalfaro/AIM")
+
+    from llava.model.builder import load_pretrained_model
+
+    tokenizer, model, image_processor, _ = load_pretrained_model(
+        model_path, None, "llava_qwen",
+        attn_implementation="eager",
     )
+    model = model.cuda()
+    model.eval()
+    return tokenizer, model, image_processor
 
 
 # ---------------------------------------------------------------------------
 # Video loading — subprocess-isolated for NFS stale-handle safety
-# (DO NOT MODIFY — identical across all models)
 # ---------------------------------------------------------------------------
 def load_frames(video_path: str, num_frames: int):
     import multiprocessing as _mp
@@ -97,8 +96,7 @@ def load_frames(video_path: str, num_frames: int):
 
 
 # ---------------------------------------------------------------------------
-# Inference — standard LLaVA-OV generate()
-# (May need adjustment per model for conv_template)
+# Inference — standard LLaVA-OV generate() (AIM compression is automatic)
 # ---------------------------------------------------------------------------
 @torch.inference_mode()
 def run_inference(tokenizer, model, image_processor, frames, question,
@@ -158,7 +156,7 @@ def score_prediction(prediction: str, ground_truth: str):
 
 
 # ---------------------------------------------------------------------------
-# Main (DO NOT MODIFY — identical across all models)
+# Main
 # ---------------------------------------------------------------------------
 def main():
     parser = argparse.ArgumentParser()
@@ -167,8 +165,7 @@ def main():
     parser.add_argument("--output_dir", required=True)
     parser.add_argument("--num_frames", type=int, default=32)
     parser.add_argument("--limit", type=int, default=None)
-    parser.add_argument("--conv_template", default="qwen_2",
-                        help="Conversation template (qwen_1_5, qwen_2, etc.)")
+    parser.add_argument("--conv_template", default="qwen_2")
     args = parser.parse_args()
 
     os.makedirs(args.output_dir, exist_ok=True)
