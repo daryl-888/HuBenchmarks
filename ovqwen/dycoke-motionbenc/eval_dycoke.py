@@ -1,24 +1,20 @@
 #!/usr/bin/env python3
 """
-Standardized MotionBench eval script — dycoke × MotionBench.
+DyCoke × MotionBench — ovqwen2 (Qwen2 backbone).
 
-This is the canonical eval pattern used by all models in ovqwen/ovqwen2/ovqwen3.
-The model-loading function is a stub — fill it in per model.
+DyCoke (Dynamic Token Compression for Video LLMs, arXiv 2411.14401):
+  - Stage 1 (K): Temporal token merging across frames (k=0.7)
+  - Stage 2 (P): Dynamic KV cache pruning at layer l during inference (p=0.7, l=3)
 
-Standard pattern:
-  - 32 frames per video, uniformly sampled
-  - Subprocess-isolated video loading (NFS stale-handle safety)
-  - Greedy decoding (do_sample=False, max_new_tokens=16)
-  - Letter-match scoring (A-D regex, NA-skip)
-  - Output: results.jsonl (per-sample) + summary.json (aggregate)
+Compression is activated by passing dycoke=True + params to load_pretrained_model.
+No post-load wrapping needed — DyCoke's patched builder.py handles everything internally.
 
-Usage:
-    python eval_<model>.py \\
-        --model_path /project/rhu/dpalfaro/weights/llava-ov-7b-qwen2 \\
-        --meta_path  /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \\
-        --output_dir /project/rhu/dpalfaro/results/<model>_run1 \\
-        --num_frames 32 \\
-        [--limit 50]
+Backbone: LLaVA-OV-7B-Qwen2 (llava-ov-7b-qwen2 weights)
+Conv template: qwen_2
+Parameters: l=3, p=0.7, k=0.7
+
+Requires: dycoke11 conda env
+PYTHONPATH: /project/rhu/dpalfaro/code/DyCoke
 """
 
 import argparse
@@ -36,29 +32,33 @@ POST_PROMPT = "\nAnswer with the option's letter from the given choices directly
 
 
 # ---------------------------------------------------------------------------
-# TODO: MODEL LOADING — Fill this in per model
+# Model loading — DyCoke native (KV cache compression built into builder.py)
 # ---------------------------------------------------------------------------
 def load_model(model_path: str):
     """
-    Load the model with its specific patches/compression applied.
-
-    TODO: Replace this stub with the actual model loading code.
-
-    The model must be loaded with its compression method applied
-    (e.g., DyCoke's dycoke_l/dycoke_p/dycoke_k, or FlashVID's flashvid() wrapper,
-    or AIM's token merge + prune).
-
-    Returns: (tokenizer, model, image_processor)
+    Load DyCoke's patched LLaVA model. DyCoke modifies builder.py to accept
+    dycoke=True, dycoke_l, dycoke_p, dycoke_k. The compression happens
+    automatically inside generate() — no post-load wrapping.
     """
-    raise NotImplementedError(
-        "load_model() is a stub — fill in the model-specific loading code.\n"
-        "See the original sbatch file / eval script for reference."
+    import sys as _sys
+    _sys.path.insert(0, "/project/rhu/dpalfaro/code/DyCoke")
+
+    from llava.model.builder import load_pretrained_model
+
+    tokenizer, model, image_processor, _ = load_pretrained_model(
+        model_path, None, "llava_qwen",
+        dycoke=True,
+        dycoke_l=3,
+        dycoke_p=0.7,
+        dycoke_k=0.7,
     )
+    model = model.cuda()
+    model.eval()
+    return tokenizer, model, image_processor
 
 
 # ---------------------------------------------------------------------------
 # Video loading — subprocess-isolated for NFS stale-handle safety
-# (DO NOT MODIFY — identical across all models)
 # ---------------------------------------------------------------------------
 def load_frames(video_path: str, num_frames: int):
     import multiprocessing as _mp
@@ -97,8 +97,7 @@ def load_frames(video_path: str, num_frames: int):
 
 
 # ---------------------------------------------------------------------------
-# Inference — standard LLaVA-OV generate()
-# (May need adjustment per model for conv_template)
+# Inference — standard LLaVA-OV generate() (DyCoke compression is automatic)
 # ---------------------------------------------------------------------------
 @torch.inference_mode()
 def run_inference(tokenizer, model, image_processor, frames, question,
@@ -138,7 +137,7 @@ def run_inference(tokenizer, model, image_processor, frames, question,
 
 
 # ---------------------------------------------------------------------------
-# Dataset helpers (DO NOT MODIFY — identical across all models)
+# Dataset helpers
 # ---------------------------------------------------------------------------
 def find_video(video_path: str):
     for subdir in ("self-collected", "public-dataset"):
@@ -158,7 +157,7 @@ def score_prediction(prediction: str, ground_truth: str):
 
 
 # ---------------------------------------------------------------------------
-# Main (DO NOT MODIFY — identical across all models)
+# Main
 # ---------------------------------------------------------------------------
 def main():
     parser = argparse.ArgumentParser()
@@ -167,8 +166,7 @@ def main():
     parser.add_argument("--output_dir", required=True)
     parser.add_argument("--num_frames", type=int, default=32)
     parser.add_argument("--limit", type=int, default=None)
-    parser.add_argument("--conv_template", default="qwen_2",
-                        help="Conversation template (qwen_1_5, qwen_2, etc.)")
+    parser.add_argument("--conv_template", default="qwen_2")
     args = parser.parse_args()
 
     os.makedirs(args.output_dir, exist_ok=True)
@@ -246,6 +244,7 @@ def main():
         "model": args.model_path,
         "num_frames": args.num_frames,
         "conv_template": args.conv_template,
+        "dycoke_params": {"dycoke": True, "l": 3, "p": 0.7, "k": 0.7},
         "per_category": per_category,
     }
     print(

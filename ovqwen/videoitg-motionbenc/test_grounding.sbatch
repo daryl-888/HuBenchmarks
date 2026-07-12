@@ -1,6 +1,6 @@
 #!/bin/bash
 # VideoITG Stage 1 test — 50 samples
-#SBATCH -J videoitg_test_grounding
+#SBATCH -J ovqwen15_videoitg_motionbench
 #SBATCH -o /project/rhu/dpalfaro/results/videoitg_test_grounding_%j.out
 #SBATCH -e /project/rhu/dpalfaro/results/videoitg_test_grounding_%j.err
 #SBATCH -N 1
@@ -32,4 +32,4 @@ cd /project/rhu/dpalfaro
     --num_frames_sample 512 \
     --num_frames_select 32 \
     --target_fps        2 \
-    --limit             50
+    --limit 50

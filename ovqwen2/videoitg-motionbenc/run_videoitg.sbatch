@@ -27,7 +27,7 @@ export PYTHONPATH=/project/rhu/dpalfaro/code/DyCoke:$PYTHONPATH
 cd /project/rhu/dpalfaro
 
 /project/rhu/dpalfaro/conda/envs/dycoke11/bin/python3 \
-    /project/rhu/dpalfaro/code/ovqwen2/videoitg-motionbenc/eval_videoitg_infer.py \
+    /project/rhu/dpalfaro/code/ovqwen2/videoitg-motionbenc/eval_videoitg.py \
     --model_path      /project/rhu/dpalfaro/weights/llava-ov-7b-qwen2 \
     --meta_path       /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
     --grounding_jsonl /project/rhu/dpalfaro/results/videoitg_grounding/frame_scores.jsonl \

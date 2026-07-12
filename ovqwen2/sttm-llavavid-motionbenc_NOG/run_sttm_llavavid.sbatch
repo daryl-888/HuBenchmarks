@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J ovqwen2_sttm_llavavid
+#SBATCH -J ovqwen2_sttm-llavavid_motionbench
 #SBATCH -o /project/rhu/dpalfaro/results/sttm_llavavid_%j.out
 #SBATCH -e /project/rhu/dpalfaro/results/sttm_llavavid_%j.err
 #SBATCH -N 1
@@ -24,7 +24,7 @@ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 cd /project/rhu/dpalfaro
 
 /project/rhu/dpalfaro/conda/envs/sttm_new/bin/python3 \
-    /project/rhu/dpalfaro/code/sttm-llavavid-motionbenc/eval_sttm_llavavid.py \
+    /project/rhu/dpalfaro/code/sttm-llavavid-motionbenc/eval_sttm-llavavid.py \
     --model_path /project/rhu/dpalfaro/weights/llava-ov-7b-qwen2 \
     --meta_path  /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
     --output_dir /project/rhu/dpalfaro/results/sttm_llavavid_run1 \

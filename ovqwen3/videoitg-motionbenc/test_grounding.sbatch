@@ -32,4 +32,4 @@ cd /project/rhu/dpalfaro
     --num_frames_sample 512 \
     --num_frames_select 32 \
     --target_fps        2 \
-    --limit             50
+    --limit 50

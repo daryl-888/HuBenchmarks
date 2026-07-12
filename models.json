@@ -1,11 +1,11 @@
 {
   "benchmark": "MotionBench",
   "description": "Efficient video understanding LLMs benchmarked on MotionBench (8,052 samples, ~4,018 scoreable)",
-  "updated": "2026-07-09",
+  "updated": "2026-07-10",
   "structure": {
-    "ovqwen": "Qwen 1.5 backbone — 8 OV models + sttm (native) + 6 NOG copies",
-    "ovqwen2": "Qwen2 backbone — 8 OV models + 7 NOG copies",
-    "ovqwen3": "Qwen3 backbone — 8 OV models (template) + 7 NOG copies",
+    "ovqwen": "Qwen 1.5 backbone \u2014 8 OV models + sttm (native) + 6 NOG copies",
+    "ovqwen2": "Qwen2 backbone \u2014 8 OV models + 7 NOG copies",
+    "ovqwen3": "Qwen3 backbone \u2014 8 OV models (template) + 7 NOG copies",
     "other_backbones": "Original non-OV models, kept for reference"
   },
   "backbones": {
@@ -15,15 +15,55 @@
       "conv_template": "qwen_1_5",
       "baseline_accuracy": 52.69,
       "models": [
-        {"name": "dycoke", "accuracy": 53.46, "status": "complete"},
-        {"name": "holitom", "accuracy": 53.11, "status": "complete"},
-        {"name": "videoitg", "accuracy": 52.51, "status": "complete"},
-        {"name": "mdp3", "accuracy": 53.25, "status": "running_partial"},
-        {"name": "fastv", "accuracy": null, "status": "not_run"},
-        {"name": "aim", "accuracy": null, "status": "ported_needs_run", "ported_from": "ovqwen2"},
-        {"name": "fastvid", "accuracy": null, "status": "ported_needs_run", "ported_from": "ovqwen2"},
-        {"name": "flashvid", "accuracy": null, "status": "ported_needs_run", "ported_from": "ovqwen2"},
-        {"name": "sttm", "accuracy": 51.77, "status": "invalid", "note": "WRONG backbone — STTM requires Qwen2 attention. Kept for reference."}
+        {
+          "name": "dycoke",
+          "accuracy": 53.46,
+          "status": "complete"
+        },
+        {
+          "name": "holitom",
+          "accuracy": 53.11,
+          "status": "complete"
+        },
+        {
+          "name": "videoitg",
+          "accuracy": 52.51,
+          "status": "complete"
+        },
+        {
+          "name": "mdp3",
+          "accuracy": 53.25,
+          "status": "running_partial"
+        },
+        {
+          "name": "fastv",
+          "accuracy": null,
+          "status": "not_run"
+        },
+        {
+          "name": "aim",
+          "accuracy": null,
+          "status": "ported_needs_run",
+          "ported_from": "ovqwen2"
+        },
+        {
+          "name": "fastvid",
+          "accuracy": null,
+          "status": "ported_needs_run",
+          "ported_from": "ovqwen2"
+        },
+        {
+          "name": "flashvid",
+          "accuracy": null,
+          "status": "ported_needs_run",
+          "ported_from": "ovqwen2"
+        },
+        {
+          "name": "sttm",
+          "accuracy": 51.77,
+          "status": "invalid",
+          "note": "WRONG backbone \u2014 STTM requires Qwen2 attention. Kept for reference."
+        }
       ]
     },
     "ovqwen2": {
@@ -32,39 +72,159 @@
       "conv_template": "qwen_2",
       "baseline_accuracy": null,
       "models": [
-        {"name": "aim", "accuracy": null, "status": "pending", "job_id": 7662787},
-        {"name": "fastvid", "accuracy": 51.92, "status": "complete"},
-        {"name": "flashvid", "accuracy": 51.99, "status": "complete"},
-        {"name": "dycoke", "accuracy": null, "status": "ported_needs_run", "ported_from": "ovqwen"},
-        {"name": "fastv", "accuracy": null, "status": "ported_needs_run", "ported_from": "ovqwen"},
-        {"name": "holitom", "accuracy": null, "status": "ported_needs_run", "ported_from": "ovqwen"},
-        {"name": "mdp3", "accuracy": null, "status": "ported_needs_run", "ported_from": "ovqwen"},
-        {"name": "videoitg", "accuracy": null, "status": "ported_needs_run", "ported_from": "ovqwen"}
+        {
+          "name": "aim",
+          "accuracy": null,
+          "status": "pending",
+          "job_id": 7662787
+        },
+        {
+          "name": "fastvid",
+          "accuracy": 51.92,
+          "status": "complete"
+        },
+        {
+          "name": "flashvid",
+          "accuracy": 51.99,
+          "status": "complete"
+        },
+        {
+          "name": "dycoke",
+          "accuracy": null,
+          "status": "ported_needs_run",
+          "ported_from": "ovqwen"
+        },
+        {
+          "name": "fastv",
+          "accuracy": null,
+          "status": "ported_needs_run",
+          "ported_from": "ovqwen"
+        },
+        {
+          "name": "holitom",
+          "accuracy": null,
+          "status": "ported_needs_run",
+          "ported_from": "ovqwen"
+        },
+        {
+          "name": "mdp3",
+          "accuracy": null,
+          "status": "ported_needs_run",
+          "ported_from": "ovqwen"
+        },
+        {
+          "name": "videoitg",
+          "accuracy": null,
+          "status": "ported_needs_run",
+          "ported_from": "ovqwen"
+        }
       ]
     },
     "ovqwen3": {
-      "alias": "Qwen3",
-      "weights": null,
-      "conv_template": null,
-      "note": "Template only — sbatch files need updating for Qwen3 weights",
+      "alias": "Qwen3-VL",
+      "weights": "/project/rhu/dpalfaro/weights/qwen3-vl-8b",
+      "conv_template": "native_chat_template",
+      "note": "Uses transformers Qwen3VLForConditionalGeneration.from_pretrained() + AutoProcessor \u2014 NOT LLaVA",
+      "baseline_accuracy": null,
       "models": [
-        {"name": "dycoke", "status": "template"},
-        {"name": "holitom", "status": "template"},
-        {"name": "videoitg", "status": "template"},
-        {"name": "mdp3", "status": "template"},
-        {"name": "fastv", "status": "template"},
-        {"name": "aim", "status": "template"},
-        {"name": "fastvid", "status": "template"},
-        {"name": "flashvid", "status": "template"}
+        {
+          "name": "aim",
+          "status": "baseline_template"
+        },
+        {
+          "name": "dycoke",
+          "status": "baseline_template"
+        },
+        {
+          "name": "dyto",
+          "status": "baseline_template"
+        },
+        {
+          "name": "fastvid",
+          "status": "baseline_template"
+        },
+        {
+          "name": "fastv",
+          "status": "baseline_template"
+        },
+        {
+          "name": "flashvid",
+          "status": "baseline_template"
+        },
+        {
+          "name": "holitom",
+          "status": "baseline_template"
+        },
+        {
+          "name": "imove",
+          "status": "baseline_template"
+        },
+        {
+          "name": "mdp3",
+          "status": "baseline_template"
+        },
+        {
+          "name": "prunevid",
+          "status": "baseline_template"
+        },
+        {
+          "name": "sttm-llavavid",
+          "status": "baseline_template"
+        },
+        {
+          "name": "sttm",
+          "status": "baseline_template"
+        },
+        {
+          "name": "trajvit",
+          "status": "baseline_template"
+        },
+        {
+          "name": "videoitg",
+          "status": "baseline_template"
+        },
+        {
+          "name": "visionzip",
+          "status": "baseline_template"
+        }
       ]
     },
     "other_backbones": [
-      {"name": "sttm-llavavid", "accuracy": 54.28, "status": "complete", "backbone": "LLaVA-Video-7B"},
-      {"name": "dyto", "accuracy": null, "status": "pending", "backbone": "LLaVA-NeXT-Vicuna-7B", "job_id": 7662788},
-      {"name": "prunevid", "accuracy": 43.80, "status": "complete", "backbone": "PLLaVA-7B"},
-      {"name": "visionzip", "accuracy": 40.09, "status": "complete", "backbone": "LLaVA-v1.5-7B"},
-      {"name": "imove", "accuracy": null, "status": "no_code"},
-      {"name": "trajvit", "accuracy": null, "status": "no_weights"}
+      {
+        "name": "sttm-llavavid",
+        "accuracy": 54.28,
+        "status": "complete",
+        "backbone": "LLaVA-Video-7B"
+      },
+      {
+        "name": "dyto",
+        "accuracy": null,
+        "status": "pending",
+        "backbone": "LLaVA-NeXT-Vicuna-7B",
+        "job_id": 7662788
+      },
+      {
+        "name": "prunevid",
+        "accuracy": 43.8,
+        "status": "complete",
+        "backbone": "PLLaVA-7B"
+      },
+      {
+        "name": "visionzip",
+        "accuracy": 40.09,
+        "status": "complete",
+        "backbone": "LLaVA-v1.5-7B"
+      },
+      {
+        "name": "imove",
+        "accuracy": null,
+        "status": "no_code"
+      },
+      {
+        "name": "trajvit",
+        "accuracy": null,
+        "status": "no_weights"
+      }
     ]
   }
 }

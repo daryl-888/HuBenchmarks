@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J ovqwen2_prunevid_test
+#SBATCH -J ovqwen2_prunevid_motionbench
 #SBATCH -o /project/rhu/dpalfaro/results/prunevid_test_%j.out
 #SBATCH -e /project/rhu/dpalfaro/results/prunevid_test_%j.err
 #SBATCH -N 1

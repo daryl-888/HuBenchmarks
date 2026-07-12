@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J mdp3_motionbench
+#SBATCH -J ovqwen3_mdp3_motionbench
 #SBATCH -o /project/rhu/dpalfaro/results/mdp3_%j.out
 #SBATCH -e /project/rhu/dpalfaro/results/mdp3_%j.err
 #SBATCH -N 1
@@ -60,7 +60,7 @@ export WORLD_SIZE=1
 # MDP3 (vlmeval frame selector) must come before LLaVA-NeXT (llava model loader).
 # LD_LIBRARY_PATH: torch's .so files (libcublas, libcudart) live in mdp3_pkgs/torch/lib/
 # and need to be on the dynamic linker path.
-export PYTHONPATH=/project/rhu/dpalfaro/mdp3_pkgs:/project/rhu/dpalfaro/code/MDP3:/project/rhu/dpalfaro/code/HoliTom/LLaVA-NeXT:${PYTHONPATH:-}
+export PYTHONPATH=${PYTHONPATH:-}
 export LD_LIBRARY_PATH=/project/rhu/dpalfaro/mdp3_pkgs/torch/lib:${LD_LIBRARY_PATH:-}
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
 export TRANSFORMERS_OFFLINE=1
@@ -70,11 +70,11 @@ cd /project/rhu/dpalfaro
 
 /project/rhu/dpalfaro/conda/envs/mdp3/bin/python3 \
     /project/rhu/dpalfaro/code/mdp3-motionbenc/eval_mdp3.py \
-    --meta-file    /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
+    --meta-file    /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl --num_frames 32 \
     --video-roots  /project/rhu/MotionBench_Data/MotionBench \
-    --model-path   /project/rhu/dpalfaro/weights/llava-ov-7b \
+    --model-path   /project/rhu/dpalfaro/weights/qwen3-vl-8b \
     --output-dir   /project/rhu/dpalfaro/results/mdp3_run1 \
-    --conv-template qwen_1_5 \
+     \
     --pool-frames  32 \
     --select-frames 8 \
     --resume

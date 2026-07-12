@@ -1,7 +1,7 @@
 #!/bin/bash
 # VideoITG Stage 2 test — 50 samples. Run after test_grounding.sbatch.
 # Update GROUNDING_JSONL with the job ID from the grounding step.
-#SBATCH -J videoitg_test
+#SBATCH -J ovqwen15_videoitg_motionbench
 #SBATCH -o /project/rhu/dpalfaro/results/videoitg_test_%j.out
 #SBATCH -e /project/rhu/dpalfaro/results/videoitg_test_%j.err
 #SBATCH -N 1
@@ -35,4 +35,4 @@ GROUNDING_JSONL=/project/rhu/dpalfaro/results/videoitg_test_grounding_${GROUNDIN
     --grounding_jsonl ${GROUNDING_JSONL} \
     --output_dir      /project/rhu/dpalfaro/results/videoitg_test_${SLURM_JOB_ID} \
     --num_frames      32 \
-    --limit           50
+    --limit 50

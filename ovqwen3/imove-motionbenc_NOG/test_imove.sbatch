@@ -23,11 +23,11 @@ export TRANSFORMERS_OFFLINE=1
 cd /project/rhu/dpalfaro
 
 /project/rhu/dpalfaro/conda/envs/imove/bin/python3 -m lmms_eval \
-    --include_path /project/rhu/dpalfaro/code/imove-motionbenc/tasks \
+     \
     --model imove \
     --model_args pretrained=/project/rhu/dpalfaro/weights/imove \
-    --tasks motionbench \
-    --batch_size 1 \
-    --limit 10 \
+     \
+     \
+    --limit 50 \
     --output_path /project/rhu/dpalfaro/results/imove_test \
-    --log_samples
+    

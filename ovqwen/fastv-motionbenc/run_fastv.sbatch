@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J fastv_motionbench
+#SBATCH -J ovqwen15_fastv_motionbench
 #SBATCH -o /project/rhu/dpalfaro/results/fastv_%j.out
 #SBATCH -e /project/rhu/dpalfaro/results/fastv_%j.err
 #SBATCH -N 1

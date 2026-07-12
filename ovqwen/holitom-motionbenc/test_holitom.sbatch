@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J holitom_test
+#SBATCH -J ovqwen15_holitom_motionbench
 #SBATCH -o /project/rhu/dpalfaro/results/holitom_test_%j.out
 #SBATCH -e /project/rhu/dpalfaro/results/holitom_test_%j.err
 #SBATCH -N 1

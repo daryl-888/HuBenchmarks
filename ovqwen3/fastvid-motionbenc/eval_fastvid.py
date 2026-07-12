@@ -1,24 +1,16 @@
 #!/usr/bin/env python3
 """
-Standardized MotionBench eval script — fastvid × MotionBench.
+Qwen3-VL Baseline × MotionBench — ovqwen3.
 
-This is the canonical eval pattern used by all models in ovqwen/ovqwen2/ovqwen3.
-The model-loading function is a stub — fill it in per model.
+Qwen3VLForConditionalGeneration is a native HuggingFace model, NOT a LLaVA fork.
+Uses transformers AutoProcessor + from_pretrained (no llava.model.builder).
 
-Standard pattern:
-  - 32 frames per video, uniformly sampled
-  - Subprocess-isolated video loading (NFS stale-handle safety)
-  - Greedy decoding (do_sample=False, max_new_tokens=16)
-  - Letter-match scoring (A-D regex, NA-skip)
-  - Output: results.jsonl (per-sample) + summary.json (aggregate)
+Backbone: Qwen/Qwen3-VL-8B-Instruct
+Weights: /project/rhu/dpalfaro/weights/qwen3-vl-8b
+Uses: AutoProcessor for video preprocessing, model.generate() for inference
 
-Usage:
-    python eval_<model>.py \\
-        --model_path /project/rhu/dpalfaro/weights/llava-ov-7b-qwen2 \\
-        --meta_path  /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \\
-        --output_dir /project/rhu/dpalfaro/results/<model>_run1 \\
-        --num_frames 32 \\
-        [--limit 50]
+This is a baseline eval — no model compression applied. All ovqwen3 models
+start here, then compression methods are ported later.
 """
 
 import argparse
@@ -27,7 +19,9 @@ import os
 import re
 import sys
 
+import numpy as np
 import torch
+from PIL import Image
 from tqdm import tqdm
 
 
@@ -36,31 +30,27 @@ POST_PROMPT = "\nAnswer with the option's letter from the given choices directly
 
 
 # ---------------------------------------------------------------------------
-# TODO: MODEL LOADING — Fill this in per model
+# Model loading — Qwen3-VL native HuggingFace
 # ---------------------------------------------------------------------------
 def load_model(model_path: str):
-    """
-    Load the model with its specific patches/compression applied.
+    """Load Qwen3-VL via transformers from_pretrained (no LLaVA)."""
+    from transformers import Qwen3VLForConditionalGeneration, AutoProcessor
 
-    TODO: Replace this stub with the actual model loading code.
-
-    The model must be loaded with its compression method applied
-    (e.g., DyCoke's dycoke_l/dycoke_p/dycoke_k, or FlashVID's flashvid() wrapper,
-    or AIM's token merge + prune).
-
-    Returns: (tokenizer, model, image_processor)
-    """
-    raise NotImplementedError(
-        "load_model() is a stub — fill in the model-specific loading code.\n"
-        "See the original sbatch file / eval script for reference."
+    model = Qwen3VLForConditionalGeneration.from_pretrained(
+        model_path,
+        torch_dtype=torch.bfloat16,
+        device_map="auto",
+        trust_remote_code=True,
     )
+    processor = AutoProcessor.from_pretrained(model_path, trust_remote_code=True)
+    model.eval()
+    return None, model, processor  # Qwen3 uses processor, not tokenizer + image_processor separately
 
 
 # ---------------------------------------------------------------------------
-# Video loading — subprocess-isolated for NFS stale-handle safety
-# (DO NOT MODIFY — identical across all models)
+# Video loading — standard subprocess-isolated
 # ---------------------------------------------------------------------------
-def load_frames(video_path: str, num_frames: int):
+def load_frames(video_path: str, num_frames: int) -> list:
     import multiprocessing as _mp
     import queue as _queue
 
@@ -97,48 +87,54 @@ def load_frames(video_path: str, num_frames: int):
 
 
 # ---------------------------------------------------------------------------
-# Inference — standard LLaVA-OV generate()
-# (May need adjustment per model for conv_template)
+# Inference — Qwen3-VL native generate()
 # ---------------------------------------------------------------------------
 @torch.inference_mode()
-def run_inference(tokenizer, model, image_processor, frames, question,
-                  conv_template: str = "qwen_2"):
-    from llava.mm_utils import tokenizer_image_token
-    from llava.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN
-    from llava.conversation import conv_templates
+def run_inference(model, processor, frames: list, question: str,
+                  num_frames: int = 32) -> str:
+    """
+    Qwen3-VL inference using native chat template + video preprocessing.
+    Handles video via processor with temporal patch support.
+    """
+    # Build conversation using Qwen3's chat template
+    messages = [
+        {
+            "role": "user",
+            "content": [
+                {"type": "video", "video": frames},
+                {"type": "text", "text": question + POST_PROMPT},
+            ],
+        }
+    ]
 
-    user_msg = DEFAULT_IMAGE_TOKEN + "\n" + question + POST_PROMPT
-    conv = conv_templates[conv_template].copy()
-    conv.append_message(conv.roles[0], user_msg)
-    conv.append_message(conv.roles[1], None)
-    prompt_str = conv.get_prompt()
-
-    input_ids = tokenizer_image_token(
-        prompt_str, tokenizer, IMAGE_TOKEN_INDEX, return_tensors="pt"
-    ).unsqueeze(0).cuda()
-
-    images = image_processor.preprocess(frames, return_tensors="pt")["pixel_values"]
-    images = images.to(dtype=model.dtype, device="cuda")
-
-    w, h = frames[0].size
-    image_sizes = [(h, w)] * len(frames)
-
-    output_ids = model.generate(
-        input_ids,
-        images=[images],
-        image_sizes=image_sizes,
-        modalities=["video"],
-        do_sample=False,
-        temperature=0,
-        max_new_tokens=16,
-        use_cache=True,
+    # Apply chat template to build prompt
+    text = processor.apply_chat_template(
+        messages,
+        tokenize=False,
+        add_generation_prompt=True,
     )
 
-    return tokenizer.batch_decode(output_ids, skip_special_tokens=True)[0].strip()
+    # Process video + text together
+    inputs = processor(
+        text=[text],
+        images=None,
+        videos=[frames],
+        return_tensors="pt",
+    )
+    inputs = {k: v.to(model.device) for k, v in inputs.items()}
+
+    output_ids = model.generate(
+        **inputs,
+        do_sample=False,
+        max_new_tokens=16,
+    )
+
+    generated_ids = output_ids[:, inputs["input_ids"].shape[1]:]
+    return processor.batch_decode(generated_ids, skip_special_tokens=True)[0].strip()
 
 
 # ---------------------------------------------------------------------------
-# Dataset helpers (DO NOT MODIFY — identical across all models)
+# Dataset helpers
 # ---------------------------------------------------------------------------
 def find_video(video_path: str):
     for subdir in ("self-collected", "public-dataset"):
@@ -158,7 +154,7 @@ def score_prediction(prediction: str, ground_truth: str):
 
 
 # ---------------------------------------------------------------------------
-# Main (DO NOT MODIFY — identical across all models)
+# Main
 # ---------------------------------------------------------------------------
 def main():
     parser = argparse.ArgumentParser()
@@ -167,14 +163,12 @@ def main():
     parser.add_argument("--output_dir", required=True)
     parser.add_argument("--num_frames", type=int, default=32)
     parser.add_argument("--limit", type=int, default=None)
-    parser.add_argument("--conv_template", default="qwen_2",
-                        help="Conversation template (qwen_1_5, qwen_2, etc.)")
     args = parser.parse_args()
 
     os.makedirs(args.output_dir, exist_ok=True)
 
-    print("Loading model...", flush=True)
-    tokenizer, model, image_processor = load_model(args.model_path)
+    print("Loading Qwen3-VL model...", flush=True)
+    _, model, processor = load_model(args.model_path)
 
     samples = []
     with open(args.meta_path) as f:
@@ -203,8 +197,8 @@ def main():
             try:
                 frames = load_frames(video_path, args.num_frames)
                 prediction = run_inference(
-                    tokenizer, model, image_processor, frames, question,
-                    conv_template=args.conv_template,
+                    model, processor, frames, question,
+                    num_frames=args.num_frames,
                 )
             except Exception as e:
                 print(f"  [WARN] sample {i} ({sample['video_path']}): {e}",
@@ -243,9 +237,9 @@ def main():
         "total_scoreable": total,
         "total_na_skipped": na_count,
         "total_samples": len(results),
-        "model": args.model_path,
+        "model": "Qwen/Qwen3-VL-8B-Instruct",
         "num_frames": args.num_frames,
-        "conv_template": args.conv_template,
+        "note": "Qwen3-VL baseline — no compression applied",
         "per_category": per_category,
     }
     print(

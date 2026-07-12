@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J prunevid_test
+#SBATCH -J ovqwen15_prunevid_motionbench
 #SBATCH -o /project/rhu/dpalfaro/results/prunevid_test_%j.out
 #SBATCH -e /project/rhu/dpalfaro/results/prunevid_test_%j.err
 #SBATCH -N 1
@@ -29,7 +29,7 @@ cd /project/rhu/dpalfaro
 
 /project/rhu/dpalfaro/conda/envs/prunevid/bin/python3 \
     /project/rhu/dpalfaro/code/prunevid-motionbenc/eval_prunevid.py \
-    --model_path /project/rhu/dpalfaro/weights/pllava-7b \
+    --model_path /project/rhu/dpalfaro/weights/llava-ov-7b \
     --meta_path  /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
     --output_dir /project/rhu/dpalfaro/results/prunevid_test_${SLURM_JOB_ID} \
     --num_frames 32 \

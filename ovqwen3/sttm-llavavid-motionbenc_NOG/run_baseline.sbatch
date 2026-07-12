@@ -1,6 +1,6 @@
 #!/bin/bash
 # LLaVA-Video-7B baseline — no STTM patch, same backbone as STTM run.
-#SBATCH -J llavavid_baseline
+#SBATCH -J ovqwen3_sttm-llavavid_motionbench
 #SBATCH -o /project/rhu/dpalfaro/results/llavavid_baseline_%j.out
 #SBATCH -e /project/rhu/dpalfaro/results/llavavid_baseline_%j.err
 #SBATCH -N 1
@@ -25,7 +25,7 @@ cd /project/rhu/dpalfaro
 
 /project/rhu/dpalfaro/conda/envs/sttm_new/bin/python3 \
     /project/rhu/dpalfaro/code/sttm-llavavid-motionbenc/eval_sttm_llavavid.py \
-    --model_path /project/rhu/dpalfaro/weights/llava-video-7b \
+    --model_path /project/rhu/dpalfaro/weights/qwen3-vl-8b \
     --meta_path  /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
     --output_dir /project/rhu/dpalfaro/results/llavavid_baseline \
     --num_frames 32 \

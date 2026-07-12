@@ -35,4 +35,4 @@ GROUNDING_JSONL=/project/rhu/dpalfaro/results/videoitg_test_grounding_${GROUNDIN
     --grounding_jsonl ${GROUNDING_JSONL} \
     --output_dir      /project/rhu/dpalfaro/results/videoitg_test_${SLURM_JOB_ID} \
     --num_frames      32 \
-    --limit           50
+    --limit 50

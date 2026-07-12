@@ -1,28 +1,16 @@
 #!/usr/bin/env python3
 """
-HoliTom × MotionBench — native HoliTom pipeline.
+Qwen3-VL Baseline × MotionBench — ovqwen3.
 
-Applies holitom(model) after loading LLaVA-OV-7B with sdpa attention,
-then iterates MotionBench directly.  sdpa is required (not flash_attn)
-because HoliTom's outer stage reads attention weights from the vision encoder.
+Qwen3VLForConditionalGeneration is a native HuggingFace model, NOT a LLaVA fork.
+Uses transformers AutoProcessor + from_pretrained (no llava.model.builder).
 
-Env vars (must be exported in the shell before python starts):
-    WRAPPER=holitom        activates patched siglip_encoder output
-    RETAIN_RATIO=0.15      fraction of outer-LLM tokens to keep
-    T=0.80                 temporal segmentation threshold
-    HOLITOM_k=18           inner-LLM: layer index where pruning starts
-    HOLITOM_r=0.5          inner-LLM: merge ratio
+Backbone: Qwen/Qwen3-VL-8B-Instruct
+Weights: /project/rhu/dpalfaro/weights/qwen3-vl-8b
+Uses: AutoProcessor for video preprocessing, model.generate() for inference
 
-Requires: holitom conda env
-PYTHONPATH: HoliTom/LLaVA-NeXT (patched llava) : HoliTom (holitom package)
-
-Usage:
-    WRAPPER=holitom RETAIN_RATIO=0.15 T=0.80 HOLITOM_k=18 HOLITOM_r=0.5 \\
-    python eval_holitom.py \\
-        --model_path /project/rhu/dpalfaro/weights/llava-ov-7b \\
-        --meta_path  /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \\
-        --output_dir /project/rhu/dpalfaro/results/holitom_run1 \\
-        [--num_frames 32] [--limit 50]
+This is a baseline eval — no model compression applied. All ovqwen3 models
+start here, then compression methods are ported later.
 """
 
 import argparse
@@ -31,7 +19,9 @@ import os
 import re
 import sys
 
+import numpy as np
 import torch
+from PIL import Image
 from tqdm import tqdm
 
 
@@ -40,26 +30,27 @@ POST_PROMPT = "\nAnswer with the option's letter from the given choices directly
 
 
 # ---------------------------------------------------------------------------
-# Model loading — HoliTom native (sdpa + monkey-patch)
+# Model loading — Qwen3-VL native HuggingFace
 # ---------------------------------------------------------------------------
 def load_model(model_path: str):
-    from llava.model.builder import load_pretrained_model
-    from holitom import holitom as apply_holitom
+    """Load Qwen3-VL via transformers from_pretrained (no LLaVA)."""
+    from transformers import Qwen3VLForConditionalGeneration, AutoProcessor
 
-    tokenizer, model, image_processor, _ = load_pretrained_model(
-        model_path, None, "llava_qwen",
-        attn_implementation="sdpa",
+    model = Qwen3VLForConditionalGeneration.from_pretrained(
+        model_path,
+        torch_dtype=torch.bfloat16,
+        device_map="auto",
+        trust_remote_code=True,
     )
-    model = apply_holitom(model)
-    model = model.cuda()
+    processor = AutoProcessor.from_pretrained(model_path, trust_remote_code=True)
     model.eval()
-    return tokenizer, model, image_processor
+    return None, model, processor  # Qwen3 uses processor, not tokenizer + image_processor separately
 
 
 # ---------------------------------------------------------------------------
-# Video loading — subprocess-isolated for NFS stale-handle safety
+# Video loading — standard subprocess-isolated
 # ---------------------------------------------------------------------------
-def load_frames(video_path: str, num_frames: int):
+def load_frames(video_path: str, num_frames: int) -> list:
     import multiprocessing as _mp
     import queue as _queue
 
@@ -96,45 +87,50 @@ def load_frames(video_path: str, num_frames: int):
 
 
 # ---------------------------------------------------------------------------
-# Inference — HoliTom native generate()
+# Inference — Qwen3-VL native generate()
 # ---------------------------------------------------------------------------
 @torch.inference_mode()
-def run_inference(tokenizer, model, image_processor, frames, question):
-    from llava.mm_utils import tokenizer_image_token
-    from llava.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN
-    from llava.conversation import conv_templates, SeparatorStyle
+def run_inference(model, processor, frames: list, question: str,
+                  num_frames: int = 32) -> str:
+    """
+    Qwen3-VL inference using native chat template + video preprocessing.
+    Handles video via processor with temporal patch support.
+    """
+    # Build conversation using Qwen3's chat template
+    messages = [
+        {
+            "role": "user",
+            "content": [
+                {"type": "video", "video": frames},
+                {"type": "text", "text": question + POST_PROMPT},
+            ],
+        }
+    ]
 
-    user_msg = DEFAULT_IMAGE_TOKEN + "\n" + question + POST_PROMPT
-    conv = conv_templates["qwen_1_5"].copy()
-    conv.append_message(conv.roles[0], user_msg)
-    conv.append_message(conv.roles[1], None)
-    prompt_str = conv.get_prompt()
-
-    input_ids = tokenizer_image_token(
-        prompt_str, tokenizer, IMAGE_TOKEN_INDEX, return_tensors="pt"
-    ).unsqueeze(0).cuda()
-
-    # [F, C, H, W] — no dynamic tiling for video modality
-    images = image_processor.preprocess(frames, return_tensors="pt")["pixel_values"]
-    images = images.to(dtype=model.dtype, device="cuda")
-
-    # Original frame dimensions for position encoding
-    w, h = frames[0].size  # PIL: (width, height)
-    image_sizes = [(h, w)] * len(frames)
-
-    output_ids = model.generate(
-        input_ids,
-        images=[images],
-        image_sizes=image_sizes,
-        modalities=["video"],
-        do_sample=False,
-        temperature=0,
-        max_new_tokens=32,
-        use_cache=True,
+    # Apply chat template to build prompt
+    text = processor.apply_chat_template(
+        messages,
+        tokenize=False,
+        add_generation_prompt=True,
     )
 
-    # generate() uses inputs_embeds path; HF returns only new tokens.
-    return tokenizer.batch_decode(output_ids, skip_special_tokens=True)[0].strip()
+    # Process video + text together
+    inputs = processor(
+        text=[text],
+        images=None,
+        videos=[frames],
+        return_tensors="pt",
+    )
+    inputs = {k: v.to(model.device) for k, v in inputs.items()}
+
+    output_ids = model.generate(
+        **inputs,
+        do_sample=False,
+        max_new_tokens=16,
+    )
+
+    generated_ids = output_ids[:, inputs["input_ids"].shape[1]:]
+    return processor.batch_decode(generated_ids, skip_special_tokens=True)[0].strip()
 
 
 # ---------------------------------------------------------------------------
@@ -171,8 +167,8 @@ def main():
 
     os.makedirs(args.output_dir, exist_ok=True)
 
-    print("Loading model...", flush=True)
-    tokenizer, model, image_processor = load_model(args.model_path)
+    print("Loading Qwen3-VL model...", flush=True)
+    _, model, processor = load_model(args.model_path)
 
     samples = []
     with open(args.meta_path) as f:
@@ -185,22 +181,24 @@ def main():
     print(f"Evaluating {len(samples)} samples", flush=True)
 
     results = []
-    scores  = []
+    scores = []
+    per_category = {}
 
     for i, sample in enumerate(tqdm(samples, desc="Evaluating")):
-        video_path   = find_video(sample["video_path"])
-        question     = sample["qa"][0]["question"]
+        video_path = find_video(sample["video_path"])
+        question = sample["qa"][0]["question"]
         ground_truth = sample["qa"][0]["answer"]
-        q_type       = sample.get("question_type", "Unknown")
+        q_type = sample.get("question_type", "Unknown")
 
         if video_path is None:
             print(f"  [WARN] video not found: {sample['video_path']}", file=sys.stderr)
             prediction = ""
         else:
             try:
-                frames     = load_frames(video_path, args.num_frames)
+                frames = load_frames(video_path, args.num_frames)
                 prediction = run_inference(
-                    tokenizer, model, image_processor, frames, question
+                    model, processor, frames, question,
+                    num_frames=args.num_frames,
                 )
             except Exception as e:
                 print(f"  [WARN] sample {i} ({sample['video_path']}): {e}",
@@ -210,44 +208,48 @@ def main():
 
         s = score_prediction(prediction, ground_truth)
         results.append({
-            "idx":           i,
-            "video_path":    sample["video_path"],
+            "idx": i,
+            "video_path": sample["video_path"],
             "question_type": q_type,
-            "ground_truth":  ground_truth,
-            "prediction":    prediction,
-            "correct":       s,
+            "ground_truth": ground_truth,
+            "prediction": prediction,
+            "correct": s,
         })
         if s is not None:
             scores.append(s)
+            per_category[q_type] = per_category.get(q_type, {"correct": 0, "total": 0})
+            per_category[q_type]["total"] += 1
+            per_category[q_type]["correct"] += s
 
     out_file = os.path.join(args.output_dir, "results.jsonl")
     with open(out_file, "w") as f:
         for r in results:
             f.write(json.dumps(r) + "\n")
 
-    total    = len(scores)
-    correct  = sum(scores)
+    total = len(scores)
+    correct = sum(scores)
     na_count = len(results) - total
     accuracy = correct / total if total > 0 else 0.0
 
     summary = {
-        "accuracy":         accuracy,
-        "correct":          correct,
-        "total_scoreable":  total,
+        "accuracy": accuracy,
+        "correct": correct,
+        "total_scoreable": total,
         "total_na_skipped": na_count,
-        "total_samples":    len(results),
-        "model":            args.model_path,
-        "holitom_params": {
-            "RETAIN_RATIO": os.environ.get("RETAIN_RATIO", "0.15"),
-            "T":            os.environ.get("T",            "0.80"),
-            "HOLITOM_k":    os.environ.get("HOLITOM_k",   "18"),
-            "HOLITOM_r":    os.environ.get("HOLITOM_r",   "0.5"),
-        },
+        "total_samples": len(results),
+        "model": "Qwen/Qwen3-VL-8B-Instruct",
+        "num_frames": args.num_frames,
+        "note": "Qwen3-VL baseline — no compression applied",
+        "per_category": per_category,
     }
     print(
         f"\nAccuracy: {correct}/{total} = {accuracy:.4f}  ({na_count} NA skipped)",
         flush=True,
     )
+    for cat in sorted(per_category.keys()):
+        c = per_category[cat]
+        acc = c["correct"] / c["total"] if c["total"] > 0 else 0.0
+        print(f"  {cat}: {c['correct']}/{c['total']} = {acc:.4f}", flush=True)
 
     summary_file = os.path.join(args.output_dir, "summary.json")
     with open(summary_file, "w") as f:

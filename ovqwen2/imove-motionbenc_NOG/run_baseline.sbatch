@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J baseline_motionbench
+#SBATCH -J ovqwen2_imove_motionbench
 #SBATCH -o /project/rhu/dpalfaro/results/baseline_%j.out
 #SBATCH -e /project/rhu/dpalfaro/results/baseline_%j.err
 #SBATCH -N 1
@@ -23,10 +23,10 @@ export TRANSFORMERS_OFFLINE=1
 cd /project/rhu/dpalfaro
 
 /project/rhu/dpalfaro/conda/envs/dycoke11/bin/python3 -m lmms_eval \
-    --include_path /project/rhu/dpalfaro/code/ovqwen2/dycoke-motionbenc/tasks \
+     \
     --model llava_onevision \
     --model_args pretrained=/project/rhu/dpalfaro/weights/llava-ov-7b,conv_template=qwen_1_5,model_name=llava_qwen,dycoke=False \
-    --tasks motionbench \
-    --batch_size 1 \
+     \
+     \
     --output_path /project/rhu/dpalfaro/results/baseline_run1 \
-    --log_samples
+    

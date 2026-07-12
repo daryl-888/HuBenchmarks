@@ -30,7 +30,7 @@ cd /project/rhu/dpalfaro
     --conv_template llava_v1 \
     --meta_path    /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
     --output_dir   /project/rhu/dpalfaro/results/visionzip_test_${SLURM_JOB_ID} \
-    --num_frames   8 \
+    --num_frames 32 \
     --dominant     54 \
     --contextual   10 \
-    --limit        50
+    --limit 50

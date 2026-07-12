@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J mdp3_motionbench
+#SBATCH -J ovqwen15_mdp3_motionbench
 #SBATCH -o /project/rhu/dpalfaro/results/mdp3_%j.out
 #SBATCH -e /project/rhu/dpalfaro/results/mdp3_%j.err
 #SBATCH -N 1
@@ -70,7 +70,7 @@ cd /project/rhu/dpalfaro
 
 /project/rhu/dpalfaro/conda/envs/mdp3/bin/python3 \
     /project/rhu/dpalfaro/code/mdp3-motionbenc/eval_mdp3.py \
-    --meta-file    /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
+    --meta-file    /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl --num_frames 32 \
     --video-roots  /project/rhu/MotionBench_Data/MotionBench \
     --model-path   /project/rhu/dpalfaro/weights/llava-ov-7b \
     --output-dir   /project/rhu/dpalfaro/results/mdp3_run1 \

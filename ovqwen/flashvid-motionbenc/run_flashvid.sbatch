@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J flashvid_motionbench
+#SBATCH -J ovqwen15_flashvid_motionbench
 #SBATCH -o /project/rhu/dpalfaro/results/flashvid_%j.out
 #SBATCH -e /project/rhu/dpalfaro/results/flashvid_%j.err
 #SBATCH -N 1

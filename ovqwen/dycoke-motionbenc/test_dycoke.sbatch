@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J dycoke_test
+#SBATCH -J ovqwen15_dycoke_motionbench
 #SBATCH -o /project/rhu/dpalfaro/results/dycoke_test_%j.out
 #SBATCH -e /project/rhu/dpalfaro/results/dycoke_test_%j.err
 #SBATCH -N 1
@@ -23,11 +23,11 @@ export TRANSFORMERS_OFFLINE=1
 cd /project/rhu/dpalfaro
 
 /project/rhu/dpalfaro/conda/envs/dycoke11/bin/python3 -m lmms_eval \
-    --include_path /project/rhu/dpalfaro/code/dycoke-motionbenc/tasks \
+     \
     --model llava_onevision \
-    --model_args pretrained=/project/rhu/dpalfaro/weights/llava-ov-7b,conv_template=qwen_1_5,model_name=llava_qwen,dycoke=True,dycoke_l=3,dycoke_p=0.7,dycoke_k=0.3 \
-    --tasks motionbench \
-    --batch_size 1 \
-    --limit 10 \
+    --model_path /project/rhu/dpalfaro/weights/llava-ov-7b --conv_template qwen_1_5 --meta_path /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl --num_frames 32 \ --output_dir /project/rhu/dpalfaro/results/ovqwen_dycoke_run1
+     \
+     \
+    --limit 50 \
     --output_path /project/rhu/dpalfaro/results/dycoke_test_${SLURM_JOB_ID} \
-    --log_samples
+    

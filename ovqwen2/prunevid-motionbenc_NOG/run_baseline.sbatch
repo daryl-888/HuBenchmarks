@@ -1,6 +1,6 @@
 #!/bin/bash
 # PLLaVA-7B baseline — no PruneVid pruning, same backbone as PruneVid run.
-#SBATCH -J pllava_baseline
+#SBATCH -J ovqwen2_prunevid_motionbench
 #SBATCH -o /project/rhu/dpalfaro/results/pllava_baseline_%j.out
 #SBATCH -e /project/rhu/dpalfaro/results/pllava_baseline_%j.err
 #SBATCH -N 1
@@ -30,7 +30,7 @@ cd /project/rhu/dpalfaro
 
 /project/rhu/dpalfaro/conda/envs/prunevid/bin/python3 \
     /project/rhu/dpalfaro/code/ovqwen2/prunevid-motionbenc/eval_prunevid.py \
-    --model_path /project/rhu/dpalfaro/weights/pllava-7b \
+    --model_path /project/rhu/dpalfaro/weights/llava-ov-7b-qwen2 \
     --meta_path  /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
     --output_dir /project/rhu/dpalfaro/results/pllava_baseline \
     --num_frames 16 \

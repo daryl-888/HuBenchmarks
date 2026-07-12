@@ -30,8 +30,8 @@ cd /project/rhu/dpalfaro
 /project/rhu/dpalfaro/conda/envs/visionzip/bin/python3 \
     /project/rhu/dpalfaro/code/ovqwen2/visionzip-motionbenc/eval_visionzip.py \
     --model_path   /project/rhu/dpalfaro/weights/llava-ov-7b-qwen2 \
-    --model_name   llava_v1.5_7b \
-    --conv_template llava_v1 \
+    --model_name   qwen_2.5_7b \
+    --conv_template qwen_2 \
     --meta_path    /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
     --output_dir   /project/rhu/dpalfaro/results/visionzip_run2_32f \
     --num_frames   32 \

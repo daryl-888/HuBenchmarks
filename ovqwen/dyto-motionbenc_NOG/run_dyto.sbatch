@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J dyto_motionbench
+#SBATCH -J ovqwen15_dyto_motionbench
 #SBATCH -o /project/rhu/dpalfaro/results/dyto_%j.out
 #SBATCH -e /project/rhu/dpalfaro/results/dyto_%j.err
 #SBATCH -N 1
@@ -37,7 +37,7 @@
 #    export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
 #    /project/rhu/dpalfaro/conda/envs/dycoke11/bin/huggingface-cli download \
 #        liuhaotian/llava-v1.6-vicuna-7b \
-#        --local-dir /project/rhu/dpalfaro/weights/llava-v1.6-vicuna-7b
+#        --local-dir /project/rhu/dpalfaro/weights/llava-ov-7b
 #
 # 4. Create conda env (fresh — DyTo pins torch==2.2.0, transformers==4.38.2):
 #    conda create -n dyto python=3.10 -y
@@ -72,10 +72,10 @@ cd /project/rhu/dpalfaro
 
 /project/rhu/dpalfaro/conda/envs/dyto/bin/python3 \
     /project/rhu/dpalfaro/dyto-motionbenc/eval_dyto.py \
-    --model-path   /project/rhu/dpalfaro/weights/llava-v1.6-vicuna-7b \
+    --model-path   /project/rhu/dpalfaro/weights/llava-ov-7b \
     --meta-path    /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
     --output-dir   /project/rhu/dpalfaro/results/dyto_run1 \
-    --conv-template vicuna_v1 \
+    --conv-template qwen_1_5 \
     --num-frames   100 \
     --temporal-aggregation spatial_tome_finch_dynamic_all_frms \
     --rope-scaling 2 \

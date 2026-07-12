@@ -24,11 +24,11 @@ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 cd /project/rhu/dpalfaro
 
 /project/rhu/dpalfaro/conda/envs/fastvid/bin/python3 -m lmms_eval \
-    --include_path /project/rhu/dpalfaro/code/fastvid-motionbenc/tasks \
+     \
     --model llava_onevision \
     --model_args pretrained=/project/rhu/dpalfaro/weights/llava-ov-7b,conv_template=qwen_1_5,model_name=llava_qwen,max_frames_num=32,attn_implementation=sdpa,fastvid_retention_ratio=0.10,fastvid_DySeg_c=8,fastvid_DySeg_tau=0.9,fastvid_STPrune_d=0.4,fastvid_DTM_p=4,fastvid_DTM_beta=0.6 \
-    --tasks motionbench \
-    --batch_size 1 \
+     \
+     \
     --output_path /project/rhu/dpalfaro/results/fastvid_test_${SLURM_JOB_ID} \
-    --log_samples \
+     \
     --limit 50

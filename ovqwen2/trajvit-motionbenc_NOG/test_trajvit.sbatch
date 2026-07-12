@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J ovqwen2_trajvit_test
+#SBATCH -J ovqwen2_trajvit_motionbench
 #SBATCH -o /project/rhu/dpalfaro/results/trajvit_test_%j.out
 #SBATCH -e /project/rhu/dpalfaro/results/trajvit_test_%j.err
 #SBATCH -N 1
@@ -23,11 +23,11 @@ export TRANSFORMERS_OFFLINE=1
 cd /project/rhu/dpalfaro
 
 /project/rhu/dpalfaro/conda/envs/trajvit/bin/python3 -m lmms_eval \
-    --include_path /project/rhu/dpalfaro/code/ovqwen2/trajvit-motionbenc/tasks \
+     \
     --model trajvit \
     --model_args pretrained=/project/rhu/dpalfaro/weights/llava-ov-7b-qwen2 \
-    --tasks motionbench \
-    --batch_size 1 \
+     \
+     \
     --limit 50 \
     --output_path /project/rhu/dpalfaro/results/trajvit_test \
-    --log_samples
+    

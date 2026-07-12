@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J visionzip_32f_motionbench
+#SBATCH -J ovqwen15_visionzip_motionbench
 #SBATCH -o /project/rhu/dpalfaro/results/visionzip_%j.out
 #SBATCH -e /project/rhu/dpalfaro/results/visionzip_%j.err
 #SBATCH -N 1
@@ -29,9 +29,9 @@ cd /project/rhu/dpalfaro
 
 /project/rhu/dpalfaro/conda/envs/visionzip/bin/python3 \
     /project/rhu/dpalfaro/code/visionzip-motionbenc/eval_visionzip.py \
-    --model_path   /project/rhu/dpalfaro/weights/llava-v1.5-7b \
-    --model_name   llava_v1.5_7b \
-    --conv_template llava_v1 \
+    --model_path   /project/rhu/dpalfaro/weights/llava-ov-7b \
+    --model_name   qwen_1_5.5_7b \
+    --conv_template qwen_1_5 \
     --meta_path    /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
     --output_dir   /project/rhu/dpalfaro/results/visionzip_run2_32f \
     --num_frames   32 \

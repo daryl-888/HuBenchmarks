@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J ovqwen2_sttm-llavavid_test
+#SBATCH -J ovqwen2_sttm-llavavid_motionbench
 #SBATCH -o /project/rhu/dpalfaro/results/sttm_llavavid_test_%j.out
 #SBATCH -e /project/rhu/dpalfaro/results/sttm_llavavid_test_%j.err
 #SBATCH -N 1

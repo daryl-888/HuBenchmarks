@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J fastv_motionbench
+#SBATCH -J ovqwen3_fastv_motionbench
 #SBATCH -o /project/rhu/dpalfaro/results/fastv_%j.out
 #SBATCH -e /project/rhu/dpalfaro/results/fastv_%j.err
 #SBATCH -N 1
@@ -20,7 +20,7 @@ unset HF_DATASETS_OFFLINE
 # Clone FastV, then in the fastv env:
 #   pip install -e /project/rhu/dpalfaro/code/FastV/src/FastV/llava-hf/transformers/
 # After the Qwen2 port is complete, DyCoke's LLaVA-NeXT provides the llava package.
-export PYTHONPATH=/project/rhu/dpalfaro/code/DyCoke:${PYTHONPATH:-}
+export PYTHONPATH=${PYTHONPATH:-}
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
 export TRANSFORMERS_OFFLINE=1
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
@@ -29,7 +29,7 @@ cd /project/rhu/dpalfaro
 
 /project/rhu/dpalfaro/conda/envs/fastv/bin/python3 \
     /project/rhu/dpalfaro/code/fastv-motionbenc/eval_fastv.py \
-    --model_path /project/rhu/dpalfaro/weights/llava-ov-7b \
+    --model_path /project/rhu/dpalfaro/weights/qwen3-vl-8b \
     --meta_path  /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
     --output_dir /project/rhu/dpalfaro/results/fastv_run1 \
     --num_frames 32 \

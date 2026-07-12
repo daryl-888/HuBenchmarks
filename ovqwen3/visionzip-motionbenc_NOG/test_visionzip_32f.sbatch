@@ -35,4 +35,4 @@ cd /project/rhu/dpalfaro
     --num_frames   32 \
     --dominant     54 \
     --contextual   10 \
-    --limit        50
+    --limit 50

@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J sttm_v2_motionbench
+#SBATCH -J ovqwen15_sttm_motionbench
 #SBATCH -o /project/rhu/dpalfaro/results/sttm_v2_%j.out
 #SBATCH -e /project/rhu/dpalfaro/results/sttm_v2_%j.err
 #SBATCH -N 1

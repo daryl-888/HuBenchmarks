@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J dyto_test
+#SBATCH -J ovqwen15_dyto_motionbench
 #SBATCH -o /project/rhu/dpalfaro/results/dyto_test_%j.out
 #SBATCH -e /project/rhu/dpalfaro/results/dyto_test_%j.err
 #SBATCH -N 1
@@ -31,10 +31,10 @@ cd /project/rhu/dpalfaro
 
 /project/rhu/dpalfaro/conda/envs/dyto/bin/python3 \
     /project/rhu/dpalfaro/dyto-motionbenc/eval_dyto.py \
-    --model-path   /project/rhu/dpalfaro/weights/llava-v1.6-vicuna-7b \
+    --model-path   /project/rhu/dpalfaro/weights/llava-ov-7b \
     --meta-path    /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
     --output-dir   /project/rhu/dpalfaro/results/dyto_test_${SLURM_JOB_ID} \
-    --conv-template vicuna_v1 \
+    --conv-template qwen_1_5 \
     --num-frames   100 \
     --temporal-aggregation spatial_tome_finch_dynamic_all_frms \
     --rope-scaling 2 \

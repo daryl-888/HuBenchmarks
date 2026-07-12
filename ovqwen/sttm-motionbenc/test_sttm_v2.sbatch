@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J sttm_v2_test
+#SBATCH -J ovqwen15_sttm_motionbench
 #SBATCH -o /project/rhu/dpalfaro/results/sttm_v2_test_%j.out
 #SBATCH -e /project/rhu/dpalfaro/results/sttm_v2_test_%j.err
 #SBATCH -N 1
@@ -29,7 +29,7 @@ cd /project/rhu/dpalfaro
     --model_path /project/rhu/dpalfaro/weights/llava-ov-7b \
     --meta_path  /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
     --output_dir /project/rhu/dpalfaro/results/sttm_v2_test_${SLURM_JOB_ID} \
-    --num_frames 16 \
+    --num_frames 32 \
     --limit 50 \
     --sa_start_layer_idx      2 \
     --sa_tree_thresh          0.85 \

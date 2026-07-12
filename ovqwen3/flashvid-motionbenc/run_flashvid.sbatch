@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J flashvid_motionbench
+#SBATCH -J ovqwen3_flashvid_motionbench
 #SBATCH -o /project/rhu/dpalfaro/results/flashvid_%j.out
 #SBATCH -e /project/rhu/dpalfaro/results/flashvid_%j.err
 #SBATCH -N 1
@@ -17,7 +17,7 @@ export PYTHONNOUSERSITE=1
 unset HF_HUB_OFFLINE
 unset HF_DATASETS_OFFLINE
 export WORLD_SIZE=1
-export PYTHONPATH=/project/rhu/dpalfaro/code/FlashVID:${PYTHONPATH:-}
+export PYTHONPATH=${PYTHONPATH:-}
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
 export TRANSFORMERS_OFFLINE=1
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
@@ -28,10 +28,10 @@ cd /project/rhu/dpalfaro
     /project/rhu/dpalfaro/code/flashvid-motionbenc/eval_flashvid.py \
     --meta-file    /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
     --video-roots  /project/rhu/MotionBench_Data/MotionBench \
-    --model-path   /project/rhu/dpalfaro/weights/llava-ov-7b \
+    --model-path   /project/rhu/dpalfaro/weights/qwen3-vl-8b \
     --output-dir   /project/rhu/dpalfaro/results/flashvid_run4 \
     --num_frames 32 \
-    --conv-template qwen_1_5 \
+     \
     --enable-flashvid \
     --retention-ratio 0.25 \
     --alpha 0.7 \

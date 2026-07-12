@@ -1,31 +1,16 @@
 #!/usr/bin/env python3
 """
-VisionZip × MotionBench — CLIP-layer visual token reduction.
+Qwen3-VL Baseline × MotionBench — ovqwen3.
 
-VisionZip (dvlab-research/VisionZip) selects two sets of tokens inside the
-vision encoder before the LLM ever sees them:
-  - Dominant tokens: highest CLS-attention score patches (most salient)
-  - Contextual tokens: neighbouring patches preserving spatial context
+Qwen3VLForConditionalGeneration is a native HuggingFace model, NOT a LLaVA fork.
+Uses transformers AutoProcessor + from_pretrained (no llava.model.builder).
 
-The public API is a two-line monkey-patch:
-    from visionzip import visionzip
-    model = visionzip(model, dominant=54, contextual=10)
+Backbone: Qwen/Qwen3-VL-8B-Instruct
+Weights: /project/rhu/dpalfaro/weights/qwen3-vl-8b
+Uses: AutoProcessor for video preprocessing, model.generate() for inference
 
-BACKBONE NOTE: VisionZip patches CLIPVisionTower. LLaVA-OV-7B uses SigLipVisionTower,
-not CLIP. Two options for running:
-  A) LLaVA-1.5-7B (CLIPVisionTower) — VisionZip's native target. Needs separate weights:
-       huggingface-cli download liuhaotian/llava-v1.5-7b \
-           --local-dir /project/rhu/dpalfaro/weights/llava-v1.5-7b
-     Pass --model_path .../llava-v1.5-7b --conv_template llava_v1 --model_name llava_v1.5_7b
-  B) LLaVA-OV-7B — try visionzip() and check if it silently no-ops or errors on SigLIP.
-     The VisionZip repo added Qwen2.5-VL support (2025-05) suggesting some SigLIP handling
-     may exist, but this is unverified for LLaVA-OV specifically.
-
-Default here targets LLaVA-1.5-7B (option A) for correctness.
-
-Source:  https://github.com/dvlab-research/VisionZip  (pip install visionzip)
-Conda:   visionzip  (clone dycoke11, then pip install visionzip)
-Weights: /project/rhu/dpalfaro/weights/llava-v1.5-7b  (download separately)
+This is a baseline eval — no model compression applied. All ovqwen3 models
+start here, then compression methods are ported later.
 """
 
 import argparse
@@ -34,36 +19,38 @@ import os
 import re
 import sys
 
+import numpy as np
 import torch
+from PIL import Image
 from tqdm import tqdm
 
 
-VIDEO_BASE  = "/project/rhu/MotionBench_Data/MotionBench"
+VIDEO_BASE = "/project/rhu/MotionBench_Data/MotionBench"
 POST_PROMPT = "\nAnswer with the option's letter from the given choices directly."
 
 
 # ---------------------------------------------------------------------------
-# Model loading
+# Model loading — Qwen3-VL native HuggingFace
 # ---------------------------------------------------------------------------
-def load_model(model_path: str, model_name: str, conv_template: str,
-               dominant: int, contextual: int):
-    from llava.model.builder import load_pretrained_model
-    from visionzip import visionzip as apply_visionzip
+def load_model(model_path: str):
+    """Load Qwen3-VL via transformers from_pretrained (no LLaVA)."""
+    from transformers import Qwen3VLForConditionalGeneration, AutoProcessor
 
-    tokenizer, model, image_processor, _ = load_pretrained_model(
-        model_path, None, model_name,
-        attn_implementation="sdpa",
+    model = Qwen3VLForConditionalGeneration.from_pretrained(
+        model_path,
+        torch_dtype=torch.bfloat16,
+        device_map="auto",
+        trust_remote_code=True,
     )
-    model = apply_visionzip(model, dominant=dominant, contextual=contextual)
-    model = model.cuda()
+    processor = AutoProcessor.from_pretrained(model_path, trust_remote_code=True)
     model.eval()
-    return tokenizer, model, image_processor, conv_template
+    return None, model, processor  # Qwen3 uses processor, not tokenizer + image_processor separately
 
 
 # ---------------------------------------------------------------------------
-# Video loading — subprocess-isolated for NFS stale-handle safety
+# Video loading — standard subprocess-isolated
 # ---------------------------------------------------------------------------
-def load_frames(video_path: str, num_frames: int):
+def load_frames(video_path: str, num_frames: int) -> list:
     import multiprocessing as _mp
     import queue as _queue
 
@@ -100,42 +87,50 @@ def load_frames(video_path: str, num_frames: int):
 
 
 # ---------------------------------------------------------------------------
-# Inference
+# Inference — Qwen3-VL native generate()
 # ---------------------------------------------------------------------------
 @torch.inference_mode()
-def run_inference(tokenizer, model, image_processor, conv_template, frames, question):
-    from llava.mm_utils import tokenizer_image_token
-    from llava.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN
-    from llava.conversation import conv_templates
+def run_inference(model, processor, frames: list, question: str,
+                  num_frames: int = 32) -> str:
+    """
+    Qwen3-VL inference using native chat template + video preprocessing.
+    Handles video via processor with temporal patch support.
+    """
+    # Build conversation using Qwen3's chat template
+    messages = [
+        {
+            "role": "user",
+            "content": [
+                {"type": "video", "video": frames},
+                {"type": "text", "text": question + POST_PROMPT},
+            ],
+        }
+    ]
 
-    user_msg = DEFAULT_IMAGE_TOKEN + "\n" + question + POST_PROMPT
-    conv = conv_templates[conv_template].copy()
-    conv.append_message(conv.roles[0], user_msg)
-    conv.append_message(conv.roles[1], None)
-    prompt_str = conv.get_prompt()
-
-    input_ids = tokenizer_image_token(
-        prompt_str, tokenizer, IMAGE_TOKEN_INDEX, return_tensors="pt"
-    ).unsqueeze(0).cuda()
-
-    # LLaVA-1.5 (liuhaotian/LLaVA): images is a plain tensor, no modalities/image_sizes kwargs.
-    # For multiple frames, stack into [N, C, H, W] — the model treats each as a separate image
-    # and the single <image> token in the prompt receives the concatenated visual features.
-    images = image_processor.preprocess(frames, return_tensors="pt")["pixel_values"]
-    images = images.to(dtype=model.dtype, device="cuda")
-
-    output_ids = model.generate(
-        input_ids,
-        images=images,
-        do_sample=False,
-        temperature=0,
-        max_new_tokens=16,
-        use_cache=True,
+    # Apply chat template to build prompt
+    text = processor.apply_chat_template(
+        messages,
+        tokenize=False,
+        add_generation_prompt=True,
     )
 
-    # Slice off the input tokens so we only decode the newly generated response.
-    new_tokens = output_ids[:, input_ids.shape[1]:]
-    return tokenizer.batch_decode(new_tokens, skip_special_tokens=True)[0].strip()
+    # Process video + text together
+    inputs = processor(
+        text=[text],
+        images=None,
+        videos=[frames],
+        return_tensors="pt",
+    )
+    inputs = {k: v.to(model.device) for k, v in inputs.items()}
+
+    output_ids = model.generate(
+        **inputs,
+        do_sample=False,
+        max_new_tokens=16,
+    )
+
+    generated_ids = output_ids[:, inputs["input_ids"].shape[1]:]
+    return processor.batch_decode(generated_ids, skip_special_tokens=True)[0].strip()
 
 
 # ---------------------------------------------------------------------------
@@ -164,30 +159,16 @@ def score_prediction(prediction: str, ground_truth: str):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_path", required=True)
-    parser.add_argument("--model_name", default="llava_v1.5_7b",
-                        help="Model name for load_pretrained_model (e.g. llava_v1.5_7b or llava_qwen)")
-    parser.add_argument("--conv_template", default="llava_v1",
-                        help="Conversation template (llava_v1 for LLaVA-1.5, qwen_1_5 for LLaVA-OV)")
     parser.add_argument("--meta_path", required=True)
     parser.add_argument("--output_dir", required=True)
-    parser.add_argument("--num_frames", type=int, default=8)
+    parser.add_argument("--num_frames", type=int, default=32)
     parser.add_argument("--limit", type=int, default=None)
-    parser.add_argument("--dominant", type=int, default=54,
-                        help="Number of dominant CLIP tokens to keep (VisionZip default: 191; compressed: 54)")
-    parser.add_argument("--contextual", type=int, default=10,
-                        help="Number of contextual CLIP tokens to keep (VisionZip default: 30; compressed: 10)")
     args = parser.parse_args()
 
     os.makedirs(args.output_dir, exist_ok=True)
 
-    print("Loading model...", flush=True)
-    tokenizer, model, image_processor, conv_template = load_model(
-        args.model_path,
-        model_name=args.model_name,
-        conv_template=args.conv_template,
-        dominant=args.dominant,
-        contextual=args.contextual,
-    )
+    print("Loading Qwen3-VL model...", flush=True)
+    _, model, processor = load_model(args.model_path)
 
     samples = []
     with open(args.meta_path) as f:
@@ -196,68 +177,79 @@ def main():
             if line:
                 samples.append(json.loads(line))
     if args.limit:
-        samples = samples[: args.limit]
+        samples = samples[:args.limit]
     print(f"Evaluating {len(samples)} samples", flush=True)
 
     results = []
-    scores  = []
+    scores = []
+    per_category = {}
 
     for i, sample in enumerate(tqdm(samples, desc="Evaluating")):
-        video_path   = find_video(sample["video_path"])
-        question     = sample["qa"][0]["question"]
+        video_path = find_video(sample["video_path"])
+        question = sample["qa"][0]["question"]
         ground_truth = sample["qa"][0]["answer"]
-        q_type       = sample.get("question_type", "Unknown")
+        q_type = sample.get("question_type", "Unknown")
 
         if video_path is None:
             print(f"  [WARN] video not found: {sample['video_path']}", file=sys.stderr)
             prediction = ""
         else:
             try:
-                frames     = load_frames(video_path, args.num_frames)
+                frames = load_frames(video_path, args.num_frames)
                 prediction = run_inference(
-                    tokenizer, model, image_processor, conv_template, frames, question
+                    model, processor, frames, question,
+                    num_frames=args.num_frames,
                 )
             except Exception as e:
-                print(f"  [WARN] sample {i} ({sample['video_path']}): {e}", file=sys.stderr)
+                print(f"  [WARN] sample {i} ({sample['video_path']}): {e}",
+                      file=sys.stderr)
                 prediction = ""
                 torch.cuda.empty_cache()
 
         s = score_prediction(prediction, ground_truth)
         results.append({
-            "idx":           i,
-            "video_path":    sample["video_path"],
+            "idx": i,
+            "video_path": sample["video_path"],
             "question_type": q_type,
-            "ground_truth":  ground_truth,
-            "prediction":    prediction,
-            "correct":       s,
+            "ground_truth": ground_truth,
+            "prediction": prediction,
+            "correct": s,
         })
         if s is not None:
             scores.append(s)
+            per_category[q_type] = per_category.get(q_type, {"correct": 0, "total": 0})
+            per_category[q_type]["total"] += 1
+            per_category[q_type]["correct"] += s
 
     out_file = os.path.join(args.output_dir, "results.jsonl")
     with open(out_file, "w") as f:
         for r in results:
             f.write(json.dumps(r) + "\n")
 
-    total    = len(scores)
-    correct  = sum(scores)
+    total = len(scores)
+    correct = sum(scores)
     na_count = len(results) - total
     accuracy = correct / total if total > 0 else 0.0
 
     summary = {
-        "accuracy":         accuracy,
-        "correct":          correct,
-        "total_scoreable":  total,
+        "accuracy": accuracy,
+        "correct": correct,
+        "total_scoreable": total,
         "total_na_skipped": na_count,
-        "total_samples":    len(results),
-        "model":            args.model_path,
-        "visionzip_params": {
-            "dominant":    args.dominant,
-            "contextual":  args.contextual,
-            "num_frames":  args.num_frames,
-        },
+        "total_samples": len(results),
+        "model": "Qwen/Qwen3-VL-8B-Instruct",
+        "num_frames": args.num_frames,
+        "note": "Qwen3-VL baseline — no compression applied",
+        "per_category": per_category,
     }
-    print(f"\nAccuracy: {correct}/{total} = {accuracy:.4f}  ({na_count} NA skipped)", flush=True)
+    print(
+        f"\nAccuracy: {correct}/{total} = {accuracy:.4f}  ({na_count} NA skipped)",
+        flush=True,
+    )
+    for cat in sorted(per_category.keys()):
+        c = per_category[cat]
+        acc = c["correct"] / c["total"] if c["total"] > 0 else 0.0
+        print(f"  {cat}: {c['correct']}/{c['total']} = {acc:.4f}", flush=True)
 
     summary_file = os.path.join(args.output_dir, "summary.json")
     with open(summary_file, "w") as f:
