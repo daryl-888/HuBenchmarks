@@ -22,7 +22,7 @@ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
 cd /project/rhu/dpalfaro
 
-/project/rhu/dpalfaro/conda/envs/dycoke11/bin/python3 \
+/project/rhu/dpalfaro/conda/envs/aim/bin/python3 \
     /project/rhu/dpalfaro/code/ovqwen2/aim-motionbenc/eval_aim.py \
     --model_path /project/rhu/dpalfaro/weights/llava-ov-7b-qwen2 \
     --conv_template qwen_2 \
