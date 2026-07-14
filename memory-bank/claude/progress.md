@@ -1,41 +1,38 @@
-# Progress — HuBenchmarks (2026-07-12 09:25 CDT)
+# Progress — HuBenchmarks (2026-07-13 13:45 CDT)
 
-## 🚨 BLOCKER: Carya /project/rhu Disk 100% Full
+## OVQwen 1.5 Scoreboard (6/10 complete)
 
-Filesystem at 100% (1TB/1TB). All sbatch submissions fail instantly. Must free space before any jobs run. See `activeContext.md` for storage breakdown and free-up commands (~41GB quick wins available).
+| # | Model | Accuracy | Status |
+|---|-------|:--------:|--------|
+| 1 | MDP3 (old) | 53.06% | ⚠️ Needs re-run |
+| 2 | **VideoITG** | **52.86%** | ✅ Clean re-run (7693609) |
+| 3 | AIM | 52.81% | ✅ (7692178) |
+| 4 | PruneVID | 52.66% | ✅ (7691288) |
+| 5 | HoliTom | 52.66% | ⚠️ Old — needs `holitom` conda env |
+| 6 | STTM-v2 | 51.87% | ✅ (7691289) |
+| 7 | MDP3 | — | 🔄 Re-running (7695024, 48h) |
+| 8 | DyCoke | — | 🔄 Smoke queued (7695025) |
+| 9 | FastV | — | ⏸️ Needs fastv conda env |
+| 10 | FlashVID | — | ⏸️ Smoke passed 48.15%, full run pending |
+| 11 | VisionZip | — | ❌ Broken — LlavaConfig error |
 
-## Full 8052 Results — Qwen 1.5 (6 Complete)
+### Excluded (4)
+FastVID (Qwen2-only), DyTo/iMove/TrajViT (incompatible/no code), STTM-LLaVAVid (→ experiments)
 
-| # | Model | Accuracy | Notes |
-|---|-------|:--------:|-------|
-| 1 | MDP3 (old) | 53.06% | Pre-restructure, needs re-run |
-| 2 | **AIM** | **52.81%** | 🔥 NEW — ICCV 2025 |
-| 3 | PruneVID | 52.66% | NEW |
-| 4 | HoliTom | 52.66% | Needs re-run verify |
-| 5 | VideoITG (old) | 52.51% | Grounding done, inference queued |
-| 6 | STTM-v2 | 51.87% | NEW |
+## STTM-LLaVAVid Experiments
+All 7 complete. Best: t=0.80 at 74.07% (14.81% over vanilla). Full run recommended.
 
-### Remaining Qwen 1.5 (4 models)
-| # | Model | Status |
-|---|-------|--------|
-| 7 | FastV | Queued — needs PYTHONPATH=DyCoke |
-| 8 | DyCoke | Queued — smoke test |
-| 9 | FlashVID | Smoke passed 48.15% — needs full run |
-| 10 | VisionZip | Broken — needs eval script model_name fix |
-
-### Excluded from Qwen 1.5 (5 models)
-FastVID (Qwen2-only), STTM-LLaVAVid (needs LLaVA-Video), DyTo/iMove/TrajViT (incompatible/no code)
-
-## STTM-LLaVAVid Experiments — Complete
-
-All 7 configs run. Best: **t=0.80 → 74.07%** (14.81% over vanilla baseline). Full run recommended after disk freed.
+## Currently Queued
+| Job | Model | Type |
+|:---:|-------|------|
+| 7695024 | MDP3 | Full (48h) |
+| 7695025 | DyCoke | Smoke |
 
 ## Known Issues
-
 | Issue | Status |
 |-------|--------|
-| **Carya disk 100% full** | **BLOCKER** — must free space |
-| SCP fails (exit 255) | Workaround: heredoc / Carya sbatch files |
-| VisionZip eval | Broken — LlavaConfig not recognized |
-| FastVID on Qwen 1.5 | Qwen2-only — excluded |
+| SCP fails (exit 255) | Workaround: heredoc / Carya sbatch |
+| HoliTom Qwen 1.5 re-run | Needs `holitom` conda env |
+| VisionZip | LlavaConfig not recognized |
+| FastV | Needs fastv conda env + PYTHONPATH |
 | Single GPU bottleneck | Sequential execution |

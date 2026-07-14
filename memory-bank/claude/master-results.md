@@ -1,6 +1,6 @@
 # Master Results Table — HuBenchmarks
 
-> **Last updated**: 2026-07-12 09:25 CDT
+> **Last updated**: 2026-07-13 13:45 CDT
 > **Benchmark**: MotionBench — 8,052 MCQ video samples, 4,018 scoreable, 4,034 NA
 > **Standard eval**: 32 frames, `do_sample=False`, `max_new_tokens=16`, letter-match scoring, NA-skip
 
@@ -11,15 +11,16 @@
 | # | Model | Conference | Year | Overall | Act. Order | Cam. Motion | Loc. Motion | Mot. Rec. | Mot. Objs. | Rep. Count | Parameters | Notes |
 |---|-------|-----------|------|:-------:|:----------:|:----------:|:----------:|:---------:|:----------:|:----------:|------------|-------|
 | 1 | **MDP3** | arXiv | 2025 | **53.06%** (2132/4018) | 40.46% (210/519) | 49.61% (191/385) | 53.48% (292/546) | 56.77% (839/1478) | 71.59% (494/690) | 26.50% (106/400) | pool_frames=32, select_frames=8 | Pre-restructure run. ⚠️ Needs re-run to verify. |
-| 2 | **AIM** | ICCV | 2025 | **52.81%** (2122/4018) | 41.23% (214/519) | 48.05% (185/385) | 54.03% (295/546) | 57.04% (843/1478) | 71.74% (495/690) | 22.50% (90/400) | aim env, eager attention, torch 2.3.1 | 🔥 NEW. Bipartite soft matching + PageRank prune. |
-| 3 | **PruneVID** | — | 2024 | **52.66%** (2116/4018) | 40.46% (210/519) | 45.19% (174/385) | 55.49% (303/546) | 57.04% (843/1478) | 71.16% (491/690) | 23.75% (95/400) | cluster_ratio=0.5, temporal_segment_ratio=0.25, layer=10, alpha=0.4, tau=0.8 | VTP pruning. Dir: ovqwen_prunevid_run2. |
-| 4 | **HoliTom** | — | 2025 | **52.66%** (2116/4018) | 40.46% (210/519) | 45.19% (174/385) | 55.49% (303/546) | 57.04% (843/1478) | 71.16% (491/690) | 23.75% (95/400) | RETAIN_RATIO=0.15, T=0.80, k=18, r=0.5 | Identical score to PruneVID by coincidence. ⚠️ Needs re-run to verify. |
-| 5 | **VideoITG** | — | 2025 | **52.51%** (2110/4018) | 40.27% (209/519) | 46.23% (178/385) | 53.30% (291/546) | 56.97% (842/1478) | 70.14% (484/690) | 26.50% (106/400) | grounding: 512 sample, 32 select, 2fps | Pre-restructure run. Grounding re-ran (7691291), inference pending (7692434). |
+| 2 | **VideoITG** | — | 2025 | **52.86%** (2124/4018) | 40.08% (208/519) | 47.01% (181/385) | 53.66% (293/546) | 57.58% (851/1478) | 70.14% (484/690) | 26.75% (107/400) | grounding: 512 sample, 32 select, 2fps | ✅ NEW re-run. Job 7693609. Clean re-ran grounding→inference pipeline. |
+| 3 | **AIM** | ICCV | 2025 | **52.81%** (2122/4018) | 41.23% (214/519) | 48.05% (185/385) | 54.03% (295/546) | 57.04% (843/1478) | 71.74% (495/690) | 22.50% (90/400) | aim env, eager attention, torch 2.3.1 | Bipartite soft matching + PageRank prune. |
+| 4 | **PruneVID** | — | 2024 | **52.66%** (2116/4018) | 40.46% (210/519) | 45.19% (174/385) | 55.49% (303/546) | 57.04% (843/1478) | 71.16% (491/690) | 23.75% (95/400) | cluster_ratio=0.5, temporal_segment_ratio=0.25, layer=10, alpha=0.4, tau=0.8 | Dir: ovqwen_prunevid_run2. |
+| 5 | **HoliTom** | — | 2025 | **52.66%** (2116/4018) | 40.46% (210/519) | 45.19% (174/385) | 55.49% (303/546) | 57.04% (843/1478) | 71.16% (491/690) | 23.75% (95/400) | RETAIN_RATIO=0.15, T=0.80, k=18, r=0.5 | ⚠️ Old run — needs re-run with `holitom` conda env. |
 | 6 | **STTM-v2** | — | 2025 | **51.87%** (2084/4018) | 39.11% (203/519) | 48.83% (188/385) | 53.66% (293/546) | 53.59% (792/1478) | 71.16% (491/690) | 29.25% (117/400) | sa_start_layer_idx=2, sa_tree_thresh=0.85, sa_tree_temporal_thresh=0.65 | QuadTree LLM attention. Job 7691289. |
-| 7 | **FastV** | — | 2024 | — | — | — | — | — | — | — | k=2, r=0.5, eager attention | ⏳ Queued (7692432). Needs PYTHONPATH=DyCoke. |
-| 8 | **DyCoke** | arXiv | 2024 | — | — | — | — | — | — | — | l=3, p=0.7, k=0.7 | ⏳ Smoke queued (7692433). |
-| 9 | **FlashVID** | ICLR | 2026 | — | — | — | — | — | — | — | retention_ratio=0.10, alpha=0.7, temporal_threshold=0.8 | Smoke passed 48.15% (13/27). Needs full run submission. |
-| 10 | **VisionZip** | — | 2024 | — | — | — | — | — | — | — | dominant=54, contextual=10 | ❌ Broken — `LlavaConfig not recognized`. Needs eval script model_name fix. |
+| 7 | **MDP3** | arXiv | 2025 | — | — | — | — | — | — | — | pool_frames=32, select_frames=8 | 🔄 Re-running (7695024, 48h). Cancelled at 57% — was running well. |
+| 8 | **DyCoke** | arXiv | 2024 | — | — | — | — | — | — | — | l=3, p=0.7, k=0.7 | 🔄 Smoke queued (7695025). |
+| 9 | **FastV** | — | 2024 | — | — | — | — | — | — | — | k=2, r=0.5, eager attention | ⏸️ Needs PYTHONPATH + fastv conda env. |
+| 10 | **FlashVID** | ICLR | 2026 | — | — | — | — | — | — | — | retention_ratio=0.10, alpha=0.7, temporal_threshold=0.8 | Smoke passed 48.15% (13/27). Full run pending. |
+| 11 | **VisionZip** | — | 2024 | — | — | — | — | — | — | — | dominant=54, contextual=10 | ❌ Broken — `LlavaConfig not recognized`. |
 
 ---
 
@@ -76,7 +77,7 @@
 | 11 | STTM | ✅ 51.87% | ✅ 51.54% | ⏸️ | |
 | 12 | STTM-LLaVAVid | ❌ | ❌ 0% | ⏸️ | → experiments/ |
 | 13 | TrajViT | ❌ | ❌ | ❌ | No code |
-| 14 | VideoITG | ✅ 52.51% | ⏸️ | ⏸️ | |
+| 14 | VideoITG | ✅ 52.86% | ⏸️ | ⏸️ | Re-ran clean |
 | 15 | VisionZip | 🔄 Broken | ⏸️ | ⏸️ | |
 
 ### Legend
