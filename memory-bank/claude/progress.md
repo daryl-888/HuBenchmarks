@@ -1,14 +1,14 @@
-# Progress — HuBenchmarks (2026-07-21 21:00 CDT)
+# Progress — HuBenchmarks (2026-07-22 08:10 CDT)
 
 ## New Results This Session
 
 | Model | Backbone | Result | Job ID | Notes |
 |-------|----------|:------:|:---:|-------|
-| AIM | qwen2 | **52.84%** (2123/4018) | 7714969 | Fixed AIM `__init__.py` + removed `ipdb` |
-| VideoITG | qwen2 | **52.86%** (2124/4018) | 7714855 | Two-stage pipeline completed |
-| DyTo | Vicuna-7B | 🔄 Running | 7750932 | v2: patched `__init__.py` in /tmp |
-| FlashVID | qwen2 | 🔄 Running (0.15) | 7750906 | retention 0.25→0.15 |
-| FlashVID | qwen1.5 | 🔄 Smoke | 7750924 | Fixed env (dycoke11→flashvid) |
+| FlashVID | qwen2 0.15 | **53.29%** (2141/4018) | 7750906 | ✅ retention_ratio=0.15, flashvid env |
+| DyTo | Vicuna-7B v2 | ❌ FAILED | 7750932 | Same LlavaLlamaForCausalLM import error — /tmp patch script missing |
+| FlashVID | qwen1.5 smoke | 53.33% (8/15) | 7750924 | ✅ flashvid env works |
+| FlashVID | qwen1.5 full 0.15 | 🔄 PENDING | 7751030 | Submitted |
+| DyTo | Vicuna-7B v3 | 🔄 PENDING | 7751031 | /tmp/DYTO_patched with try/except |
 
 ## OVQwen 1.5 Scoreboard (7/10 complete)
 
@@ -21,7 +21,7 @@
 | 5 | AIM | **52.81%** | ✅ |
 | 6 | PruneVID | **52.66%** | ✅ |
 | 7 | STTM-v2 | **51.87%** | ✅ |
-| 8 | FlashVID | — | 🔄 Smoke (7750924, flashvid env) |
+| 8 | FlashVID | — | 🔄 Full run (7751030, 0.15 retention) |
 | 9 | FastV | — | ❌ Hard-blocked (NotImplementedError) |
 | 10 | VisionZip | — | ❌ Broken (LlavaConfig) |
 
@@ -30,14 +30,14 @@
 | # | Model | Accuracy | Status |
 |---|-------|:--------:|--------|
 | 1= | DyCoke | **53.36%** | ✅ (7713010) |
-| 1= | FlashVID (old 0.25) | **53.36%** | ✅ Re-running at 0.15 |
-| 3 | HoliTom | **53.14%** | ✅ |
-| 4 | MDP3 | **53.06%** | ✅ (7713095) |
-| 5 | VideoITG | **52.86%** | ✅ NEW (7714855) |
-| 6 | AIM | **52.84%** | ✅ NEW (7714969) |
-| 7 | FastV | **52.66%** | ✅ (7704758) |
-| 8 | STTM-v2 | **51.54%** | ✅ |
-| 9 | FlashVID | — | 🔄 Full (7750906, 0.15 retention) |
+| 2 | FlashVID (0.15) | **53.29%** | ✅ NEW (7750906) |
+| 3= | FlashVID (old 0.25) | **53.36%** | ✅ (7713093) |
+| 4 | HoliTom | **53.14%** | ✅ |
+| 5 | MDP3 | **53.06%** | ✅ (7713095) |
+| 6 | VideoITG | **52.86%** | ✅ NEW (7714855) |
+| 7 | AIM | **52.84%** | ✅ NEW (7714969) |
+| 8 | FastV | **52.66%** | ✅ (7704758) |
+| 9 | STTM-v2 | **51.54%** | ✅ |
 | 10 | FastVID | — | ❌ Hard-blocked (0% accuracy) |
 | 11 | VisionZip | — | ❌ Broken (LlavaConfig) |
 
@@ -45,34 +45,14 @@
 
 | Job ID | Model | Backbone | Type | Fix Applied |
 |:---:|-------|----------|------|-------------|
-| 7750932 | DyTo | Vicuna-7B | Full | Patched `__init__.py` via /tmp copy |
-| 7750906 | FlashVID | qwen2 | Full | retention_ratio 0.25→0.15 |
-| 7750924 | FlashVID | qwen1.5 | Smoke | flashvid env (not dycoke11) |
+| 7751030 | FlashVID | qwen1.5 | Full (0.15 retention) | flashvid env |
+| 7751031 | DyTo | Vicuna-7B | v3 Full | /tmp/DYTO_patched with try/except import |
 
-## Retention Rate Audit
+## DyTo Fix History
 
-| Model | Was | Now | Status |
-|-------|:---:|:---:|--------|
-| HoliTom (both) | 0.15 | — | ✅ Standard |
-| FlashVID qwen2 | 0.25 | 0.15 | 🔄 Re-running |
-| FlashVID qwen1.5 | 0.25 | 0.15 | 🔄 Smoke test |
-| FastVID qwen2 | 0.10 | — | ❌ Broken model |
-
-See `retention-rate-audit.md` for full details.
-
-## DyTo Investigation
-
-- **Original result**: 5.25% on LLaVA-v1.6-Vicuna-7b
-- **Cause**: `dyto.llava.__init__.py` hardcodes `LlavaLlamaForCausalLM` import which fails on LLaMA-less system
-- **Fix**: v2 sbatch copies DYTO to /tmp, patches `__init__.py`, uses `vicuna_v1` template with 100 frames
-- **Status**: 🔄 PENDING (7750932)
-
-## Dataset Verification
-
-- 8,052 clips verified with ffprobe (200 random samples)
-- Zero duration mismatches between metadata and on-disk files
-- Distribution: 690 ≤1s, 4,565 >5s, mean 8.3s
-- See `dataset-verification.md` for scripts and full details
+- **v1** (original): 5.25% — suspected config error
+- **v2** (7750932): Copy to /tmp + patch via `/tmp/dyto_fix.py` → FAILED (script missing)
+- **v3** (7751031): Pre-patched `/tmp/DYTO_patched` to writable location, then pointed PYTHONPATH at it
 
 ## Carya Allocation
-79.28% remaining (416,235/525,000 hours)
+79.27% remaining (416,145/525,000 hours)
