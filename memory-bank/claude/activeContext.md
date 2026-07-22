@@ -1,7 +1,7 @@
-# Claude's Active Context — 2026-07-14 12:00 CDT
+# Claude's Active Context — 2026-07-22 13:30 CDT
 
 ## Current Focus
-Fixing and resubmitting 4 failed OVQwen 1.5 jobs (MDP3, DyCoke, HoliTom, FastV). All 4 have been fixed and resubmitted (7704918-7704921).
+Both queued jobs resolved: FlashVID qwen1.5 full eval finished (7751030), DyTo v3 failed (7751031). DyTo remains blocked after 3 attempts.
 
 ## Repository Structure
 
@@ -24,27 +24,49 @@ rm -rf /project/rhu/dpalfaro/weights/llava-v1.5-7b/
 ```
 These three unused weight sets (~41GB) can be removed when convenient.
 
-## Full 8052 Runs — Qwen 1.5 (6 Complete)
+## OVQwen 1.5 Scoreboard (8/10 complete)
 
-See `master-results.md` for full per-category breakdowns.
+| # | Model | Accuracy | Status |
+|---|-------|:--------:|--------|
+| 1 | DyCoke | **53.36%** | ✅ (7714650) |
+| 2 | HoliTom | **53.14%** | ✅ (7713092) |
+| 3 | MDP3 | **53.06%** | ✅ (7714722) |
+| 4 | VideoITG | **52.86%** | ✅ (7693609) |
+| 5 | AIM | **52.81%** | ✅ |
+| 6 | PruneVID | **52.66%** | ✅ |
+| 7 | STTM-v2 | **51.87%** | ✅ |
+| 8 | FlashVID | — | ✅ Complete (7751030) — accuracy pending |
+| 9 | FastV | — | ❌ Hard-blocked (NotImplementedError) |
+| 10 | VisionZip | — | ❌ Broken (LlavaConfig) |
 
-| # | Model | Accuracy | Run Dir |
-|---|-------|:--------:|---------|
-| 1 | MDP3 (old) | 53.06% | mdp3_run1 |
-| 2 | **AIM** | **52.81%** | ovqwen_aim_run1 |
-| 3 | PruneVID | 52.66% | ovqwen_prunevid_run2 |
-| 4 | HoliTom (old) | 52.66% | ovqwen_prunevid_run1 (misnamed) |
-| 5 | VideoITG (old) | 52.51% | videoitg_run1 |
-| 6 | STTM-v2 | 51.87% | ovqwen_sttmv2_run1 |
-| | **VideoITG (new)** | **52.86%** | ovqwen_videoitg_run2 (7693609) |
+## OVQwen2 Scoreboard (9/11 complete)
 
-## Currently Queued (7704918-7704921)
-| Job ID | Model | Type | Fix Applied |
-|:---:|-------|------|-------------|
-| 7704918 | MDP3 | Full (48h) | `LD_LIBRARY_PATH` libnccl.so.2 + `--pool-frames` |
-| 7704919 | DyCoke | Smoke | Corrupted eval_dycoke.py replaced |
-| 7704920 | HoliTom | Full | `holitom` env + PYTHONPATH + WRAPPER/T/k/r env vars |
-| 7704921 | FastV | Full | PYTHONPATH to HoliTom/Llava-NeXT (was DyCoke) |
+| # | Model | Accuracy | Status |
+|---|-------|:--------:|--------|
+| 1= | DyCoke | **53.36%** | ✅ (7713010) |
+| 2 | FlashVID (0.15) | **53.29%** | ✅ (7750906) |
+| 3= | FlashVID (old 0.25) | **53.36%** | ✅ (7713093) |
+| 4 | HoliTom | **53.14%** | ✅ |
+| 5 | MDP3 | **53.06%** | ✅ (7713095) |
+| 6 | VideoITG | **52.86%** | ✅ (7714855) |
+| 7 | AIM | **52.84%** | ✅ (7714969) |
+| 8 | FastV | **52.66%** | ✅ (7704758) |
+| 9 | STTM-v2 | **51.54%** | ✅ |
+| 10 | FastVID | — | ❌ Hard-blocked (0% accuracy) |
+| 11 | VisionZip | — | ❌ Broken (LlavaConfig) |
+
+## Recently Resolved Jobs
+
+| Job ID | Model | Backbone | Result |
+|:---:|-------|----------|--------|
+| 7751030 | FlashVID | qwen1.5 | ✅ Full run finished |
+| 7751031 | DyTo | Vicuna-7B | ❌ v3 failed |
+
+## Active Remaining Blockers
+- **DyTo**: Failed 3 times (v1: 5.25%, v2: script missing, v3: /tmp patch still failed). LlavaLlamaForCausalLM import error from DYTO/llava module.
+- **FastV** (ovqwen1.5): NotImplementedError for Qwen1.5 architecture
+- **FastVID**: Model-level bug causing 0% accuracy
+- **VisionZip**: LlavaConfig not recognized
 
 ## STTM-LLaVAVid Experiments — All 7 Complete
 Best config: **t=0.80, 32f → 74.07%** (20/27). STTM adds +14.81% over vanilla.
