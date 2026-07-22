@@ -1,6 +1,6 @@
 # Master Results Table — HuBenchmarks
 
-> **Last updated**: 2026-07-22 08:00 CDT
+> **Last updated**: 2026-07-22 13:42 CDT
 > **Benchmark**: MotionBench — 8,052 MCQ video samples, 4,018 scoreable, 4,034 NA
 > **Standard eval**: 32 frames, `do_sample=False`, `max_new_tokens=16`, letter-match scoring, NA-skip
 
@@ -17,7 +17,7 @@
 | 5 | **AIM** | ICCV | 2025 | **52.81%** (2122/4018) | 41.23% (214/519) | 48.05% (185/385) | 54.03% (295/546) | 57.04% (843/1478) | 71.74% (495/690) | 22.50% (90/400) | aim env, eager attention | Bipartite soft matching + PageRank prune. |
 | 6 | **PruneVID** | — | 2024 | **52.66%** (2116/4018) | 40.46% (210/519) | 45.19% (174/385) | 55.49% (303/546) | 57.04% (843/1478) | 71.16% (491/690) | 23.75% (95/400) | cluster_ratio=0.5, temporal_segment_ratio=0.25 | ovqwen_prunevid_run2. |
 | 7 | **STTM-v2** | — | 2025 | **51.87%** (2084/4018) | 39.11% (203/519) | 48.83% (188/385) | 53.66% (293/546) | 53.59% (792/1478) | 71.16% (491/690) | 29.25% (117/400) | sa_start_layer_idx=2, sa_tree_thresh=0.85 | Job 7691289. |
-| 8 | **FlashVID** | ICLR | 2026 | — | — | — | — | — | — | — | retention_ratio=0.15, flashvid env | 🔄 Submitting full run (smoke passed 7750924) |
+| 8 | **FlashVID** | ICLR | 2026 | **51.22%** (2058/4018) | 39.50% (205/519) | 41.04% (158/385) | 54.95% (300/546) | 54.19% (801/1478) | 71.16% (491/690) | 25.75% (103/400) | retention_ratio=0.15, flashvid env | ✅ (7751030). Below qwen2 variant. |
 | 9 | **FastV** | — | 2024 | — | — | — | — | — | — | — | k=2, r=0.5 | ❌ Hard-blocked — NotImplementedError for Qwen1.5 |
 | 10 | **VisionZip** | — | 2024 | — | — | — | — | — | — | — | dominant=54, contextual=10 | ❌ Broken — LlavaConfig not recognized |
 
@@ -54,7 +54,7 @@ DyTo/iMove/TrajViT (incompatible/no code), STTM-LLaVAVid (→ experiments)
 |---|-------|----------|:-------:|-------|
 | 1 | PruneVID | Legacy | 43.80% | Different backbone/config |
 | 2 | VisionZip | LLaVA-v1.5-7b | 39.97% | Wrong backbone |
-| 3 | DyTo | LLaVA-v1.6-Vicuna-7b | — | ❌ FAILED v2 (7750932) — LlavaLlamaForCausalLM import |
+| 3 | DyTo | LLaVA-v1.6-Vicuna-7b | — | ❌ FAILED v3 (7751031) — LlavaLlamaForCausalLM import from /code/DYTO (mahern69-owned, unpatched). Fix: point PYTHONPATH to /project/rhu/dpalfaro/DYTO (dpalfaro-owned, patched). |
 
 ---
 
@@ -66,12 +66,11 @@ DyTo/iMove/TrajViT (incompatible/no code), STTM-LLaVAVid (→ experiments)
 
 ---
 
-## Currently Running / Queued (2026-07-22 08:00)
+## Currently Running / Queued (2026-07-22 13:42)
 
 | Job ID | Model | Backbone | Type | Status |
 |:---:|-------|----------|------|--------|
-| — | FlashVID | qwen1.5 | Full (0.15 retention) | 🔄 SUBMITTING |
-| — | DyTo | Vicuna-7B | v3 (in-place patch) | 🔄 FIXING |
+| — | None | — | — | ✅ Queue empty |
 
 ---
 
@@ -81,10 +80,10 @@ DyTo/iMove/TrajViT (incompatible/no code), STTM-LLaVAVid (→ experiments)
 |---|-------|:-------:|:-----:|-------|
 | 1 | AIM | ✅ 52.81% | ✅ 52.84% | |
 | 2 | DyCoke | ✅ 53.36% | ✅ 53.36% | Identical accuracy across backbones |
-| 3 | DyTo | ❌ OV | ❌ OV | Vicuna backbone — v2 failed, fixing v3 |
+| 3 | DyTo | ❌ OV | ❌ OV | Vicuna backbone — v3 failed; fix: point to dpalfaro-owned /DYTO |
 | 4 | FastV | ❌ Hard-blocked | ✅ 52.66% | |
 | 5 | FastVID | ❌ Qwen2-only | ❌ Hard-blocked | Model-level 0% bug |
-| 6 | FlashVID | 🔄 Submitting full | ✅ 53.29% (0.15) | ICLR 2026 Oral |
+| 6 | FlashVID | ✅ 51.22% (0.15) | ✅ 53.29% (0.15) | ICLR 2026 Oral |
 | 7 | HoliTom | ✅ 53.14% | ✅ 53.14% | Identical accuracy across backbones |
 | 8 | iMove | ❌ | ❌ | No public code |
 | 9 | MDP3 | ✅ 53.06% | ✅ 53.06% | Identical accuracy across backbones |
@@ -114,7 +113,7 @@ Three models (HoliTom, DyCoke, MDP3) produce **identical accuracy across qwen1.5
 
 FlashVID was running at retention_ratio=0.25 instead of standard 0.15. Results:
 - qwen2 0.15: ✅ **53.29%** (7750906) — 3 miniscule pts below 0.25 run
-- qwen1.5 0.15: 🔄 Submitting full run (smoke passed 7750924)
+- qwen1.5 0.15: ✅ **51.22%** (7751030) — significantly lower than qwen2 variant
 
 See `memory-bank/claude/retention-rate-audit.md` for full details.
 
