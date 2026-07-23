@@ -1,6 +1,6 @@
 # Master Results Table — HuBenchmarks
 
-> **Last updated**: 2026-07-22 13:42 CDT
+> **Last updated**: 2026-07-23 11:43 CDT
 > **Benchmark**: MotionBench — 8,052 MCQ video samples, 4,018 scoreable, 4,034 NA
 > **Standard eval**: 32 frames, `do_sample=False`, `max_new_tokens=16`, letter-match scoring, NA-skip
 
@@ -16,10 +16,10 @@
 | 4 | **VideoITG** | — | 2025 | **52.86%** (2124/4018) | 40.08% (208/519) | 47.01% (181/385) | 53.66% (293/546) | 57.58% (851/1478) | 70.14% (484/690) | 26.75% (107/400) | grounding: 512 sample, 32 select, 2fps | ✅ Clean re-run (7693609). |
 | 5 | **AIM** | ICCV | 2025 | **52.81%** (2122/4018) | 41.23% (214/519) | 48.05% (185/385) | 54.03% (295/546) | 57.04% (843/1478) | 71.74% (495/690) | 22.50% (90/400) | aim env, eager attention | Bipartite soft matching + PageRank prune. |
 | 6 | **PruneVID** | — | 2024 | **52.66%** (2116/4018) | 40.46% (210/519) | 45.19% (174/385) | 55.49% (303/546) | 57.04% (843/1478) | 71.16% (491/690) | 23.75% (95/400) | cluster_ratio=0.5, temporal_segment_ratio=0.25 | ovqwen_prunevid_run2. |
-| 7 | **STTM-v2** | — | 2025 | **51.87%** (2084/4018) | 39.11% (203/519) | 48.83% (188/385) | 53.66% (293/546) | 53.59% (792/1478) | 71.16% (491/690) | 29.25% (117/400) | sa_start_layer_idx=2, sa_tree_thresh=0.85 | Job 7691289. |
-| 8 | **FlashVID** | ICLR | 2026 | **51.22%** (2058/4018) | 39.50% (205/519) | 41.04% (158/385) | 54.95% (300/546) | 54.19% (801/1478) | 71.16% (491/690) | 25.75% (103/400) | retention_ratio=0.15, flashvid env | ✅ (7751030). Below qwen2 variant. |
-| 9 | **FastV** | — | 2024 | — | — | — | — | — | — | — | k=2, r=0.5 | ❌ Hard-blocked — NotImplementedError for Qwen1.5 |
-| 10 | **VisionZip** | — | 2024 | — | — | — | — | — | — | — | dominant=54, contextual=10 | ❌ Broken — LlavaConfig not recognized |
+| 7 | **FastV** (baseline) | — | 2024 | **52.66%** (2116/4018) | 40.46% (210/519) | 45.19% (174/385) | 55.49% (303/546) | 57.04% (843/1478) | 71.16% (491/690) | 23.75% (95/400) | k=2, r=0.5 (enabled=false) | ✅ Job 7762123. DyCoke builder + dycoke11 env. |
+| 8 | **STTM-v2** | — | 2025 | **51.87%** (2084/4018) | 39.11% (203/519) | 48.83% (188/385) | 53.66% (293/546) | 53.59% (792/1478) | 71.16% (491/690) | 29.25% (117/400) | sa_start_layer_idx=2, sa_tree_thresh=0.85 | Job 7691289. |
+| 9 | **FlashVID** | ICLR | 2026 | **51.22%** (2058/4018) | 39.50% (205/519) | 41.04% (158/385) | 54.95% (300/546) | 54.19% (801/1478) | 71.16% (491/690) | 25.75% (103/400) | retention_ratio=0.15, flashvid env | ✅ (7751030). Below qwen2 variant. |
+| 10 | **VisionZip** | — | 2024 | — | — | — | — | — | — | — | dominant=54, contextual=10 | 🔄 Rerunning (7768829) — was 0.0% due to AIM shadowing |
 
 ### Excluded (4)
 FastVID (Qwen2-only), DyTo/iMove/TrajViT (incompatible/no code), STTM-LLaVAVid (→ experiments)
@@ -33,15 +33,15 @@ FastVID (Qwen2-only), DyTo/iMove/TrajViT (incompatible/no code), STTM-LLaVAVid (
 | 1= | **DyCoke** | arXiv | 2024 | **53.36%** (2144/4018) | 38.92% (202/519) | 48.83% (188/385) | 55.68% (304/546) | 58.19% (860/1478) | 70.87% (489/690) | 25.25% (101/400) | l=3, p=0.7, k=0.7, attn_impl=sdpa | ✅ (7713010) |
 | 1= | **FlashVID** (0.25) | ICLR | 2026 | **53.36%** (2144/4018) | 42.20% (219/519) | 47.53% (183/385) | 55.13% (301/546) | 57.58% (851/1478) | 71.74% (495/690) | 23.75% (95/400) | retention_ratio=0.25 | ✅ Old run (7713093). |
 | 3 | **FlashVID** (0.15) | ICLR | 2026 | **53.29%** (2141/4018) | 39.69% (206/519) | 45.71% (176/385) | 54.03% (295/546) | 57.85% (855/1478) | 71.88% (496/690) | 28.25% (113/400) | retention_ratio=0.15 | ✅ NEW (7750906). |
-| 4 | **HoliTom** | — | 2025 | **53.14%** (2135/4018) | 40.85% (212/519) | 49.61% (191/385) | 52.56% (287/546) | 57.04% (843/1478) | 71.45% (493/690) | 27.25% (109/400) | RETAIN_RATIO=0.15, T=0.80, k=18, r=0.5 | dycoke11 env. |
-| 5 | **MDP3** | arXiv | 2025 | **53.06%** (2132/4018) | 40.46% (210/519) | 49.61% (191/385) | 53.48% (292/546) | 56.77% (839/1478) | 71.59% (494/690) | 26.50% (106/400) | pool_frames=32, select_frames=8 | ✅ Re-run (7713095). |
+| 4 | **HoliTom** | — | 2025 | **53.14%** (2135/4018) | 40.85% (212/519) | 49.61% (191/385) | 52.56% (287/546) | 57.04% (843/1478) | 71.45% (493/690) | 27.25% (109/400) | RETAIN_RATIO=0.15, T=0.80, k=18, r=0.5 | ✅ (holitom_run1). |
+| 5 | **MDP3** | arXiv | 2025 | **53.06%** (2132/4018) | 40.46% (210/519) | 49.61% (191/385) | 53.48% (292/546) | 56.77% (839/1478) | 71.59% (494/690) | 26.50% (106/400) | pool_frames=32, select_frames=8 | ✅ Job 7762128 (COMPLETED). |
 | 6 | **VideoITG** | — | 2025 | **52.86%** (2124/4018) | — | — | — | — | — | — | grounding + inference | ✅ NEW (7714855). |
 | 7 | **AIM** | ICCV | 2025 | **52.84%** (2123/4018) | — | — | — | — | — | — | aim env, eager attention | ✅ NEW (7714969). |
 | 8 | **FastV** | — | 2024 | **52.66%** (2116/4018) | 40.46% (210/519) | 45.19% (174/385) | 55.49% (303/546) | 57.04% (843/1478) | 71.16% (491/690) | 23.75% (95/400) | k=2, r=0.5, eager attention | ✅ (7704758). |
 | 9 | **FlashVID** (8f) | ICLR | 2026 | **51.92%** (2086/4018) | — | — | — | — | — | — | retention_ratio=0.1, num_frames=8 | Old 8f run. Superseded by 32f. |
 | 10 | **STTM-v2** | — | 2025 | **51.54%** (2071/4018) | 38.54% (200/519) | 48.05% (185/385) | 54.03% (295/546) | 53.45% (790/1478) | 70.43% (486/690) | 28.75% (115/400) | sa_start_layer_idx=2, sa_tree_thresh=0.85 | sttm_new env. |
 | 11 | **FastVID** | — | 2024 | — | — | — | — | — | — | — | fastvid env | ❌ Hard-blocked — model-level bug (0% accuracy) |
-| 12 | **VisionZip** | — | 2024 | — | — | — | — | — | — | — | dominant=54, contextual=10 | ❌ Broken — LlavaConfig not recognized |
+| 12 | **VisionZip** | — | 2024 | — | — | — | — | — | — | — | dominant=54, contextual=10 | 🔄 Rerunning (7769039) — was 0.0% due to AIM shadowing |
 
 ### Excluded (4)
 DyTo/iMove/TrajViT (incompatible/no code), STTM-LLaVAVid (→ experiments)
@@ -66,11 +66,13 @@ DyTo/iMove/TrajViT (incompatible/no code), STTM-LLaVAVid (→ experiments)
 
 ---
 
-## Currently Running / Queued (2026-07-22 13:42)
+## Currently Running / Queued (2026-07-23 11:43)
 
 | Job ID | Model | Backbone | Type | Status |
 |:---:|-------|----------|------|--------|
-| — | None | — | — | ✅ Queue empty |
+| 7768241 | MDP3 | OVQwen 1.5 | Fresh re-run (fixed --num_frames) | ⚡ RUNNING (1h 23m) |
+| 7768829 | VisionZip | OVQwen 1.5 | Fresh re-run (DyCoke builder fix) | ⚡ RUNNING (48m) |
+| 7769039 | VisionZip | OVQwen 2 | Fresh re-run (fixed args) | ⚡ RUNNING |
 
 ---
 
@@ -81,7 +83,7 @@ DyTo/iMove/TrajViT (incompatible/no code), STTM-LLaVAVid (→ experiments)
 | 1 | AIM | ✅ 52.81% | ✅ 52.84% | |
 | 2 | DyCoke | ✅ 53.36% | ✅ 53.36% | Identical accuracy across backbones |
 | 3 | DyTo | ❌ OV | ❌ OV | Vicuna backbone — v3 failed; fix: point to dpalfaro-owned /DYTO |
-| 4 | FastV | ❌ Hard-blocked | ✅ 52.66% | |
+| 4 | FastV | ✅ 52.66% | ✅ 52.66% | |
 | 5 | FastVID | ❌ Qwen2-only | ❌ Hard-blocked | Model-level 0% bug |
 | 6 | FlashVID | ✅ 51.22% (0.15) | ✅ 53.29% (0.15) | ICLR 2026 Oral |
 | 7 | HoliTom | ✅ 53.14% | ✅ 53.14% | Identical accuracy across backbones |
@@ -92,7 +94,7 @@ DyTo/iMove/TrajViT (incompatible/no code), STTM-LLaVAVid (→ experiments)
 | 12 | STTM-LLaVAVid | — | — | → experiments/ (53.33% on LLaVA-Video-7B) |
 | 13 | TrajViT | ❌ | ❌ | No public code |
 | 14 | VideoITG | ✅ 52.86% | ✅ 52.86% | |
-| 15 | VisionZip | ❌ Broken | ❌ Broken | |
+| 15 | VisionZip | 🔄 Rerunning | 🔄 Rerunning | |
 
 ### Legend
 | Symbol | Meaning |

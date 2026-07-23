@@ -10,10 +10,6 @@
 #SBATCH --mail-type=END
 #SBATCH --mail-user=dpalfaro@cougarnet.uh.edu
 
-## HoliTom × OVQwen 1.5
-## Note: eval_holitom.py hardcodes conv_template internally — no --conv_template argument
-## The WRAPPER, RETAIN_RATIO, T, HOLITOM_k, HOLITOM_r env vars activate holitom's siglip monkey-patch
-
 module purge
 module load Miniforge3/py3.10
 
@@ -23,7 +19,11 @@ unset HF_DATASETS_OFFLINE
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
 export TRANSFORMERS_OFFLINE=1
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
-export PYTHONPATH=/project/rhu/dpalfaro/code/HoliTom/Llava-NeXT:/project/rhu/dpalfaro/code/HoliTom
+
+# Use holitom conda env (has transformers 4.45.2 with rope_utils)
+# PYTHONPATH: DyCoke for llava builder, HoliTom for monkey-patch code
+# Exclude AIM's transformers path to avoid version mismatch
+export PYTHONPATH=/project/rhu/dpalfaro/code/DyCoke:/project/rhu/dpalfaro/code/HoliTom
 export WRAPPER=holitom
 export RETAIN_RATIO=0.15
 export T=0.80
