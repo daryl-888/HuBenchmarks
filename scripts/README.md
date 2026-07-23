@@ -50,6 +50,17 @@ python code/HuVLLM_scripts/check_run.py /project/rhu/dpalfaro/results/<run> --ex
 
 Exit 0 = trustworthy; non-zero = do not record. `--strict` also fails on warnings.
 
+**`--vs-baseline <run_dir>`** catches the subtlest silent failure: a method whose
+predictions are *identical* to the plain backbone, i.e. it never engaged. This is
+the only check that exposed the PruneVID LLaVA-OV port and the FastV stub — both
+passed every other gate but produced 0/8052 differing predictions vs. the inert
+baseline. Always run new method ports with `--vs-baseline` against a known
+backbone run:
+
+```bash
+python scripts/check_run.py results/<new_method> --vs-baseline results/fastv_run1
+```
+
 **Automate it:** paste `gate_snippet.sh` at the end of each eval sbatch (after the
 python eval call). It runs the gate and renames the output dir to
 `*.FAILED_GATE` if the run is untrustworthy, so a bad run can never be silently

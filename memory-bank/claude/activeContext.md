@@ -20,7 +20,7 @@ sbatch-files/          Local sbatch templates for Carya submission
 - There is no "Qwen1.5 vs Qwen2 backbone" — both use the **same model** (`lmms-lab/llava-ov-7b`, arch: `LlavaQwenForCausalLM`, uses `Qwen2-7B-Instruct` internally)
 - `qwen_1_5` vs `qwen_2` conv templates only control **prompt formatting**, not model weights
 - The duplicate `llava-ov-7b-qwen2` weight directory was deleted from Carya
-- FastV OV1.5 now has a valid baseline result (52.66%) — no longer hard-blocked
+- FastV OV1.5 produced 52.66% but `apply_fastv()` is a **stub** (`enabled: false`) — this is the plain backbone baseline, NOT a FastV method result. Relabelled 2026-07-23.
 
 ## Consolidated Scoreboard (Single Model: LLaVA-OV-7B)
 
@@ -33,8 +33,8 @@ sbatch-files/          Local sbatch templates for Carya submission
 | 5 | MDP3 | **53.06%** | ✅ |
 | 6 | VideoITG | **52.86%** | ✅ |
 | 7 | AIM | **52.84%** | ✅ |
-| 8= | PruneVID | **52.66%** | ✅ |
-| 8= | FastV (baseline) | **52.66%** | ✅ |
+| 8 | PruneVID | **52.66%** | ✅ ⚠️ see health check |
+| — | ~~FastV~~ → Backbone baseline (stub, `enabled:false`) | **52.66%** | ⚠️ NOT a method result |
 | 10 | STTM-v2 | **51.87%** | ✅ |
 | 11 | FlashVID (qwen15 templ) | **51.22%** | ✅ |
 | 12 | VideoITG (simplified) | **34.89%** | ✅ |

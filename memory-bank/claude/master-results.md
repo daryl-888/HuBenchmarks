@@ -22,8 +22,8 @@
 | 5 | **MDP3** | arXiv | 2025 | **53.06%** (2132/4018) | 40.46% (210/519) | 49.61% (191/385) | 53.48% (292/546) | 56.77% (839/1478) | 71.59% (494/690) | 26.50% (106/400) | pool_frames=32, select_frames=8 | |
 | 6 | **VideoITG** | — | 2025 | **52.86%** (2124/4018) | 40.08% (208/519) | 47.01% (181/385) | 53.66% (293/546) | 57.58% (851/1478) | 70.14% (484/690) | 26.75% (107/400) | grounding: 512 sample, 32 select, 2fps | |
 | 7 | **AIM** | ICCV | 2025 | **52.84%** (2123/4018) | 41.43% (215/519) | 47.79% (184/385) | 54.03% (295/546) | 57.10% (844/1478) | 71.88% (496/690) | 22.25% (89/400) | aim env, eager attention | Bipartite soft matching + PageRank prune. |
-| 8 | **PruneVID** | — | 2024 | **52.66%** (2116/4018) | 40.46% (210/519) | 45.19% (174/385) | 55.49% (303/546) | 57.04% (843/1478) | 71.16% (491/690) | 23.75% (95/400) | cluster_ratio=0.5, temporal_segment_ratio=0.25 | |
-| 9 | **FastV** (baseline) | — | 2024 | **52.66%** (2116/4018) | 40.46% (210/519) | 45.19% (174/385) | 55.49% (303/546) | 57.04% (843/1478) | 71.16% (491/690) | 23.75% (95/400) | k=2, r=0.5 | apply_fastv() is a stub — ran as pure baseline |
+| — | **PruneVID (OV port)** — INERT | — | 2024 | **52.66%** (2116/4018) | 40.46% (210/519) | 45.19% (174/385) | 55.49% (303/546) | 57.04% (843/1478) | 71.16% (491/690) | 23.75% (95/400) | cluster_ratio=0.5, temporal_segment_ratio=0.25 | ⚠️ Byte-identical to the inert FastV baseline (2116/4018, all categories match). The VTP port to LLaVA-OV did NOT prune — this is the plain backbone, not a PruneVID result. Real PruneVID is on PLLaVA-7B → 44%, see Other Backbones. |
+| — | **Backbone baseline** (mislabelled "FastV") | — | 2024 | **52.66%** (2116/4018) | 40.46% (210/519) | 45.19% (174/385) | 55.49% (303/546) | 57.04% (843/1478) | 71.16% (491/690) | 23.75% (95/400) | k=2, r=0.5 (INERT) | ⚠️ NOT a FastV result. `apply_fastv()` is a stub — `enabled: false` in summary.json. This is the plain LLaVA-OV-7B backbone. Do not rank as a method. |
 | 10 | **STTM-v2** | — | 2025 | **51.87%** (2084/4018) | 39.11% (203/519) | 48.83% (188/385) | 53.66% (293/546) | 53.59% (792/1478) | 71.16% (491/690) | 29.25% (117/400) | sa_start_layer_idx=2, sa_tree_thresh=0.85 | |
 | 11 | **FlashVID** (0.15, qwen15) | ICLR | 2026 | **51.22%** (2058/4018) | 39.50% (205/519) | 41.04% (158/385) | 54.95% (300/546) | 54.19% (801/1478) | 71.16% (491/690) | 25.75% (103/400) | retention_ratio=0.15, qwen_1_5 template | qwen_1_5 template run only. |
 | 12 | **VideoITG** (simplified) | — | 2025 | **34.89%** (1402/4018) | 14.45% (75/519) | 45.19% (174/385) | 55.49% (303/546) | 44.65% (660/1478) | 20.29% (140/690) | 12.50% (50/400) | single-stage, no grounding | |
@@ -65,7 +65,7 @@
 | Method | Backbone | Overall | Status | Job ID |
 |--------|----------|:-------:|:------:|:------:|
 | DyTo | LLaVA-NeXT Vicuna-7B | — | 🔄 PENDING (builder patched) | 7769212 |
-| PruneVID | PLLaVA-7B | **52.66%** | ✅ Has own sbatch in prunevid-motionbenc/ | — |
+| PruneVID | PLLaVA-7B | **44.00%** (1768/4018) | ✅ Real result, `pruning_enabled: True` (prunevid_run2) | — |
 | VisionZip | LLaVA-v1.5-7b | 39.97% | 🔄 Stage 1 rerun (Vicuna LLM) | 7768829, 7769201 |
 | STTM-LLaVAVid | LLaVA-Video-7B | **53.33%** | ✅ Experiment run (job 7706552) | — |
 | iMove | LLaVA-NeXT | — | ❌ No public code | — |
@@ -80,7 +80,7 @@
 | DyCoke | **53.36%** | **53.36%** | 0.00 | Identical — template has no effect |
 | HoliTom | **53.14%** | **53.14%** | 0.00 | Identical |
 | MDP3 | **53.06%** | **53.06%** | 0.00 | Identical |
-| FastV (baseline) | **52.66%** | **52.66%** | 0.00 | Identical |
+| Backbone baseline (via FastV stub) | **52.66%** | **52.66%** | 0.00 | Identical — plain backbone, both templates |
 | FlashVID (0.15) | **51.22%** | **53.29%** | -2.07 | ⚠️ Different results! Only method with diff |
 
 FlashVID's result difference (51.22% vs 53.29%) suggests one of its runs may have had different hyperparameters or a different code path — not just a template difference. Worth investigating.

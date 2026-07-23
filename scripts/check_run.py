@@ -201,6 +201,44 @@ def check_method_engaged(summary, expect_method, g):
                    f"'{method}' params — check you're reading the right run")
 
 
+def check_not_identical_to_baseline(rows, baseline_dir, g):
+    """
+    If EVERY prediction matches a baseline run, the method never engaged — it's
+    the plain backbone wearing a method's name. This is exactly how the PruneVID
+    LLaVA-OV port and the FastV stub were caught: 0/8052 predictions differed
+    from the inert baseline.
+    """
+    bpath = os.path.join(baseline_dir, "results.jsonl")
+    if not rows or not os.path.exists(bpath):
+        g.warn(f"--vs-baseline: cannot read {bpath}, skipping comparison")
+        return
+    base = []
+    with open(bpath) as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                try:
+                    base.append(json.loads(line).get("prediction"))
+                except json.JSONDecodeError:
+                    pass
+    mine = [r.get("prediction") for r in rows]
+    if len(base) != len(mine):
+        g.warn(f"--vs-baseline: length mismatch ({len(mine)} vs {len(base)}), "
+               f"cannot compare cleanly")
+        return
+    diffs = sum(1 for a, b in zip(mine, base) if a != b)
+    if diffs == 0:
+        g.fail(f"predictions are IDENTICAL to baseline {baseline_dir} "
+               f"(0/{len(mine)} differ) — method was a silent no-op, this is "
+               f"the plain backbone (PruneVID-OV / FastV-stub signature)")
+    elif diffs < len(mine) * 0.005:
+        g.warn(f"only {diffs}/{len(mine)} predictions differ from baseline "
+               f"— method had almost no effect; verify it actually engaged")
+    else:
+        g.ok(f"{diffs}/{len(mine)} predictions differ from baseline "
+             f"(method is doing something)")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -209,6 +247,10 @@ def main():
                     help="method name that SHOULD have engaged (e.g. dycoke)")
     ap.add_argument("--strict", action="store_true",
                     help="treat WARN as failure too")
+    ap.add_argument("--vs-baseline", metavar="RUN_DIR",
+                    help="a baseline run to compare against; if this run's "
+                         "predictions are IDENTICAL to it, the method was a "
+                         "silent no-op (PruneVID-OV / FastV-stub signature)")
     args = ap.parse_args()
 
     if not os.path.isdir(args.run_dir):
@@ -227,6 +269,9 @@ def main():
         check_accuracy_band(summary, g)
         check_method_engaged(summary, args.expect_method, g)
     check_predictions_nondegenerate(rows, g)
+
+    if args.vs_baseline:
+        check_not_identical_to_baseline(rows, args.vs_baseline, g)
 
     print()
     n_fail, n_warn = len(g.fails), len(g.warns)

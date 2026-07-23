@@ -29,7 +29,7 @@
 | 6 | **VideoITG** | **52.86%** | ✅ |
 | 7 | **AIM** | **52.84%** | ✅ |
 | 8= | **PruneVID** | **52.66%** | ✅ |
-| 8= | **FastV** (baseline) | **52.66%** | ✅ |
+| — | ~~FastV~~ → **Backbone baseline** (stub, `enabled:false`) | **52.66%** | ⚠️ NOT a method |
 | 10 | **STTM-v2** | **51.87%** | ✅ |
 | 11 | **FlashVID** (qwen15 templ) | **51.22%** | ✅ |
 | 12 | **VideoITG** (simplified) | **34.89%** | ✅ |
