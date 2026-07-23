@@ -16,14 +16,16 @@ module load Miniforge3/py3.10
 export PYTHONNOUSERSITE=1
 unset HF_HUB_OFFLINE
 unset HF_DATASETS_OFFLINE
-# fastv env has llava installed at /project/rhu/dpalfaro/AIM/llava/ — no extra PYTHONPATH needed
+# Use dycoke11 env instead of broken fastv env (torch/transformers mismatch in fastv)
+# dycoke11 has working llava via the HoliTom/Llava-NeXT PATH
+export PYTHONPATH=/project/rhu/dpalfaro/code/HoliTom/Llava-NeXT:${PYTHONPATH:-}
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
 export TRANSFORMERS_OFFLINE=1
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
 cd /project/rhu/dpalfaro
 
-/project/rhu/dpalfaro/conda/envs/fastv/bin/python3 \
+/project/rhu/dpalfaro/conda/envs/dycoke11/bin/python3 \
     /project/rhu/dpalfaro/code/fastv-motionbenc/eval_fastv.py \
     --model_path /project/rhu/dpalfaro/weights/llava-ov-7b \
     --meta_path  /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
