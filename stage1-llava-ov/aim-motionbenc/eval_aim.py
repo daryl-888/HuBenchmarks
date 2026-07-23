@@ -243,6 +243,16 @@ def main():
         "model": args.model_path,
         "num_frames": args.num_frames,
         "conv_template": args.conv_template,
+        # AIM's compression is compiled into its patched llava_arch.py (no CLI
+        # knobs), so record the fixed schedule it applies. `enabled` lets
+        # scripts/check_run.py verify the method ran instead of silently
+        # degrading to the plain backbone.
+        "aim_params": {
+            "enabled": True,
+            "merge": "bipartite_soft_matching, 4 steps (50%/25%/12.5%/6.25%)",
+            "prune": "pagerank",
+            "source": "patched llava_arch.py (not CLI-configurable)",
+        },
         "per_category": per_category,
     }
     print(

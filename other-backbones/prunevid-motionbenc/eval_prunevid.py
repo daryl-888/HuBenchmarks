@@ -275,6 +275,7 @@ def main():
         "total_samples":    len(results),
         "pruning_enabled":  not args.no_pruning,
         "prunevid_params": {
+            "enabled": True,
             "cluster_ratio":          args.cluster_ratio,
             "temporal_segment_ratio": args.temporal_segment_ratio,
             "selected_layer":         args.selected_layer,

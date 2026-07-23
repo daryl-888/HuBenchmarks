@@ -252,6 +252,7 @@ def main():
         "total_samples":    len(results),
         "model":            args.model_path,
         "visionzip_params": {
+            "enabled": True,
             "dominant":    args.dominant,
             "contextual":  args.contextual,
             "num_frames":  args.num_frames,

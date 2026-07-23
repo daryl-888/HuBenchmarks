@@ -238,6 +238,7 @@ def main():
         "total_samples":    len(results),
         "model":            args.model_path,
         "holitom_params": {
+            "enabled": True,
             "RETAIN_RATIO": os.environ.get("RETAIN_RATIO", "0.15"),
             "T":            os.environ.get("T",            "0.80"),
             "HOLITOM_k":    os.environ.get("HOLITOM_k",   "18"),

@@ -323,6 +323,7 @@ def main():
         "total_na_skipped":   na_count,
         "total_samples":      len(results),
         "sttm_params": {
+            "enabled": True,
             "sa_start_layer_idx":      args.sa_start_layer_idx,
             "sa_tree_thresh":          args.sa_tree_thresh,
             "sa_tree_temporal_thresh": args.sa_tree_temporal_thresh,

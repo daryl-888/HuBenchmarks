@@ -244,7 +244,8 @@ def main():
         "model": args.model_path,
         "num_frames": args.num_frames,
         "conv_template": args.conv_template,
-        "dycoke_params": {"dycoke": True, "l": 3, "p": 0.7, "k": 0.7},
+        "dycoke_params": {
+            "enabled": True,"dycoke": True, "l": 3, "p": 0.7, "k": 0.7},
         "per_category": per_category,
     }
     print(

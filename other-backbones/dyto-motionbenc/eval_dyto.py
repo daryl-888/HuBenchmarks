@@ -138,7 +138,8 @@ def main():
     print(f"\nAccuracy: {cor}/{total} = {acc:.4f} ({na} NA skipped)", flush=True)
     json.dump({"accuracy":acc,"correct":cor,"total_scoreable":total,"total_na_skipped":na,
         "total_samples":len(samples),"model":args.model_path,
-        "dyto_params":{"num_frames":args.num_frames,"temporal_aggregation":args.temporal_aggregation,
+        "dyto_params":{
+            "enabled": True,"num_frames":args.num_frames,"temporal_aggregation":args.temporal_aggregation,
             "rope_scaling":args.rope_scaling,"conv_template":args.conv_template}},
         open(os.path.join(args.output_dir,"summary.json"),"w"),indent=2)
 
