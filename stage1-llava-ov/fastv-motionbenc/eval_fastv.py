@@ -90,11 +90,28 @@ def apply_fastv(model, fastv_k: int, fastv_r: float):
     orig_forward = inner.forward
 
     def fastv_forward(self, *args, **kwargs):
+        if not getattr(self, "_fastv_entered", False):
+            import logging
+            logging.warning("FastV: wrapper ENTERED (forward is patched)")
+            self._fastv_entered = True
         # Normalize call to kwargs so we can read/inspect uniformly.
         # LlavaQwenForCausalLM calls self.model(...) with keyword args.
         inputs_embeds = kwargs.get("inputs_embeds", None)
-        attention_mask = kwargs.get("attention_mask", None)
         input_ids = kwargs.get("input_ids", None)
+
+        # LLaVA may pass these POSITIONALLY (Qwen2Model.forward signature starts
+        # input_ids, attention_mask, position_ids, past_key_values, inputs_embeds).
+        # Relying on kwargs alone left seq_len=None, so the wrapper always bailed
+        # at the prefill check and never pruned. Scan args for the first 3-D float
+        # tensor (inputs_embeds) or 2-D long tensor (input_ids).
+        if inputs_embeds is None and input_ids is None:
+            for a in args:
+                if not isinstance(a, _torch.Tensor):
+                    continue
+                if a.dim() == 3 and a.is_floating_point() and inputs_embeds is None:
+                    inputs_embeds = a
+                elif a.dim() == 2 and not a.is_floating_point() and input_ids is None:
+                    input_ids = a
 
         seq_len = None
         if inputs_embeds is not None:
@@ -129,10 +146,23 @@ def apply_fastv(model, fastv_k: int, fastv_r: float):
             if tail is not None and seq_len - IMAGE_TOKEN_START_INDEX - tail > 0:
                 img_len = seq_len - IMAGE_TOKEN_START_INDEX - tail
         if img_len is None or img_len <= 0:
-            # No vision tokens located -> cannot prune; run stock (and warn once).
+            # No vision tokens located -> cannot prune. Report exactly WHY so this
+            # is diagnosable from one run instead of another guess-and-submit cycle.
             if not getattr(self, "_fastv_warned", False):
                 import logging
-                logging.warning("FastV: lengeh_vision_token missing; running unpruned.")
+                cfg = getattr(self, "DycokeConfig", None)
+                logging.warning(
+                    "FastV UNPRUNED: seq_len=%s inner.lengeh=%r outer.lengeh=%r "
+                    "DycokeConfig=%r cfg.image_token_length=%r text_tail=%r "
+                    "cache=%s",
+                    seq_len,
+                    getattr(self, "lengeh_vision_token", "ABSENT"),
+                    getattr(model, "lengeh_vision_token", "ABSENT"),
+                    "present" if cfg else "ABSENT",
+                    getattr(cfg, "image_token_length", "ABSENT") if cfg else "n/a",
+                    getattr(self, "_fastv_text_tail", "ABSENT"),
+                    type(kwargs.get("past_key_values", None)).__name__,
+                )
                 self._fastv_warned = True
             return orig_forward(*args, **kwargs)
 
@@ -164,6 +194,12 @@ def apply_fastv(model, fastv_k: int, fastv_r: float):
             if attn is None:
                 return output
             cache = kwargs.get("past_key_values", None)
+            if cache is None or not hasattr(cache, "kv_cache"):
+                # also look positionally (same reason as inputs_embeds above)
+                for a in args:
+                    if hasattr(a, "kv_cache"):
+                        cache = a
+                        break
             if cache is None or not hasattr(cache, "kv_cache"):
                 return output
             # FastV ranking: average over heads, take the LAST query row, slice the
@@ -222,6 +258,9 @@ def apply_fastv(model, fastv_k: int, fastv_r: float):
             h_cap.remove()
             h_pre.remove()
 
+    import logging as _lg
+    _lg.warning("FastV: installing wrapper on %s (k=%d, r=%.2f)",
+                type(inner).__name__, fastv_k, fastv_r)
     inner.forward = types.MethodType(fastv_forward, inner)
     model.config._fastv_enabled = True
     model.config._fastv_k = fastv_k

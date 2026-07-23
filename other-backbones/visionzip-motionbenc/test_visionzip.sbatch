@@ -24,7 +24,7 @@ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 cd /project/rhu/dpalfaro
 
 /project/rhu/dpalfaro/conda/envs/visionzip/bin/python3 \
-    /project/rhu/dpalfaro/code/visionzip-motionbenc/eval_visionzip.py \
+    /project/rhu/dpalfaro/code/other-backbones/visionzip-motionbenc/eval_visionzip.py \
     --model_path   /project/rhu/dpalfaro/weights/llava-v1.5-7b \
     --model_name   llava_v1.5_7b \
     --conv_template llava_v1 \
