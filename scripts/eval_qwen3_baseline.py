@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Qwen3-VL Baseline × MotionBench — ovqwen3.
+Qwen3-VL Baseline × MotionBench — stage3-qwen3-vl.
 
 Qwen3VLForConditionalGeneration is a native HuggingFace model, NOT a LLaVA fork.
 Uses transformers AutoProcessor + from_pretrained (no llava.model.builder).
@@ -9,7 +9,7 @@ Backbone: Qwen/Qwen3-VL-8B-Instruct
 Weights: /project/rhu/dpalfaro/weights/qwen3-vl-8b
 Uses: AutoProcessor for video preprocessing, model.generate() for inference
 
-This is a baseline eval — no model compression applied. All ovqwen3 models
+This is a baseline eval — no model compression applied. All stage3-qwen3-vl models
 start here, then compression methods are ported later.
 """
 

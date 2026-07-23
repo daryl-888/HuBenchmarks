@@ -2,7 +2,7 @@
 """
 Results gatherer for the reorganized HuBenchMarks structure.
 
-Scans ovqwen/, ovqwen2/, ovqwen3/, and other_backbones/ for model directories,
+Scans stage1-llava-ov/, stage1-llava-ov/, stage3-qwen3-vl/, and other-backbones/ for model directories,
 reads their summary.json files, and produces a consolidated results table.
 
 Usage:
@@ -20,7 +20,7 @@ import sys
 from pathlib import Path
 from collections import defaultdict
 
-FOLDERS = ["ovqwen", "ovqwen2", "ovqwen3", "other_backbones"]
+FOLDERS = ["ovqwen", "ovqwen2", "ovqwen3", "other-backbones"]
 CATEGORIES = [
     "Action Order",
     "Camera Motion",
@@ -31,10 +31,10 @@ CATEGORIES = [
 ]
 
 BACKBONE_MAP = {
-    "ovqwen": "Qwen 1.5 (llava-ov-7b)",
-    "ovqwen2": "Qwen2 (llava-ov-7b-qwen2)",
-    "ovqwen3": "Qwen3 (template)",
-    "other_backbones": "Various",
+    "stage1-llava-ov": "Stage 1: LLaVA-OV (Qwen2)",
+    "stage1-llava-ov": "Stage 1: LLaVA-OV (Qwen2)",
+    "stage3-qwen3-vl": "Stage 3: Qwen3-VL",
+    "other-backbones": "Various (non-series)",
 }
 
 
@@ -74,8 +74,8 @@ def gather_results(root_dir: str):
             except (json.JSONDecodeError, IOError):
                 continue
 
-            model_name = model_entry.name.replace("-motionbenc", "").replace("_NOG", " (NOG)")
-            is_ported = "PORTED.md" in [p.name for p in model_entry.iterdir()] or "_NOG" in model_entry.name
+            model_name = model_entry.name.replace("-motionbenc", "").replace("", " (NOG)")
+            is_ported = "PORTED.md" in [p.name for p in model_entry.iterdir()] or "" in model_entry.name
 
             per_cat = summary.get("per_category", {})
             results_path = model_entry / "results.jsonl"

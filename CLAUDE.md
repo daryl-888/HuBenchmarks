@@ -163,7 +163,7 @@ llava-ov-7b-qwen2/           LLaVA-OV-7B-Qwen2 (Qwen2 backbone)
 ├── mdp3-motionbenc/         ← PORTED from llava-ov-7b (needs run)
 └── videoitg-motionbenc/     ← PORTED from llava-ov-7b (needs run)
 
-other_backbones/             Non-LLaVA-OV models
+other-backbones/             Non-LLaVA-OV models
 ├── sttm-llavavid-motionbenc/  STTM (correct: LLaVA-Video-7B)
 ├── incorrect_sttm/            STTM-v2 (WRONG: LLaVA-OV-7B, not paper backbone)
 ├── dyto-motionbenc/           DyTo (LLaVA-NeXT-Vicuna-7B)

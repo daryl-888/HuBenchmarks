@@ -7,7 +7,7 @@ Models are organized by backbone into three top-level directories:
 ```
 llava-ov-7b/              # LLaVA-OV-7B (Qwen 1.5) — 5 original + 3 ported
 llava-ov-7b-qwen2/        # LLaVA-OV-7B-Qwen2 (Qwen2) — 3 original + 5 ported
-other_backbones/          # Non-LLaVA-OV models (STTM, DyTo, PruneVid, VisionZip, etc.)
+other-backbones/          # Non-LLaVA-OV models (STTM, DyTo, PruneVid, VisionZip, etc.)
 ```
 
 Each model is a self-contained subdirectory:

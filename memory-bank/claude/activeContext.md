@@ -6,10 +6,10 @@ Both queued jobs resolved: FlashVID qwen1.5 full eval finished (7751030), DyTo v
 ## Repository Structure
 
 ```
-ovqwen/       Qwen 1.5 — 10 valid models (llava-ov-7b, qwen_1_5)
-ovqwen2/      Qwen2   — 15 model dirs (llava-ov-7b-qwen2, qwen_2)
-ovqwen3/      Qwen3-VL — 15 model dirs (qwen3-vl-8b, native chat template)
-other_backbones/       Non-OV reference (untouched)
+stage1-llava-ov/       Qwen 1.5 — 10 valid models (llava-ov-7b, qwen_1_5)
+stage1-llava-ov/      Qwen2   — 15 model dirs (llava-ov-7b-qwen2, qwen_2)
+stage3-qwen3-vl/      Qwen3-VL — 15 model dirs (qwen3-vl-8b, native chat template)
+other-backbones/       Non-OV reference (untouched)
 experiments/  STTM-LLaVAVid on LLaVA-Video-7B-Qwen2
 ```
 
@@ -76,7 +76,7 @@ Recommend full run on t=0.80 config.
 Fixes applied locally do NOT persist on Carya. Must update Carya sbatch directly.
 `scp` always fails (exit 255). Use heredoc to write files directly on Carya:
 ```bash
-ssh carya "cat > /project/rhu/dpalfaro/code/ovqwen/MODEL-motionbenc/run_MODEL.sbatch << 'EOF'
+ssh carya "cat > /project/rhu/dpalfaro/code/stage1-llava-ov/MODEL-motionbenc/run_MODEL.sbatch << 'EOF'
 ... content ...
 EOF"
 ```

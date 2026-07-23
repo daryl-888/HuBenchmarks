@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J visionzip_ovqwen2
+#SBATCH -J visionzip_stage1
 #SBATCH -o /project/rhu/dpalfaro/results/visionzip_%j.out
 #SBATCH -e /project/rhu/dpalfaro/results/visionzip_%j.err
 #SBATCH -N 1
@@ -26,9 +26,9 @@ cd /project/rhu/dpalfaro
 # Note: OV2 eval script doesn't support --model_name, --dominant, --contextual
 # It also hardcodes the DyCoke path internally
 /project/rhu/dpalfaro/conda/envs/visionzip/bin/python3 \
-    /project/rhu/dpalfaro/code/ovqwen2/visionzip-motionbenc_NOG/eval_visionzip.py \
-    --model_path   /project/rhu/dpalfaro/weights/llava-ov-7b-qwen2 \
+    /project/rhu/dpalfaro/code/stage1-llava-ov/visionzip-motionbenc_NOG/eval_visionzip.py \
+    --model_path   /project/rhu/dpalfaro/weights/llava-ov-7b \
     --meta_path    /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
-    --output_dir   /project/rhu/dpalfaro/results/visionzip_ovqwen2 \
+    --output_dir   /project/rhu/dpalfaro/results/visionzip_stage1 \
     --num_frames   32 \
     --conv_template qwen_2

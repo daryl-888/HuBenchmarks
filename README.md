@@ -7,7 +7,7 @@ Benchmarking efficient video understanding LLMs on **MotionBench** (8,052 sample
 ```
 llava-ov-7b/          LLaVA-OV-7B (Qwen 1.5 backbone) — 8 models
 llava-ov-7b-qwen2/    LLaVA-OV-7B-Qwen2 (Qwen2 backbone) — 8 models
-other_backbones/      Non-LLaVA-OV models (STTM, DyTo, PruneVid, VisionZip, etc.)
+other-backbones/      Non-LLaVA-OV models (STTM, DyTo, PruneVid, VisionZip, etc.)
 memory-bank/          Project documentation and context
 patches/              Source-level patches for model repos
 analysis/             Results tables and analysis scripts

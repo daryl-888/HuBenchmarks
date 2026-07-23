@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J holitom_ovqwen2
+#SBATCH -J holitom_stage1
 #SBATCH -o /project/rhu/dpalfaro/results/holitom_%j.out
 #SBATCH -e /project/rhu/dpalfaro/results/holitom_%j.err
 #SBATCH -N 1
@@ -32,8 +32,8 @@ export HOLITOM_r=0.5
 cd /project/rhu/dpalfaro
 
 /project/rhu/dpalfaro/conda/envs/holitom/bin/python3 \
-    /project/rhu/dpalfaro/code/ovqwen2/holitom-motionbenc/eval_holitom.py \
-    --model_path /project/rhu/dpalfaro/weights/llava-ov-7b-qwen2 \
+    /project/rhu/dpalfaro/code/stage1-llava-ov/holitom-motionbenc/eval_holitom.py \
+    --model_path /project/rhu/dpalfaro/weights/llava-ov-7b \
     --meta_path /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
-    --output_dir /project/rhu/dpalfaro/results/holitom_ovqwen2_fresh \
+    --output_dir /project/rhu/dpalfaro/results/holitom_stage1_fresh \
     --num_frames 32

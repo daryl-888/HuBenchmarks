@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J fastv_ovqwen15
+#SBATCH -J fastv_stage1
 #SBATCH -o /project/rhu/dpalfaro/results/fastv_%j.out
 #SBATCH -e /project/rhu/dpalfaro/results/fastv_%j.err
 #SBATCH -N 1
@@ -31,5 +31,5 @@ cd /project/rhu/dpalfaro
     /project/rhu/dpalfaro/code/fastv-motionbenc/eval_fastv.py \
     --model_path /project/rhu/dpalfaro/weights/llava-ov-7b \
     --meta_path  /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
-    --output_dir /project/rhu/dpalfaro/results/fastv_ovqwen15 \
+    --output_dir /project/rhu/dpalfaro/results/fastv_stage1 \
     --num_frames 32

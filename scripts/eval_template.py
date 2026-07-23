@@ -2,7 +2,7 @@
 """
 Standardized MotionBench eval script — <MODEL> × MotionBench.
 
-This is the canonical eval pattern used by all models in ovqwen/ovqwen2/ovqwen3.
+This is the canonical eval pattern used by all models in stage1-llava-ov/stage3-qwen3-vl.
 The model-loading function is a stub — fill it in per model.
 
 Standard pattern:
