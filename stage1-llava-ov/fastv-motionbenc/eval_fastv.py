@@ -92,7 +92,12 @@ def apply_fastv(model, fastv_k: int, fastv_r: float):
     def fastv_forward(self, *args, **kwargs):
         if not getattr(self, "_fastv_entered", False):
             import logging
-            logging.warning("FastV: wrapper ENTERED (forward is patched)")
+            def _d(x):
+                return (f"T{tuple(x.shape)}{'f' if x.is_floating_point() else 'i'}"
+                        if isinstance(x, _torch.Tensor) else type(x).__name__)
+            logging.warning("FastV: ENTERED args=[%s] kwargs={%s}",
+                            ", ".join(_d(a) for a in args),
+                            ", ".join(f"{k}:{_d(v)}" for k, v in kwargs.items()))
             self._fastv_entered = True
         # Normalize call to kwargs so we can read/inspect uniformly.
         # LlavaQwenForCausalLM calls self.model(...) with keyword args.
@@ -126,7 +131,11 @@ def apply_fastv(model, fastv_k: int, fastv_r: float):
         # The vision-token count is stashed by prepare_inputs_labels_for_multimodal.
         # It may live on the inner Qwen2Model (self) OR on the outer
         # LlavaQwenForCausalLM, and DyCoke also mirrors it onto DycokeConfig.
-        img_len = getattr(self, "lengeh_vision_token", None)
+        # It also arrives as an explicit KWARG on this build (seen in the trace),
+        # though LLaVA passes None when it didn't compute one.
+        img_len = kwargs.get("lengeh_vision_token", None)
+        if img_len is None:
+            img_len = getattr(self, "lengeh_vision_token", None)
         if img_len is None:
             img_len = getattr(model, "lengeh_vision_token", None)
         if img_len is None:
@@ -185,7 +194,7 @@ def apply_fastv(model, fastv_k: int, fastv_r: float):
         # output_attentions globally) and then set kv_cache.
         state = {"done": False}
 
-        def _capture(module, args_, output):
+        def _capture(module, args_, kwargs_, output):
             # Runs after layer fastv_k's self-attn. Under eager attention the
             # module returns (attn_output, attn_weights, past_kv).
             if state["done"]:
@@ -193,14 +202,28 @@ def apply_fastv(model, fastv_k: int, fastv_r: float):
             attn = output[1] if isinstance(output, tuple) and len(output) > 1 else None
             if attn is None:
                 return output
-            cache = kwargs.get("past_key_values", None)
-            if cache is None or not hasattr(cache, "kv_cache"):
-                # also look positionally (same reason as inputs_embeds above)
-                for a in args:
+            # past_key_values is None on the PREFILL call (trace confirmed) — the
+            # PrunableDynamicCache is created inside Qwen2Model.forward. So look
+            # for it where it actually exists at this moment: on the attention
+            # module itself, on the owning layer, or in the call's own kwargs.
+            cache = None
+            for cand in (kwargs.get("past_key_values", None),
+                         getattr(module, "past_key_value", None),
+                         kwargs_.get("past_key_value", None) if isinstance(kwargs_, dict) else None):
+                if cand is not None and hasattr(cand, "kv_cache"):
+                    cache = cand
+                    break
+            if cache is None:
+                for a in list(args) + list(args_ or ()):
                     if hasattr(a, "kv_cache"):
                         cache = a
                         break
-            if cache is None or not hasattr(cache, "kv_cache"):
+            if cache is None:
+                if not getattr(self, "_fastv_nocache", False):
+                    import logging
+                    logging.warning("FastV: no PrunableDynamicCache reachable at layer %d "
+                                    "(module=%s) — cannot prune", fastv_k, type(module).__name__)
+                    self._fastv_nocache = True
                 return output
             # FastV ranking: average over heads, take the LAST query row, slice the
             # image span, keep the top-`keep` (== ATTENTION_RANK) image tokens.
@@ -226,7 +249,7 @@ def apply_fastv(model, fastv_k: int, fastv_r: float):
         # so we temporarily route just this one module through the eager forward
         # and restore it immediately afterwards.
         target = self.layers[fastv_k].self_attn
-        h_cap = target.register_forward_hook(_capture, with_kwargs=False)
+        h_cap = target.register_forward_hook(_capture, with_kwargs=True)
 
         def _want_attn(module, args_, kwargs_):
             kw = dict(kwargs_)
