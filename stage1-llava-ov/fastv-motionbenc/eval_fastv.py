@@ -118,64 +118,62 @@ def apply_fastv(model, fastv_k: int, fastv_r: float):
         sys_len = IMAGE_TOKEN_START_INDEX
         keep = max(1, int(round(img_len * (1 - fastv_r))))
 
-        # Need per-layer attentions to rerank at layer K.
-        kwargs["output_attentions"] = True
+        # IMPORTANT — why this uses the KV-cache route, not an attention mask:
+        # this LLaVA build's patched Qwen2Model.forward calls every decoder layer
+        # with attention_mask=None (DyCoke relies on cache-index pruning instead).
+        # An additive-mask hook is therefore silently dropped, and forcing
+        # output_attentions=True also shifts the layer_outputs tuple layout that
+        # `next_decoder_cache = layer_outputs[2 if output_attentions else 1]`
+        # depends on — which produced empty generations. So we express FastV's
+        # policy through the mechanism this build actually honours:
+        # PrunableDynamicCache.kv_cache — the list of kept token indices. Setting
+        # it once makes update() gather only those tokens for all later layers and
+        # every decode step, which is exactly FastV's "prune once at layer K".
+        #
+        # We capture layer K's attention with a hook (so we do NOT have to enable
+        # output_attentions globally) and then set kv_cache.
+        state = {"done": False}
 
-        # Register a hook on the layer BEFORE K to capture its attention, and a
-        # hook on layers >= K to swap in the pruned mask. We implement the whole
-        # rerank via a single wrapper that re-runs the loop is unnecessary — the
-        # cleanest faithful route is to hook each decoder layer's forward to
-        # (a) capture attn at layer K-1's OUTPUT, then (b) override the mask arg
-        # for layers >= K. Qwen2DecoderLayer takes attention_mask as arg/kwarg.
-        state = {"keep_mask_add": None}
-
-        def make_pre_hook(layer_idx):
-            def _pre(module, args_, kwargs_):
-                if state["keep_mask_add"] is None:
-                    return None  # before K: leave mask as-is
-                # For layers >= K: replace the additive attention_mask so pruned
-                # image tokens are masked (-inf) for all query positions.
-                new_kwargs = dict(kwargs_)
-                if "attention_mask" in new_kwargs and new_kwargs["attention_mask"] is not None:
-                    base = new_kwargs["attention_mask"]
-                    new_kwargs["attention_mask"] = base + state["keep_mask_add"]
-                elif len(args_) >= 2 and args_[1] is not None:
-                    args_ = list(args_)
-                    args_[1] = args_[1] + state["keep_mask_add"]
-                    return (tuple(args_), kwargs_)
-                return (args_, new_kwargs)
-            return _pre
-
-        def make_post_hook(layer_idx):
-            def _post(module, args_, output):
-                # After layer K-1 (== fastv_k - 1) runs, its attention is output[1].
-                if layer_idx == fastv_k - 1 and isinstance(output, tuple) and len(output) > 1 and output[1] is not None:
-                    attn = output[1]                      # (b, heads, q, kv)
-                    avg = attn.mean(dim=1)[0]             # (q, kv)
-                    last = avg[-1]                        # (kv,) last query row
-                    img_scores = last[sys_len:sys_len + img_len]
-                    top = img_scores.topk(keep).indices + sys_len   # kept image cols
-                    # Build additive mask: -inf on dropped image cols, 0 elsewhere.
-                    kv = last.shape[0]
-                    add = _torch.zeros((1, 1, 1, kv), dtype=attn.dtype, device=attn.device)
-                    img_cols = _torch.arange(sys_len, sys_len + img_len, device=attn.device)
-                    drop = _torch.ones(img_len, dtype=_torch.bool, device=attn.device)
-                    drop[top - sys_len] = False
-                    add[0, 0, 0, img_cols[drop]] = _torch.finfo(attn.dtype).min
-                    state["keep_mask_add"] = add
+        def _capture(module, args_, output):
+            # Runs after layer fastv_k's self-attn. Under eager attention the
+            # module returns (attn_output, attn_weights, past_kv).
+            if state["done"]:
                 return output
-            return _post
-
-        handles = []
-        for i, layer in enumerate(self.layers):
-            handles.append(layer.register_forward_pre_hook(make_pre_hook(i), with_kwargs=True))
-            handles.append(layer.register_forward_hook(make_post_hook(i), with_kwargs=False))
-        try:
+            attn = output[1] if isinstance(output, tuple) and len(output) > 1 else None
+            if attn is None:
+                return output
+            cache = kwargs.get("past_key_values", None)
+            if cache is None or not hasattr(cache, "kv_cache"):
+                return output
+            # FastV ranking: average over heads, take the LAST query row, slice the
+            # image span, keep the top-`keep` (== ATTENTION_RANK) image tokens.
+            avg_last = attn.mean(dim=1)[0, -1]                 # (kv_len,)
+            img_scores = avg_last[sys_len:sys_len + img_len]
+            top = (img_scores.topk(keep).indices + sys_len).sort()[0]
+            total = avg_last.shape[0]
+            full = _torch.arange(total, device=attn.device)
+            keep_idx = _torch.cat([full[:sys_len], top, full[sys_len + img_len:]])
+            cache.kv_cache = keep_idx.tolist()
+            state["done"] = True
             self._fastv_pruned_tokens = img_len - keep
+            return output
+
+        # Hook layer K's self-attn only; request eager weights just for that call.
+        target = self.layers[fastv_k].self_attn
+        prev_impl = getattr(target, "_attn_implementation", None)
+        h_cap = target.register_forward_hook(_capture, with_kwargs=False)
+
+        def _want_attn(module, args_, kwargs_):
+            kw = dict(kwargs_)
+            kw["output_attentions"] = True
+            return (args_, kw)
+
+        h_pre = target.register_forward_pre_hook(_want_attn, with_kwargs=True)
+        try:
             return orig_forward(*args, **kwargs)
         finally:
-            for h in handles:
-                h.remove()
+            h_cap.remove()
+            h_pre.remove()
 
     inner.forward = types.MethodType(fastv_forward, inner)
     model.config._fastv_enabled = True
