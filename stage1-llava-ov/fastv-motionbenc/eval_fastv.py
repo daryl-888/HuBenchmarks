@@ -42,54 +42,145 @@ POST_PROMPT = "\nAnswer with the option's letter from the given choices directly
 
 
 # ---------------------------------------------------------------------------
-# FastV — attention-based visual-token pruning on LLaVA-OV's Qwen2 backbone
+# FastV — paper-exact port of the authors' attention-rerank pruning to Qwen2
 # ---------------------------------------------------------------------------
 #
-# Ported to match the token-location convention already used by this LLaVA build
-# (see DyCoke's modeling_qwen2.py): image tokens occupy the contiguous span
-#   [image_token_start_index : image_token_start_index + image_token_length]
-# where the prefix length is 14 (qwen conv-template system+user preamble) and the
-# image length is (total prefill tokens) - (text tokens). During the prefill
-# forward we rank those image tokens by the attention they receive at layer K and
-# drop the bottom fastv_r fraction for every layer > K by masking them out. This
-# is the FastV paper's exact policy (one-shot, fixed layer K), implemented with an
-# additive attention mask so no KV-cache surgery is needed — the pruned tokens
-# simply contribute nothing from layer K+1 onward.
+# Faithful to the reference implementation:
+#   FastV/src/transformers/src/transformers/models/llama/modeling_llama.py
+# (the decoder-loop "Attention Rerank" block). FastV's real mechanism is NOT
+# KV-cache index-dropping — it is ATTENTION MASKING:
+#
+#   Params (paper naming): SYS_LENGTH (prefix before image block),
+#     IMAGE_TOKEN_LENGTH, ATTENTION_RANK (# image tokens to KEEP), AGG_LAYER (=K).
+#   - layers < K: normal causal mask.
+#   - at layer K: take the PREVIOUS layer's attention (layer_outputs[1]), average
+#     over heads, take the LAST query row, slice the image span, topk(ATTENTION_RANK)
+#     to pick the kept image tokens, then build a boolean keep-mask that sets every
+#     OTHER image token to False. Pruned tokens stay in the sequence but every
+#     layer >= K ignores them.
+#   - layers > K: reuse that same generated mask.
+#
+# We reproduce this exactly by wrapping Qwen2Model.forward. The image span is the
+# authoritative [SYS_LENGTH : SYS_LENGTH + IMAGE_TOKEN_LENGTH], where
+# IMAGE_TOKEN_LENGTH is the real vision-token count LLaVA-OV computes per sample
+# (self.model.lengeh_vision_token, set in prepare_inputs_labels_for_multimodal;
+# see llava_arch.py). SYS_LENGTH = 14 (qwen_1_5 preamble).
+#
+# The paper expresses the drop as ATTENTION_RANK (keep count); our CLI takes
+# fastv_r (drop fraction) for consistency with the sbatch, and converts:
+#   ATTENTION_RANK = round(IMAGE_TOKEN_LENGTH * (1 - fastv_r)).
 
-IMAGE_TOKEN_START_INDEX = 14  # qwen_1_5 preamble length before the image block
+IMAGE_TOKEN_START_INDEX = 14  # SYS_LENGTH: qwen_1_5 preamble before the image block
 
 
 def apply_fastv(model, fastv_k: int, fastv_r: float):
     """
-    Enable FastV pruning on this LLaVA-OV Qwen2 model.
+    Install FastV attention-rerank pruning on this LLaVA-OV Qwen2 model by
+    wrapping Qwen2Model.forward. Reproduces the authors' modeling_llama.py block.
 
-    Implementation strategy: this LLaVA build already ships a patched
-    modeling_qwen2.py whose Qwen2Model.forward supports in-loop KV-cache pruning
-    (it is what DyCoke uses). We reuse that exact machinery with FastV's simpler,
-    static policy — prune ONCE at layer `fastv_k`, keeping the top (1 - fastv_r)
-    fraction of image tokens ranked by received attention — by installing a
-    `fastv` config block that the patched forward acts on. The actual per-layer
-    slicing lives in the modeling file (fastv_prune()), mirroring dycoke_pruning().
+    fastv_k: AGG_LAYER — layer index at which to rerank/prune (paper default: 2).
+    fastv_r: fraction of image tokens to DROP (paper default: 0.5).
 
-    fastv_k: LLM layer index at which to prune (0-indexed). Paper default: 2.
-    fastv_r: fraction of image tokens to DROP (least-attended). Paper default: 0.5.
-
-    Requires attn_implementation="eager" so per-layer attention weights exist,
-    and the FastV-patched modeling_qwen2 on PYTHONPATH ahead of DyCoke's.
+    Requires attn_implementation="eager" (needs per-layer attention weights).
     """
-    inner = model.model  # Qwen2Model (FastV-patched build)
-    if not hasattr(inner, "enable_fastv"):
-        raise RuntimeError(
-            "This Qwen2Model has no enable_fastv() — the FastV-patched "
-            "modeling_qwen2.py is not on PYTHONPATH ahead of DyCoke's. "
-            "Check the sbatch PYTHONPATH order."
-        )
-    inner.enable_fastv(
-        fastv_k=fastv_k,
-        fastv_r=fastv_r,
-        image_token_start_index=IMAGE_TOKEN_START_INDEX,
-    )
+    import types
+    import torch as _torch
+
+    inner = model.model  # Qwen2Model
+    orig_forward = inner.forward
+
+    def fastv_forward(self, *args, **kwargs):
+        # Normalize call to kwargs so we can read/inspect uniformly.
+        # LlavaQwenForCausalLM calls self.model(...) with keyword args.
+        inputs_embeds = kwargs.get("inputs_embeds", None)
+        attention_mask = kwargs.get("attention_mask", None)
+        input_ids = kwargs.get("input_ids", None)
+
+        seq_len = None
+        if inputs_embeds is not None:
+            seq_len = inputs_embeds.shape[1]
+        elif input_ids is not None:
+            seq_len = input_ids.shape[1]
+
+        # Only rerank on the prefill pass (seq > 1). Decode steps are untouched.
+        if seq_len is None or seq_len <= 1:
+            return orig_forward(*args, **kwargs)
+
+        img_len = getattr(self, "lengeh_vision_token", None)
+        if img_len is None or img_len <= 0:
+            # No vision tokens located -> cannot prune; run stock (and warn once).
+            if not getattr(self, "_fastv_warned", False):
+                import logging
+                logging.warning("FastV: lengeh_vision_token missing; running unpruned.")
+                self._fastv_warned = True
+            return orig_forward(*args, **kwargs)
+
+        sys_len = IMAGE_TOKEN_START_INDEX
+        keep = max(1, int(round(img_len * (1 - fastv_r))))
+
+        # Need per-layer attentions to rerank at layer K.
+        kwargs["output_attentions"] = True
+
+        # Register a hook on the layer BEFORE K to capture its attention, and a
+        # hook on layers >= K to swap in the pruned mask. We implement the whole
+        # rerank via a single wrapper that re-runs the loop is unnecessary — the
+        # cleanest faithful route is to hook each decoder layer's forward to
+        # (a) capture attn at layer K-1's OUTPUT, then (b) override the mask arg
+        # for layers >= K. Qwen2DecoderLayer takes attention_mask as arg/kwarg.
+        state = {"keep_mask_add": None}
+
+        def make_pre_hook(layer_idx):
+            def _pre(module, args_, kwargs_):
+                if state["keep_mask_add"] is None:
+                    return None  # before K: leave mask as-is
+                # For layers >= K: replace the additive attention_mask so pruned
+                # image tokens are masked (-inf) for all query positions.
+                new_kwargs = dict(kwargs_)
+                if "attention_mask" in new_kwargs and new_kwargs["attention_mask"] is not None:
+                    base = new_kwargs["attention_mask"]
+                    new_kwargs["attention_mask"] = base + state["keep_mask_add"]
+                elif len(args_) >= 2 and args_[1] is not None:
+                    args_ = list(args_)
+                    args_[1] = args_[1] + state["keep_mask_add"]
+                    return (tuple(args_), kwargs_)
+                return (args_, new_kwargs)
+            return _pre
+
+        def make_post_hook(layer_idx):
+            def _post(module, args_, output):
+                # After layer K-1 (== fastv_k - 1) runs, its attention is output[1].
+                if layer_idx == fastv_k - 1 and isinstance(output, tuple) and len(output) > 1 and output[1] is not None:
+                    attn = output[1]                      # (b, heads, q, kv)
+                    avg = attn.mean(dim=1)[0]             # (q, kv)
+                    last = avg[-1]                        # (kv,) last query row
+                    img_scores = last[sys_len:sys_len + img_len]
+                    top = img_scores.topk(keep).indices + sys_len   # kept image cols
+                    # Build additive mask: -inf on dropped image cols, 0 elsewhere.
+                    kv = last.shape[0]
+                    add = _torch.zeros((1, 1, 1, kv), dtype=attn.dtype, device=attn.device)
+                    img_cols = _torch.arange(sys_len, sys_len + img_len, device=attn.device)
+                    drop = _torch.ones(img_len, dtype=_torch.bool, device=attn.device)
+                    drop[top - sys_len] = False
+                    add[0, 0, 0, img_cols[drop]] = _torch.finfo(attn.dtype).min
+                    state["keep_mask_add"] = add
+                return output
+            return _post
+
+        handles = []
+        for i, layer in enumerate(self.layers):
+            handles.append(layer.register_forward_pre_hook(make_pre_hook(i), with_kwargs=True))
+            handles.append(layer.register_forward_hook(make_post_hook(i), with_kwargs=False))
+        try:
+            self._fastv_pruned_tokens = img_len - keep
+            return orig_forward(*args, **kwargs)
+        finally:
+            for h in handles:
+                h.remove()
+
+    inner.forward = types.MethodType(fastv_forward, inner)
     model.config._fastv_enabled = True
+    model.config._fastv_k = fastv_k
+    model.config._fastv_r = fastv_r
     return model
 
 
