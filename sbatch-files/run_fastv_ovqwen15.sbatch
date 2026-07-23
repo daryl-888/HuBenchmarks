@@ -5,8 +5,8 @@
 #SBATCH -N 1
 #SBATCH -n 8
 #SBATCH --gpus=ada:1
-#SBATCH --mem=64G
-#SBATCH -t 24:00:00
+#SBATCH --mem=80G
+#SBATCH -t 48:00:00
 #SBATCH --mail-type=END
 #SBATCH --mail-user=dpalfaro@cougarnet.uh.edu
 
@@ -16,7 +16,7 @@ module load Miniforge3/py3.10
 export PYTHONNOUSERSITE=1
 unset HF_HUB_OFFLINE
 unset HF_DATASETS_OFFLINE
-export PYTHONPATH=/project/rhu/dpalfaro/code/HoliTom/Llava-NeXT:${PYTHONPATH:-}
+# fastv env has llava installed at /project/rhu/dpalfaro/AIM/llava/ — no extra PYTHONPATH needed
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
 export TRANSFORMERS_OFFLINE=1
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True

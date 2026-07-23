@@ -16,7 +16,9 @@ module load Miniforge3/py3.10
 export PYTHONNOUSERSITE=1
 unset HF_HUB_OFFLINE
 unset HF_DATASETS_OFFLINE
-export PYTHONPATH=/project/rhu/dpalfaro/visionzip_pkgs:/project/rhu/dpalfaro/code/HoliTom/Llava-NeXT:${PYTHONPATH:-}
+# visionzip module is at /project/rhu/dpalfaro/code/VisionZip/visionzip/
+# llava module is at /project/rhu/dpalfaro/AIM/llava/ (for load_pretrained_model)
+export PYTHONPATH=/project/rhu/dpalfaro/code/VisionZip:/project/rhu/dpalfaro/AIM:${PYTHONPATH:-}
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
 export TRANSFORMERS_OFFLINE=1
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
