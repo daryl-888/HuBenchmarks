@@ -19,7 +19,7 @@ unset HF_HUB_OFFLINE
 unset HF_DATASETS_OFFLINE
 export WORLD_SIZE=1
 export PYTHONPATH=/project/rhu/dpalfaro/mdp3_pkgs:/project/rhu/dpalfaro/code/MDP3:/project/rhu/dpalfaro/code/HoliTom/LLaVA-NeXT:${PYTHONPATH:-}
-export LD_LIBRARY_PATH=/project/rhu/dpalfaro/mdp3_pkgs/torch/lib:${LD_LIBRARY_PATH:-}
+export LD_LIBRARY_PATH=/project/rhu/dpalfaro/mdp3_pkgs/torch/lib:/project/rhu/dpalfaro/conda/envs/mdp3/lib/python3.11/site-packages/nvidia/nccl/lib:${LD_LIBRARY_PATH:-}
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
 export TRANSFORMERS_OFFLINE=1
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True

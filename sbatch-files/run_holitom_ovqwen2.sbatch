@@ -10,6 +10,9 @@
 #SBATCH --mail-type=END
 #SBATCH --mail-user=dpalfaro@cougarnet.uh.edu
 
+## HoliTom × OVQwen 2
+## Note: eval_holitom.py hardcodes conv_template internally — no --conv_template argument
+
 module purge
 module load Miniforge3/py3.10
 
@@ -31,7 +34,6 @@ cd /project/rhu/dpalfaro
 /project/rhu/dpalfaro/conda/envs/holitom/bin/python3 \
     /project/rhu/dpalfaro/code/ovqwen2/holitom-motionbenc/eval_holitom.py \
     --model_path /project/rhu/dpalfaro/weights/llava-ov-7b-qwen2 \
-    --conv_template qwen_2 \
     --meta_path /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
     --output_dir /project/rhu/dpalfaro/results/holitom_ovqwen2_fresh \
     --num_frames 32

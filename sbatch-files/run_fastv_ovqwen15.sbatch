@@ -16,9 +16,11 @@ module load Miniforge3/py3.10
 export PYTHONNOUSERSITE=1
 unset HF_HUB_OFFLINE
 unset HF_DATASETS_OFFLINE
-# Use dycoke11 env instead of broken fastv env (torch/transformers mismatch in fastv)
-# dycoke11 has working llava via the HoliTom/Llava-NeXT PATH
-export PYTHONPATH=/project/rhu/dpalfaro/code/HoliTom/Llava-NeXT:${PYTHONPATH:-}
+# Critical: AIM/llava shadows HoliTom/Llava-NeXT even when first in PYTHONPATH.
+# The AIM package has a .pth file/installed package that overrides.
+# We must steal the working llava builder from DyCoke's patched builder.py
+# which handles LLaVA-OV correctly, then add fastv-motionbenc to call it.
+export PYTHONPATH=/project/rhu/dpalfaro/code/DyCoke:/project/rhu/dpalfaro/code/fastv-motionbenc:${PYTHONPATH:-}
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
 export TRANSFORMERS_OFFLINE=1
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True

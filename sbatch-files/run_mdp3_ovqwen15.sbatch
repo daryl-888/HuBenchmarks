@@ -19,7 +19,8 @@ unset HF_HUB_OFFLINE
 unset HF_DATASETS_OFFLINE
 export WORLD_SIZE=1
 export PYTHONPATH=/project/rhu/dpalfaro/mdp3_pkgs:/project/rhu/dpalfaro/code/MDP3:/project/rhu/dpalfaro/code/HoliTom/LLaVA-NeXT:${PYTHONPATH:-}
-export LD_LIBRARY_PATH=/project/rhu/dpalfaro/mdp3_pkgs/torch/lib:${LD_LIBRARY_PATH:-}
+# MDP3's conda env has nccl installed but torch mdp3_pkgs doesn't; need both lib paths
+export LD_LIBRARY_PATH=/project/rhu/dpalfaro/mdp3_pkgs/torch/lib:/project/rhu/dpalfaro/conda/envs/mdp3/lib/python3.11/site-packages/nvidia/nccl/lib:${LD_LIBRARY_PATH:-}
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
 export TRANSFORMERS_OFFLINE=1
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
@@ -27,7 +28,7 @@ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 cd /project/rhu/dpalfaro
 
 /project/rhu/dpalfaro/conda/envs/mdp3/bin/python3 \
-    /project/rhu/dpalfaro/code/mdp3-motionbenc/eval_mdp3.py \
+    /project/rhu/dpalfaro/code/ovqwen/mdp3-motionbenc/eval_mdp3.py \
     --meta-file    /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
     --num_frames   32 \
     --video-roots  /project/rhu/MotionBench_Data/MotionBench \
