@@ -40,19 +40,46 @@ sbatch-files/          Local sbatch templates for Carya submission
 | 12 | VideoITG (simplified) | **34.89%** | ✅ |
 | 13 | VisionZip | — | 🔄 Submitted (7768829, 7769039) |
 
-## Running Jobs
+## Running Jobs (Updated 2026-07-23 13:56 CDT)
 
-| Job ID | Model | Status |
-|:------:|-------|:------:|
-| 7768241 | MDP3 OV1.5 (fresh re-run) | ⚡ RUNNING |
-| 7768829 | VisionZip stage1 | ⚡ RUNNING |
-| 7769039 | VisionZip stage1 | ⚡ RUNNING |
+| Job ID | Model | Status | Time |
+|:------:|-------|:------:|:----:|
+| 7768241 | MDP3 OV1.5 | ⚡ RUNNING | ~3h |
+| 7768829 | VisionZip stage1 | ⚡ RUNNING | ~2.5h |
+| 7769192 | stage2_aim | ⚡ RUNNING | ~20m |
+| 7769194 | stage2_fastv | ⚡ RUNNING | ~20m |
+| 7769212 | **DyTo** (vicuna) | ⏳ PENDING | — |
+| 7769193 | stage2_dycoke | ⏳ PENDING | — |
+| 7769195 | stage2_flashvid | ⏳ PENDING | — |
+| 7769196 | stage2_holitom | ⏳ PENDING | — |
+| 7769197 | stage2_mdp3 | ⏳ PENDING | — |
+| 7769198 | stage2_videoitg | ⏳ PENDING | — |
+| 7769201 | VisionZip v3 (ovqwen15) | ⏳ PENDING | — |
+| 7769209 | stage2_sttm | ⏳ PENDING | — |
+
+## Stage 2 Methods (LLaVA-Video-7B)
+
+| Method | Status | Job ID |
+|--------|:------:|:------:|
+| AIM | ⚡ RUNNING | 7769192 |
+| FastV | ⚡ RUNNING | 7769194 |
+| DyCoke | ⏳ PENDING | 7769193 |
+| FlashVID | ⏳ PENDING | 7769195 |
+| HoliTom | ⏳ PENDING | 7769196 |
+| MDP3 | ⏳ PENDING | 7769197 |
+| VideoITG | ⏳ PENDING | 7769198 |
+| STTM | ⏳ PENDING | 7769209 |
+| FastVID | ❌ Not ported (model bug) | — |
+| PruneVID | ❌ Not stage2 (targets PLLaVA-7B) | — |
+| VisionZip | ❌ Not stage2 (targets LLaVA-1.5) | — |
+| DyTo | ❌ Not stage2 (targets Vicuna) | — |
 
 ## Active Remaining Blockers
 - **FastVID**: Model-level bug causing 0% accuracy (`'NoneType' object is not callable`)
-- **DyTo**: Failed 3 times on Vicuna backbone. LlavaLlamaForCausalLM import error from DYTO/llava module.
-- **VisionZip**: Was 0% due to AIM shadowing — resubmitted with DyCoke builder fix
-- **Stage2 (llava-video-7b)**: Most methods not yet ported — only sttm-llavavid exists
+- **DyTo**: Builder.py patched (added explicit `LlavaLlamaForCausalLM` import). Resubmitted with `dyto` conda env (torch 2.2.0). Job 7769212.
+- **VisionZip**: Was 0% due to AIM shadowing — v3 resubmitted with correct eval path + sdpa attn
+- **Stage2**: 8/11 methods submitted, 2 running + 6 pending
+- **PruneVID**: Own sbatch in `prunevid-motionbenc/` (targets PLLaVA-7B, not stage2)
 
 ## Carya Paths
 

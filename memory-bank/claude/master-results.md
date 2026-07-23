@@ -1,6 +1,6 @@
 # Master Results Table — HuBenchmarks
 
-> **Last updated**: 2026-07-23 12:25 CDT
+> **Last updated**: 2026-07-23 13:58 CDT
 > **Benchmark**: MotionBench — 8,052 MCQ video samples, 4,018 scoreable, 4,034 NA
 > **Standard eval**: 32 frames, `do_sample=False`, `max_new_tokens=16`, letter-match scoring, NA-skip
 
@@ -8,7 +8,10 @@
 
 ---
 
-## LLaVA-OV-7B (`llava-ov-7b`, `LlavaQwenForCausalLM`)
+## 📊 Results by Stage
+
+### Stage 1 — LLaVA-OV-7B (`llava-ov-7b`, `LlavaQwenForCausalLM`) *(Mid-2024)*
+*12/13 methods complete, VisionZip rerunning*
 
 | # | Model | Conference | Year | Overall | Act. Order | Cam. Motion | Loc. Motion | Mot. Rec. | Mot. Objs. | Rep. Count | Parameters | Notes |
 |---|-------|-----------|------|:-------:|:----------:|:----------:|:----------:|:---------:|:----------:|:----------:|------------|-------|
@@ -24,14 +27,49 @@
 | 10 | **STTM-v2** | — | 2025 | **51.87%** (2084/4018) | 39.11% (203/519) | 48.83% (188/385) | 53.66% (293/546) | 53.59% (792/1478) | 71.16% (491/690) | 29.25% (117/400) | sa_start_layer_idx=2, sa_tree_thresh=0.85 | |
 | 11 | **FlashVID** (0.15, qwen15) | ICLR | 2026 | **51.22%** (2058/4018) | 39.50% (205/519) | 41.04% (158/385) | 54.95% (300/546) | 54.19% (801/1478) | 71.16% (491/690) | 25.75% (103/400) | retention_ratio=0.15, qwen_1_5 template | qwen_1_5 template run only. |
 | 12 | **VideoITG** (simplified) | — | 2025 | **34.89%** (1402/4018) | 14.45% (75/519) | 45.19% (174/385) | 55.49% (303/546) | 44.65% (660/1478) | 20.29% (140/690) | 12.50% (50/400) | single-stage, no grounding | |
-| 13 | **VisionZip** | — | 2024 | — | — | — | — | — | — | — | dominant=54, contextual=10 | 🔄 Rerunning (7768829) — was 0.0% due to AIM shadowing |
+| 13 | **VisionZip** | — | 2024 | — | — | — | — | — | — | — | dominant=54, contextual=10 | 🔄 Rerunning (7768829, 7769201) |
 
-### Incomplete / Excluded (5)
-- **FastVID**: ❌ Hard-blocked — model-level 0% bug (`'NoneType' object is not callable`)
-- **DyTo**: ❌ Vicuna-only backbone, no OV code
-- **iMove**: ❌ No public code
-- **TrajViT**: ❌ No public code
-- **STTM-LLaVAVid**: → experiments/ (separate track)
+### Stage 2 — LLaVA-Video-7B (`llava-video-7b`) *(Late-2024)*
+*8 methods submitted, all pending — results expected in ~2-3 hours*
+
+| Method | Overall | Status | Job ID |
+|--------|:-------:|:------:|:------:|
+| AIM | — | ⚡ RUNNING | 7769192 |
+| FastV | — | ⚡ RUNNING | 7769194 |
+| DyCoke | — | ⏳ PENDING | 7769193 |
+| FlashVID | — | ⏳ PENDING | 7769195 |
+| HoliTom | — | ⏳ PENDING | 7769196 |
+| MDP3 | — | ⏳ PENDING | 7769197 |
+| VideoITG | — | ⏳ PENDING | 7769198 |
+| STTM | — | ⏳ PENDING | 7769209 |
+
+*Not applicable to Stage 2: FastVID (model bug), PruneVID (PLLaVA-7B), VisionZip (LLaVA-1.5), DyTo (Vicuna)*
+
+### Stage 3 — Qwen3-VL-8B (`qwen3-vl-8b`) *(Late-2025)*
+*Ported (8 method directories exist) — not yet run*
+
+| Method | Overall | Status |
+|--------|:-------:|:------:|
+| AIM | — | 📋 Ported, not submitted |
+| DyCoke | — | 📋 Ported, not submitted |
+| FastV | — | 📋 Ported, not submitted |
+| FlashVID | — | 📋 Ported, not submitted |
+| HoliTom | — | 📋 Ported, not submitted |
+| MDP3 | — | 📋 Ported, not submitted |
+| STTM | — | 📋 Ported, not submitted |
+| VideoITG | — | 📋 Ported, not submitted |
+
+### Other Backbones
+*Methods with non-LLaVA backbones (separate evaluation track)*
+
+| Method | Backbone | Overall | Status | Job ID |
+|--------|----------|:-------:|:------:|:------:|
+| DyTo | LLaVA-NeXT Vicuna-7B | — | 🔄 PENDING (builder patched) | 7769212 |
+| PruneVID | PLLaVA-7B | **52.66%** | ✅ Has own sbatch in prunevid-motionbenc/ | — |
+| VisionZip | LLaVA-v1.5-7b | 39.97% | 🔄 Stage 1 rerun (Vicuna LLM) | 7768829, 7769201 |
+| STTM-LLaVAVid | LLaVA-Video-7B | **53.33%** | ✅ Experiment run (job 7706552) | — |
+| iMove | LLaVA-NeXT | — | ❌ No public code | — |
+| TrajViT | LLaVA-NeXT | — | ❌ No public code | — |
 
 ---
 
@@ -47,36 +85,24 @@
 
 FlashVID's result difference (51.22% vs 53.29%) suggests one of its runs may have had different hyperparameters or a different code path — not just a template difference. Worth investigating.
 
-### Key Correction (2026-07-23)
-The project previously tracked "Qwen1.5 backbone" and "Qwen2 backbone" as separate columns. This was a misconception: `lmms-lab/llava-ov-7b` **already uses Qwen2 internally** (arch: `LlavaQwenForCausalLM`, hidden_size=3584, training path: `Qwen2-7B-Instruct`). The `qwen_1_5` vs `qwen_2` conv templates only affect prompt formatting, not the underlying model. The duplicate weight directory `/project/rhu/dpalfaro/weights/llava-ov-7b-qwen2` was deleted.
-
 ---
 
-## Old / Non-OV Backbones
+## Currently Running / Queued (2026-07-23 13:58 CDT)
 
-| # | Model | Backbone | Overall | Notes |
-|---|-------|----------|:-------:|-------|
-| 1 | PruneVID | Legacy | 43.80% | Different backbone/config |
-| 2 | VisionZip | LLaVA-v1.5-7b | 39.97% | Wrong backbone |
-| 3 | DyTo | LLaVA-v1.6-Vicuna-7b | — | ❌ FAILED v3 (7751031) — LlavaLlamaForCausalLM import from /code/DYTO (mahern69-owned, unpatched). Fix: point PYTHONPATH to /project/rhu/dpalfaro/DYTO (dpalfaro-owned, patched). |
-
----
-
-## STTM-LLaVAVid Experiment Results (LLaVA-Video-7B-Qwen2 backbone)
-
-| Config | Overall | Act. Order | Cam. Motion | Loc. Motion | Mot. Rec. | Mot. Objs. | Rep. Count | Notes |
-|--------|:-------:|:----------:|:----------:|:----------:|:---------:|:----------:|:----------:|-------|
-| **t=0.80, 32f** | **53.33%** (2143/4018) | 40.27% (209/519) | 48.83% (188/385) | 57.33% (313/546) | 57.51% (850/1478) | 68.84% (475/690) | 27.00% (108/400) | Job 7706552. Separate backbone. |
-
----
-
-## Currently Running / Queued (2026-07-23 12:25)
-
-| Job ID | Model | Type | Status |
-|:------:|-------|------|--------|
-| 7768241 | MDP3 | Fresh re-run (fixed --num_frames) | ⚡ RUNNING |
-| 7768829 | VisionZip | Fresh re-run (DyCoke builder fix) | ⚡ RUNNING |
-| 7769039 | VisionZip | Fresh re-run (fixed args) | ⚡ RUNNING |
+| Job ID | Model | Stage | Status | Time |
+|:------:|-------|:-----:|:------:|:----:|
+| 7768241 | MDP3 OV1.5 rerun | Stage 1 | ⚡ RUNNING | ~3h |
+| 7768829 | VisionZip v1 | Stage 1 | ⚡ RUNNING | ~2.5h |
+| 7769192 | stage2_aim | Stage 2 | ⚡ RUNNING | ~20m |
+| 7769194 | stage2_fastv | Stage 2 | ⚡ RUNNING | ~20m |
+| 7769212 | DyTo (vicuna) | Other | ⏳ PENDING | — |
+| 7769193 | stage2_dycoke | Stage 2 | ⏳ PENDING | — |
+| 7769195 | stage2_flashvid | Stage 2 | ⏳ PENDING | — |
+| 7769196 | stage2_holitom | Stage 2 | ⏳ PENDING | — |
+| 7769197 | stage2_mdp3 | Stage 2 | ⏳ PENDING | — |
+| 7769198 | stage2_videoitg | Stage 2 | ⏳ PENDING | — |
+| 7769201 | VisionZip v3 | Stage 1 | ⏳ PENDING | — |
+| 7769209 | stage2_sttm | Stage 2 | ⏳ PENDING | — |
 
 ---
 
