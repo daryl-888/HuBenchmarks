@@ -29,6 +29,32 @@ first — it lists exactly which files differ.
   (Linux Mint often ships no rsync). Install rsync for true mirroring incl.
   deletion: `sudo apt install rsync`.
 
+## check_run.py — sanity gate (turns silent-wrong into loud FAIL)
+
+The most expensive failure mode here is a run that *completes and lies* — a
+plausible accuracy from a method that never actually engaged. Real cases this
+project hit: FastV ran as a pure baseline (`enabled: false`) but was recorded as
+"FastV"; VisionZip produced 0% empty predictions; PruneVID dropped weights and
+scored 44%. Each looked like data, not a bug.
+
+`check_run.py` reads the two files every eval writes (`summary.json`,
+`results.jsonl`) and FAILs on any known silent-failure signature: truncated run,
+NA-count drift, accuracy outside [0.40, 0.95], empty/constant predictions, or a
+`*_params.enabled == false` method-no-op.
+
+```bash
+python scripts/check_run.py <run_dir> [--expect-method NAME] [--strict]
+# on Carya:
+python code/HuVLLM_scripts/check_run.py /project/rhu/dpalfaro/results/<run> --expect-method dycoke
+```
+
+Exit 0 = trustworthy; non-zero = do not record. `--strict` also fails on warnings.
+
+**Automate it:** paste `gate_snippet.sh` at the end of each eval sbatch (after the
+python eval call). It runs the gate and renames the output dir to
+`*.FAILED_GATE` if the run is untrustworthy, so a bad run can never be silently
+mistaken for a good one.
+
 ### Known second half of the trap: leftover flat dirs
 
 Carya still has the **pre-restructure flat wrappers** alongside the new stage
