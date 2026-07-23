@@ -109,3 +109,21 @@ Stage 3 is **not** a formatting job: it is 11 re-implementations against a new
 model class, of which several may prove architecturally impossible. Any cell that
 can't be done authentically gets documented as a hole, never as a baseline wearing
 a method's name.
+
+---
+
+## Env gotcha (cost 2 failed submissions, 2026-07-23)
+
+`pip install` from an interactive Carya shell can land packages in
+**`/home/dpalfaro/.local/lib/python3.10/site-packages`** (user site), NOT the
+conda env. Interactive imports then succeed — but every sbatch sets
+`PYTHONNOUSERSITE=1`, which correctly ignores user site, so the JOB fails with
+`ModuleNotFoundError` for a package you just "verified" as installed.
+
+**Always install with an explicit target and verify the way the job will run:**
+```bash
+SP=/project/rhu/dpalfaro/conda/envs/<env>/lib/python3.10/site-packages
+pip install --no-cache-dir --upgrade --target=$SP <pkgs>
+PYTHONNOUSERSITE=1 <env>/bin/python3 -c "import <pkg>; print(<pkg>.__file__)"
+```
+The printed path must be under the ENV, not under /home/dpalfaro/.local.
