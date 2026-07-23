@@ -1,54 +1,40 @@
-# Progress — HuBenchmarks (2026-07-23 11:43 CDT)
+# Progress — HuBenchmarks (2026-07-23 12:25 CDT)
 
 ## Current Running / Queued
 
-| Job ID | Model | Backbone | Status | Time |
-|:------:|-------|----------|:------:|:----:|
-| 7768241 | MDP3 | OVQwen 1.5 | ⚡ RUNNING | 1h 23m |
-| 7768829 | VisionZip | OVQwen 1.5 | ⚡ RUNNING | 48m |
-| 7769039 | VisionZip | OVQwen 2 | ⚡ RUNNING | recent |
+| Job ID | Model | Status | Time |
+|:------:|-------|:------:|:----:|
+| 7768241 | MDP3 | ⚡ RUNNING | ~2h |
+| 7768829 | VisionZip | ⚡ RUNNING | ~1h |
+| 7769039 | VisionZip | ⚡ RUNNING | ~45m |
 
-## Recently Completed (since last update)
-
-| Job ID | Model | Backbone | Result | Notes |
-|:------:|-------|----------|:------:|-------|
-| 7762123 | FastV (baseline) | OVQwen 1.5 | **52.66%** (2116/4018) | ✅ COMPLETED. DyCoke builder + dycoke11 env. `apply_fastv()` stub — ran as baseline. |
-| 7762128 | MDP3 | OVQwen 2 | **53.06%** (2132/4018) | ✅ COMPLETED (7h 26m). |
-| 7762126 | HoliTom | OVQwen 1.5 | ❌ FAILED | `transformers.modeling_rope_utils` not found. Already have valid result (53.14%) from previous run. |
-| 7762127 | HoliTom | OVQwen 2 | ❌ FAILED | Same error. Already have valid result (53.14%) from previous run. |
-| 7762101 | VisionZip | OVQwen 1.5 | ❌ 0.0% | All empty predictions. AIM transformers shadowing + wrong eval script path. |
-| 7762102 | VisionZip | OVQwen 2 | ❌ 0.0% | Same issue. |
-| 7762129 | MDP3 | OVQwen 1.5 | ❌ FAILED | `--num_frames` not accepted by MDP3 eval. Resubmitted as 7768241. |
-
-## OVQwen 1.5 Scoreboard (9/10 complete)
+## Scoreboard (12/13 complete, 1 VisionZip pending)
 
 | # | Model | Accuracy | Status |
 |---|-------|:--------:|--------|
-| 1 | DyCoke | **53.36%** | ✅ Algorithm-dominant (see dycoke-data-integrity.md) |
-| 2 | HoliTom | **53.14%** | ✅ |
-| 3 | MDP3 | **53.06%** | ✅ |
-| 4 | VideoITG | **52.86%** | ✅ |
-| 5 | AIM | **52.81%** | ✅ |
-| 6 | PruneVID | **52.66%** | ✅ |
-| 7 | FastV (baseline) | **52.66%** | ✅ Job 7762123 (enabled=false stub) |
-| 8 | STTM-v2 | **51.87%** | ✅ |
-| 9 | FlashVID (0.15) | **51.22%** | ✅ |
-| 10 | VisionZip | — | 🔄 Resubmitted (7768829) |
+| 1= | **DyCoke** | **53.36%** | ✅ |
+| 1= | **FlashVID** (0.25) | **53.36%** | ✅ |
+| 3 | **FlashVID** (0.15) | **53.29%** | ✅ |
+| 4 | **HoliTom** | **53.14%** | ✅ |
+| 5 | **MDP3** | **53.06%** | ✅ |
+| 6 | **VideoITG** | **52.86%** | ✅ |
+| 7 | **AIM** | **52.84%** | ✅ |
+| 8= | **PruneVID** | **52.66%** | ✅ |
+| 8= | **FastV** (baseline) | **52.66%** | ✅ Job 7762123 |
+| 10 | **STTM-v2** | **51.87%** | ✅ |
+| 11 | **FlashVID** (qwen15 templ) | **51.22%** | ✅ |
+| 12 | **VideoITG** (simplified) | **34.89%** | ✅ |
+| 13 | **VisionZip** | — | 🔄 Resubmitted (7768829, 7769039) |
 
-## OVQwen2 Scoreboard (10/11 complete)
+## Critical Correction (2026-07-23)
 
-| # | Model | Accuracy | Status |
-|---|-------|:--------:|--------|
-| 1= | DyCoke | **53.36%** | ✅ Algorithm-dominant (see dycoke-data-integrity.md) |
-| 2 | FlashVID (0.15) | **53.29%** | ✅ |
-| 3 | HoliTom | **53.14%** | ✅ |
-| 4 | MDP3 | **53.06%** | ✅ Job 7762128 completed |
-| 5 | AIM | **52.84%** | ✅ |
-| 6 | FastV | **52.66%** | ✅ |
-| 7 | VideoITG | **52.86%** | ✅ |
-| 8 | STTM-v2 | **51.54%** | ✅ |
-| 9 | VisionZip | — | 🔄 Resubmitted (7769039) |
-| 10 | FastVID | — | ❌ Hard-blocked (model-level 0% bug) |
+The project previously tracked "Qwen1.5 backbone" and "Qwen2 backbone" as separate columns. This was a **misconception** discovered today:
+
+- `lmms-lab/llava-ov-7b` **already uses Qwen2 internally** — architecture is `LlavaQwenForCausalLM`, hidden_size=3584, training path includes `Qwen2-7B-Instruct`
+- The duplicate `llava-ov-7b-qwen2` weight directory was a byte-for-byte copy. Deleted on Carya with README explanation.
+- The `qwen_1_5` vs `qwen_2` conv templates only control **prompt formatting**, not model weights
+- All "identical across backbones" findings (DyCoke, HoliTom, MDP3) are therefore expected — same model, different prompt format
+- Results listed under both columns are the **same 12 methods**, not 24. The table has been consolidated.
 
 ## Still Broken / No OV Code
 
@@ -59,10 +45,6 @@
 | TrajViT | No public code | Not applicable |
 | FastVID qwen2 | `'NoneType' object is not callable` | Deep debug needed |
 | STTM-LLaVAVid | → experiments/ | Separate track |
-
-## DyCoke — Algorithm-Dominant Results
-
-DyCoke produces 53.36% identically across both backbones because its two-stage compression (token merging + KV cache pruning at aggressive ratios) erases backbone-level signal. See `memory-bank/claude/dycoke-data-integrity.md` for full analysis.
 
 ## Failed Job Fix History
 
@@ -79,4 +61,4 @@ DyCoke produces 53.36% identically across both backbones because its two-stage c
 | v1 (7762129) | MDP3 OV1.5 | `--num_frames` not accepted | Removed invalid arg; resubmitted as 7768241 |
 
 ## Carya Allocation
-78.94% remaining (414,451/525,000 hours)
+~78.9% remaining (414,430/525,000 hours)
