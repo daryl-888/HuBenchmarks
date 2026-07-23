@@ -1,100 +1,86 @@
-# Claude's Active Context — 2026-07-22 13:30 CDT
+# Claude's Active Context — 2026-07-23 12:50 CDT
 
 ## Current Focus
-Both queued jobs resolved: FlashVID qwen1.5 full eval finished (7751030), DyTo v3 failed (7751031). DyTo remains blocked after 3 attempts.
+Repo restructured from confusing `ovqwen/ovqwen2/ovqwen3/` naming into a clean 3-stage architecture. The "Qwen2 backbone" was a misconception — `llava-ov-7b` already uses Qwen2 internally. Duplicate weights deleted from Carya.
 
-## Repository Structure
+## Repository Structure (Updated 2026-07-23)
 
 ```
-stage1-llava-ov/       Qwen 1.5 — 10 valid models (llava-ov-7b, qwen_1_5)
-stage1-llava-ov/      Qwen2   — 15 model dirs (llava-ov-7b-qwen2, qwen_2)
-stage3-qwen3-vl/      Qwen3-VL — 15 model dirs (qwen3-vl-8b, native chat template)
-other-backbones/       Non-OV reference (untouched)
-experiments/  STTM-LLaVAVid on LLaVA-Video-7B-Qwen2
+stage1-llava-ov/       Stage 1: Mid-2024 — LLaVA-OV (Qwen2 7B LlavaQwenForCausalLM, hidden_size=3584)
+                       9 working methods + VisionZip pending
+stage2-llava-video/    Stage 2: Late-2024 — LLaVA-Video-7B (Qwen2, video-finetuned)
+                       Currently: sttm-llavavid experiments only
+stage3-qwen3-vl/       Stage 3: Late-2025 — Qwen3-VL-8B (Qwen3 8B Dense)
+                       8 method directories (ported from stage1)
+other-backbones/       Non-series models (DyTo, iMove, PruneVid, STTM-v1, TrajViT, VisionZip on LLava-1.5)
+sbatch-files/          Local sbatch templates for Carya submission
 ```
 
-## Carya Disk Space — Resolved
-Was 100% full (0MB free), now recovered after other users freed space. No longer blocking.
+### Correction (2026-07-23)
+- There is no "Qwen1.5 vs Qwen2 backbone" — both use the **same model** (`lmms-lab/llava-ov-7b`, arch: `LlavaQwenForCausalLM`, uses `Qwen2-7B-Instruct` internally)
+- `qwen_1_5` vs `qwen_2` conv templates only control **prompt formatting**, not model weights
+- The duplicate `llava-ov-7b-qwen2` weight directory was deleted from Carya
+- FastV OV1.5 now has a valid baseline result (52.66%) — no longer hard-blocked
 
-### Quick Wins (still available):
-```bash
-rm -rf /project/rhu/dpalfaro/weights/pllava-7b/
-rm -rf /project/rhu/dpalfaro/weights/llava-v1.6-vicuna-7b/
-rm -rf /project/rhu/dpalfaro/weights/llava-v1.5-7b/
-```
-These three unused weight sets (~41GB) can be removed when convenient.
+## Consolidated Scoreboard (Single Model: LLaVA-OV-7B)
 
-## OVQwen 1.5 Scoreboard (8/10 complete)
-
-| # | Model | Accuracy | Status |
-|---|-------|:--------:|--------|
-| 1 | DyCoke | **53.36%** | ✅ (7714650) |
-| 2 | HoliTom | **53.14%** | ✅ (7713092) |
-| 3 | MDP3 | **53.06%** | ✅ (7714722) |
-| 4 | VideoITG | **52.86%** | ✅ (7693609) |
-| 5 | AIM | **52.81%** | ✅ |
-| 6 | PruneVID | **52.66%** | ✅ |
-| 7 | STTM-v2 | **51.87%** | ✅ |
-| 8 | FlashVID | — | ✅ Complete (7751030) — accuracy pending |
-| 9 | FastV | — | ❌ Hard-blocked (NotImplementedError) |
-| 10 | VisionZip | — | ❌ Broken (LlavaConfig) |
-
-## OVQwen2 Scoreboard (9/11 complete)
-
-| # | Model | Accuracy | Status |
-|---|-------|:--------:|--------|
-| 1= | DyCoke | **53.36%** | ✅ (7713010) |
-| 2 | FlashVID (0.15) | **53.29%** | ✅ (7750906) |
-| 3= | FlashVID (old 0.25) | **53.36%** | ✅ (7713093) |
+| # | Model | Overall | Status |
+|---|-------|:-------:|--------|
+| 1= | DyCoke | **53.36%** | ✅ |
+| 1= | FlashVID (0.25) | **53.36%** | ✅ |
+| 3 | FlashVID (0.15) | **53.29%** | ✅ |
 | 4 | HoliTom | **53.14%** | ✅ |
-| 5 | MDP3 | **53.06%** | ✅ (7713095) |
-| 6 | VideoITG | **52.86%** | ✅ (7714855) |
-| 7 | AIM | **52.84%** | ✅ (7714969) |
-| 8 | FastV | **52.66%** | ✅ (7704758) |
-| 9 | STTM-v2 | **51.54%** | ✅ |
-| 10 | FastVID | — | ❌ Hard-blocked (0% accuracy) |
-| 11 | VisionZip | — | ❌ Broken (LlavaConfig) |
+| 5 | MDP3 | **53.06%** | ✅ |
+| 6 | VideoITG | **52.86%** | ✅ |
+| 7 | AIM | **52.84%** | ✅ |
+| 8= | PruneVID | **52.66%** | ✅ |
+| 8= | FastV (baseline) | **52.66%** | ✅ |
+| 10 | STTM-v2 | **51.87%** | ✅ |
+| 11 | FlashVID (qwen15 templ) | **51.22%** | ✅ |
+| 12 | VideoITG (simplified) | **34.89%** | ✅ |
+| 13 | VisionZip | — | 🔄 Submitted (7768829, 7769039) |
 
-## Recently Resolved Jobs
+## Running Jobs
 
-| Job ID | Model | Backbone | Result |
-|:---:|-------|----------|--------|
-| 7751030 | FlashVID | qwen1.5 | ✅ Full run finished |
-| 7751031 | DyTo | Vicuna-7B | ❌ v3 failed |
+| Job ID | Model | Status |
+|:------:|-------|:------:|
+| 7768241 | MDP3 OV1.5 (fresh re-run) | ⚡ RUNNING |
+| 7768829 | VisionZip stage1 | ⚡ RUNNING |
+| 7769039 | VisionZip stage1 | ⚡ RUNNING |
 
 ## Active Remaining Blockers
-- **DyTo**: Failed 3 times (v1: 5.25%, v2: script missing, v3: /tmp patch still failed). LlavaLlamaForCausalLM import error from DYTO/llava module.
-- **FastV** (ovqwen1.5): NotImplementedError for Qwen1.5 architecture
-- **FastVID**: Model-level bug causing 0% accuracy
-- **VisionZip**: LlavaConfig not recognized
+- **FastVID**: Model-level bug causing 0% accuracy (`'NoneType' object is not callable`)
+- **DyTo**: Failed 3 times on Vicuna backbone. LlavaLlamaForCausalLM import error from DYTO/llava module.
+- **VisionZip**: Was 0% due to AIM shadowing — resubmitted with DyCoke builder fix
+- **Stage2 (llava-video-7b)**: Most methods not yet ported — only sttm-llavavid exists
 
-## STTM-LLaVAVid Experiments — All 7 Complete
-Best config: **t=0.80, 32f → 74.07%** (20/27). STTM adds +14.81% over vanilla.
-Recommend full run on t=0.80 config.
+## Carya Paths
 
-## CRITICAL: Carya sbatch Files Are Stale
-Fixes applied locally do NOT persist on Carya. Must update Carya sbatch directly.
-`scp` always fails (exit 255). Use heredoc to write files directly on Carya:
-```bash
-ssh carya "cat > /project/rhu/dpalfaro/code/stage1-llava-ov/MODEL-motionbenc/run_MODEL.sbatch << 'EOF'
-... content ...
-EOF"
-```
-Or use `cat > ...` from local file. Always verify with `grep` after writing.
+| Path | What |
+|------|------|
+| `/project/rhu/dpalfaro/code/stage1-llava-ov/` | 9 methods on LLaVA-OV-7B ✅ |
+| `/project/rhu/dpalfaro/code/stage2-llava-video/` | sttm-llavavid only |
+| `/project/rhu/dpalfaro/code/stage3-qwen3-vl/` | 8 methods on Qwen3-VL |
+| `/project/rhu/dpalfaro/code/other-backbones/` | Non-series models |
+| `/project/rhu/dpalfaro/weights/llava-ov-7b/` | **Primary eval model** (15G) |
+| `/project/rhu/dpalfaro/weights/llava-video-7b/` | Stage 2 model (15G) |
+| `/project/rhu/dpalfaro/weights/qwen3-vl-8b/` | Stage 3 model (17G) |
 
 ## Conda Env Reference (on Carya)
+
 | Env | Path | Models |
 |-----|------|--------|
 | dycoke11 | `/project/rhu/dpalfaro/conda/envs/dycoke11` | DyCoke, AIM, FastVID, FlashVID |
 | holitom | `/project/rhu/dpalfaro/conda/envs/holitom` | HoliTom |
-| fastv | `/project/rhu/dpalfaro/conda/envs/fastv` | FastV |
-| mdp3 | `/project/rhu/dpalfaro/conda/envs/mdp3` | MDP3 (cloned from holitom) |
+| fastv | `/project/rhu/dpalfaro/conda/envs/fastv` | FastV (broken torch) |
+| mdp3 | `/project/rhu/dpalfaro/conda/envs/mdp3` | MDP3 |
 | sttm_new | `/project/rhu/dpalfaro/conda/envs/sttm_new` | STTM |
 | videoitg | `/project/rhu/dpalfaro/conda/envs/videoitg` | VideoITG |
-| visionzip | `/project/rhu/dpalfaro/conda/envs/visionzip` | VisionZip (broken) |
+| visionzip | `/project/rhu/dpalfaro/conda/envs/visionzip` | VisionZip |
 
 ## Key Fix Patterns
 - **MDP3**: needs `LD_LIBRARY_PATH=/project/rhu/dpalfaro/mdp3_pkgs/torch/lib`, `--pool-frames` (not `--num_frames`), 48h walltime
-- **HoliTom**: needs `holitom` env + `PYTHONPATH=HoliTom/Llava-NeXT:HoliTom` + env vars WRAPPER, RETAIN_RATIO, T, HOLITOM_k, HOLITOM_r
-- **FastV**: needs `fastv` env + `PYTHONPATH=HoliTom/Llava-NeXT` for llava module
-- **DyCoke**: needs `dycoke11` env + `PYTHONPATH=DyCoke`, eval uses `attn_implementation="sdpa"` (not flash_attn)
+- **HoliTom**: needs `holitom` env + `PYTHONPATH=/project/rhu/dpalfaro/code/DyCoke:/project/rhu/dpalfaro/code/HoliTom` + env vars WRAPPER, RETAIN_RATIO, T, HOLITOM_k, HOLITOM_r
+- **FastV**: needs `dycoke11` env + `PYTHONPATH=/project/rhu/dpalfaro/code/DyCoke` (uses dycoke11 builder, not fastv env which has broken torch)
+- **VisionZip**: needs `visionzip` env + `PYTHONPATH=/project/rhu/dpalfaro/code/VisionZip:/project/rhu/dpalfaro/code/DyCoke`
+- **DyCoke**: needs `dycoke11` env + `PYTHONPATH=/project/rhu/dpalfaro/code/DyCoke`
