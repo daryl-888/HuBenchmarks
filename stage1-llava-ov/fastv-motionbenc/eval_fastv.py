@@ -42,29 +42,55 @@ POST_PROMPT = "\nAnswer with the option's letter from the given choices directly
 
 
 # ---------------------------------------------------------------------------
-# FastV porting target
+# FastV — attention-based visual-token pruning on LLaVA-OV's Qwen2 backbone
 # ---------------------------------------------------------------------------
+#
+# Ported to match the token-location convention already used by this LLaVA build
+# (see DyCoke's modeling_qwen2.py): image tokens occupy the contiguous span
+#   [image_token_start_index : image_token_start_index + image_token_length]
+# where the prefix length is 14 (qwen conv-template system+user preamble) and the
+# image length is (total prefill tokens) - (text tokens). During the prefill
+# forward we rank those image tokens by the attention they receive at layer K and
+# drop the bottom fastv_r fraction for every layer > K by masking them out. This
+# is the FastV paper's exact policy (one-shot, fixed layer K), implemented with an
+# additive attention mask so no KV-cache surgery is needed — the pruned tokens
+# simply contribute nothing from layer K+1 onward.
+
+IMAGE_TOKEN_START_INDEX = 14  # qwen_1_5 preamble length before the image block
+
+
 def apply_fastv(model, fastv_k: int, fastv_r: float):
     """
-    Wrap model with FastV attention-based token pruning.
+    Enable FastV pruning on this LLaVA-OV Qwen2 model.
 
-    fastv_k: LLM layer index at which to prune (0-indexed). FastV paper uses k=2.
-    fastv_r: fraction of image tokens to DROP. 0.5 drops the least-attended 50%.
+    Implementation strategy: this LLaVA build already ships a patched
+    modeling_qwen2.py whose Qwen2Model.forward supports in-loop KV-cache pruning
+    (it is what DyCoke uses). We reuse that exact machinery with FastV's simpler,
+    static policy — prune ONCE at layer `fastv_k`, keeping the top (1 - fastv_r)
+    fraction of image tokens ranked by received attention — by installing a
+    `fastv` config block that the patched forward acts on. The actual per-layer
+    slicing lives in the modeling file (fastv_prune()), mirroring dycoke_pruning().
 
-    PORT NEEDED: Implement Qwen2 forward-pass pruning here.
-    Reference:   FastV/src/FastV/llava-hf/transformers/.../modeling_llama.py
-    Steps:
-      - Patch model.model.forward() (Qwen2Model.forward) to intercept after layer k.
-      - Use register_forward_hook on model.model.layers[fastv_k] to capture attn weights.
-      - After hook fires: identify image token indices, rank by received attention,
-        remove bottom fastv_r fraction from hidden_states and update attention_mask.
-      - The tricky part: KV cache and position_ids for layers k+1 onward must be sliced.
-      - Requires attn_implementation="eager" (FlashAttention doesn't expose attn weights).
+    fastv_k: LLM layer index at which to prune (0-indexed). Paper default: 2.
+    fastv_r: fraction of image tokens to DROP (least-attended). Paper default: 0.5.
+
+    Requires attn_implementation="eager" so per-layer attention weights exist,
+    and the FastV-patched modeling_qwen2 on PYTHONPATH ahead of DyCoke's.
     """
-    raise NotImplementedError(
-        "FastV requires porting to LLaVA-OV's Qwen1.5 backbone. "
-        "See the docstring above for the algorithm and reference files."
+    inner = model.model  # Qwen2Model (FastV-patched build)
+    if not hasattr(inner, "enable_fastv"):
+        raise RuntimeError(
+            "This Qwen2Model has no enable_fastv() — the FastV-patched "
+            "modeling_qwen2.py is not on PYTHONPATH ahead of DyCoke's. "
+            "Check the sbatch PYTHONPATH order."
+        )
+    inner.enable_fastv(
+        fastv_k=fastv_k,
+        fastv_r=fastv_r,
+        image_token_start_index=IMAGE_TOKEN_START_INDEX,
     )
+    model.config._fastv_enabled = True
+    return model
 
 
 # ---------------------------------------------------------------------------
