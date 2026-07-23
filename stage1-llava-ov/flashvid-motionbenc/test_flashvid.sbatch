@@ -38,3 +38,8 @@ cd /project/rhu/dpalfaro
     --prompt-style strict \
     --max-new-tokens 16 \
     --limit 50
+
+OUTDIR=/project/rhu/dpalfaro/results/flashvid_test_${SLURM_JOB_ID}
+echo "=== GATE: did the method actually engage? ==="
+python3 /project/rhu/dpalfaro/code/HuVLLM_scripts/check_run.py "${OUTDIR}" \
+    --expect-method flashvid || echo "GATE FAILED - do not record this run"

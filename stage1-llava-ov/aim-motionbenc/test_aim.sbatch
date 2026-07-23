@@ -43,4 +43,9 @@ cd /project/rhu/dpalfaro
      \
     _suffix aim_test \
     --output_path /project/rhu/dpalfaro/results/aim_test_${SLURM_JOB_ID} \
-    
+
+OUTDIR=/project/rhu/dpalfaro/results/stage1_aim_run1
+
+echo "=== GATE: did the method actually engage? ==="
+python3 /project/rhu/dpalfaro/code/HuVLLM_scripts/check_run.py "${OUTDIR}" \
+    --expect-method aim || echo "GATE FAILED - do not record this run"

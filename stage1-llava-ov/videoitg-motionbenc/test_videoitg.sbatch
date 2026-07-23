@@ -36,3 +36,9 @@ GROUNDING_JSONL=/project/rhu/dpalfaro/results/videoitg_test_grounding_${GROUNDIN
     --output_dir      /project/rhu/dpalfaro/results/videoitg_test_${SLURM_JOB_ID} \
     --num_frames      32 \
     --limit 50
+
+OUTDIR=/project/rhu/dpalfaro/results/videoitg_test_${SLURM_JOB_ID}
+
+echo "=== GATE: did the method actually engage? ==="
+python3 /project/rhu/dpalfaro/code/HuVLLM_scripts/check_run.py "${OUTDIR}" \
+    --expect-method videoitg || echo "GATE FAILED - do not record this run"

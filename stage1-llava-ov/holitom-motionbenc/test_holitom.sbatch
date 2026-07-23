@@ -35,3 +35,9 @@ HOLITOM_r=0.5 \
     --output_dir /project/rhu/dpalfaro/results/holitom_test_${SLURM_JOB_ID} \
     --num_frames 32 --conv_template qwen_2 \
     --limit 50
+
+OUTDIR=/project/rhu/dpalfaro/results/holitom_test_${SLURM_JOB_ID}
+
+echo "=== GATE: did the method actually engage? ==="
+python3 /project/rhu/dpalfaro/code/HuVLLM_scripts/check_run.py "${OUTDIR}" \
+    --expect-method holitom || echo "GATE FAILED - do not record this run"

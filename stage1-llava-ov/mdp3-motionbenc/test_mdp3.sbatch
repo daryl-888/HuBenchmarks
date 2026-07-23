@@ -34,7 +34,7 @@ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 cd /project/rhu/dpalfaro
 
 /project/rhu/dpalfaro/conda/envs/mdp3/bin/python3 \
-    /project/rhu/dpalfaro/code/mdp3-motionbenc/eval_mdp3.py \
+    /project/rhu/dpalfaro/code/stage1-llava-ov/mdp3-motionbenc/eval_mdp3.py \
     --meta-file    /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl --num_frames 32 \
     --video-roots  /project/rhu/MotionBench_Data/MotionBench \
     --model-path   /project/rhu/dpalfaro/weights/llava-ov-7b \
@@ -43,3 +43,8 @@ cd /project/rhu/dpalfaro
     --pool-frames  32 \
     --select-frames 8 \
     --limit 50
+
+OUTDIR=/project/rhu/dpalfaro/results/mdp3_test_${SLURM_JOB_ID}
+echo "=== GATE: did the method actually engage? ==="
+python3 /project/rhu/dpalfaro/code/HuVLLM_scripts/check_run.py "${OUTDIR}" \
+    --expect-method mdp3 || echo "GATE FAILED - do not record this run"

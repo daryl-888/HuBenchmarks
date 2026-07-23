@@ -35,3 +35,9 @@ cd /project/rhu/dpalfaro
     --sa_tree_thresh          0.85 \
     --sa_tree_temporal_thresh 0.65 \
     --sa_tree_root_level      1
+
+OUTDIR=/project/rhu/dpalfaro/results/sttm_v2_test_${SLURM_JOB_ID}
+
+echo "=== GATE: did the method actually engage? ==="
+python3 /project/rhu/dpalfaro/code/HuVLLM_scripts/check_run.py "${OUTDIR}" \
+    --expect-method sttm || echo "GATE FAILED - do not record this run"
