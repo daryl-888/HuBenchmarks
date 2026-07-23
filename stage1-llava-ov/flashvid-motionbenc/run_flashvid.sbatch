@@ -33,7 +33,7 @@ cd /project/rhu/dpalfaro
     --num_frames 32 \
     --conv-template qwen_2 \
     --enable-flashvid \
-    --retention-ratio 0.25 \
+    --retention-ratio 0.15 \
     --alpha 0.7 \
     --temporal-threshold 0.8 \
      \

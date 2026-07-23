@@ -35,4 +35,4 @@ cd /project/rhu/dpalfaro
     --num_frames 32 \
     --fastv \
     --fastv_k 2 \
-    --fastv_r 0.5
+    --fastv_r 0.85

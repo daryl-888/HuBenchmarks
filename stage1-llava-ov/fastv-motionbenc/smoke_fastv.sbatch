@@ -35,7 +35,7 @@ OUT=/project/rhu/dpalfaro/results/fastv_smoke_${SLURM_JOB_ID}
     --meta_path  /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
     --output_dir ${OUT} \
     --num_frames 32 \
-    --fastv --fastv_k 2 --fastv_r 0.5 \
+    --fastv --fastv_k 2 --fastv_r 0.85 \
     --limit 8
 
 echo "=== GATE: did FastV actually prune (predictions differ from baseline)? ==="
