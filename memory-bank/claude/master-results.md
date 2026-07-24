@@ -26,10 +26,31 @@
 > | PruneVID (PLLaVA) | ✅ PASS | real backbone; the *OV port* remains inert |
 > | VideoITG | ⚠️ PASS + warn | runs, but infer script emits no `*_params` block |
 > | MDP3 | ✅ **smoke PASS** + full run PASS (53.06%) | fixed `libnccl.so.2` path + `--pool-frames` (not `--num_frames`) |
-> | FlashVID | 🔧 smoke rerunning | 3 bugs: `--frame-counts` not `--num_frames`; the *motionbench* variant loaded **LlavaLlamaForCausalLM** (wrong class, FlashVID refused to wrap) at retention **0.10**; and flash_attn default → sdpa. Now uses `eval_flashvid.py` @ 0.15. |
+> | FlashVID | ✅ **PASS** | 3 bugs: `--frame-counts` not `--num_frames`; the *motionbench* variant loaded **LlavaLlamaForCausalLM** (wrong class, FlashVID refused to wrap) at retention **0.10**; and flash_attn default → sdpa. Now uses `eval_flashvid.py` @ 0.15. |
 > | VisionZip | ✅ **FIXED → PASS** | root cause: code sliced `output_ids[:, input_ids.shape[1]:]`, but LLaVA-1.5's `generate()` returns ONLY new tokens — the slice discarded the whole response. Now 0/50 empty. |
 > | DyTo | ❌ **never ran** — 5 consecutive import failures | its one 5.25% "result" emitted free-form captions, not letters; below random. Not a result. |
 
+
+
+> ### ⚠️ Status of the numbers in the table below (2026-07-23)
+>
+> **Every full-run number below was produced BEFORE today's fixes.** None of those
+> runs carries the new `enabled` instrumentation (all show `enabled=None` in their
+> summary.json), so none was divergence-gated. They are retained as the best
+> available figures, but they are **provisional** until re-run.
+>
+> Specifically invalidated / suspect:
+> * **VisionZip 0.00%** (`visionzip_run1/ovqwen15/ovqwen2`) — produced by the
+>   output-slicing bug fixed today. **Discard.** The 39.97% (`visionzip_run2_32f`)
+>   predates it and is the only usable VisionZip figure so far.
+> * **FastV 52.66%** — `enabled: False`. Inert backbone, not FastV.
+> * **PruneVID-OV 52.66%** — 0/8052 predictions differ from that inert run.
+> * **FlashVID** — the motionbench variant ran at retention **0.10** with the wrong
+>   model class; the 0.15/0.25 rows need re-running under the corrected script.
+> * **DyTo 5.25%** — emitted captions, not letters; below random. **Not a result.**
+> * **STTM-LLaVAVid 0.00%** (`sttm_llavavid_run1/run2`) — failed runs.
+>
+> Wave 2 (full re-runs of the 10 verified methods) will replace these with gated numbers.
 
 | # | Model | Conference | Year | Overall | Act. Order | Cam. Motion | Loc. Motion | Mot. Rec. | Mot. Objs. | Rep. Count | Parameters | Notes |
 |---|-------|-----------|------|:-------:|:----------:|:----------:|:----------:|:---------:|:----------:|:----------:|------------|-------|
