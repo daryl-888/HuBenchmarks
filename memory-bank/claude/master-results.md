@@ -25,9 +25,9 @@
 > | STTM | ✅ PASS | |
 > | PruneVID (PLLaVA) | ✅ PASS | real backbone; the *OV port* remains inert |
 > | VideoITG | ⚠️ PASS + warn | runs, but infer script emits no `*_params` block |
-> | MDP3 | ✅ full run PASS (53.06%) | smoke had `libnccl.so.2` + wrong arg (`--pool-frames`, not `--num_frames`) |
-> | FlashVID | 🔧 smoke resubmitted | uses `--frame-counts`, not `--num_frames` |
-> | VisionZip | ❌ **FAIL — 100% empty predictions** | same class of bug as FastV's eager-attention failure |
+> | MDP3 | ✅ **smoke PASS** + full run PASS (53.06%) | fixed `libnccl.so.2` path + `--pool-frames` (not `--num_frames`) |
+> | FlashVID | 🔧 smoke rerunning | 3 bugs: `--frame-counts` not `--num_frames`; the *motionbench* variant loaded **LlavaLlamaForCausalLM** (wrong class, FlashVID refused to wrap) at retention **0.10**; and flash_attn default → sdpa. Now uses `eval_flashvid.py` @ 0.15. |
+> | VisionZip | ✅ **FIXED → PASS** | root cause: code sliced `output_ids[:, input_ids.shape[1]:]`, but LLaVA-1.5's `generate()` returns ONLY new tokens — the slice discarded the whole response. Now 0/50 empty. |
 > | DyTo | ❌ **never ran** — 5 consecutive import failures | its one 5.25% "result" emitted free-form captions, not letters; below random. Not a result. |
 
 
