@@ -24,12 +24,13 @@ Filesystem `/project/rhu` = 1.0T shared, was **97% full (34G free)**.
 
 ## Candidates needing your decision
 
-1. **`weights/llava-video-7b` (15G)** — Stage 2 is descoped. Deleting frees the most
-   space of any single item. Only re-download if Stage 2 is revived.
-2. **`conda/envs/ppgdata` (7.6G)** — referenced by nothing in this repo and unrelated
+1. ~~`weights/llava-video-7b` (15G)~~ — **DO NOT DELETE.** Initially flagged as
+   Stage-2-only, but verification shows it is the backbone for `sttm-llavavid` in
+   other-backbones, which holds a real 53.33% result. Still required.
+2. **`conda/envs/ppgdata` (7.6G)** — owned by dpalfaro (created Jun 24) — referenced by nothing in this repo and unrelated
    to the benchmark. May belong to another project; confirm before removing.
-3. **`conda/envs/{trajvit,imove}`** — referenced by 4 sbatch each, but both methods
-   have **no public code/weights** and can never run. If those envs exist they are dead.
+3. ~~`conda/envs/{trajvit,imove}`~~ — verified: these envs **do not exist**. The 4
+   sbatch files referencing them are dead templates for methods with no public code.
 
 ## Rule learned
 `results/` and log cleanup are cosmetic here (213M + 29M). The real levers are
