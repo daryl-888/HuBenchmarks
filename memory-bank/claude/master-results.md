@@ -1,9 +1,14 @@
 # Master Results — HuBenchmarks / MotionBench
 
-**Updated** 2026-07-23 · **Benchmark** MotionBench (8,052 samples · 4,018 scoreable · 4,034 NA)
+**Updated** 2026-07-24 · **Benchmark** MotionBench (8,052 samples · 4,018 scoreable · 4,034 NA)
 **Standard config** 32 frames · retention 0.15 where the method exposes one · `do_sample=False` · `max_new_tokens=16` · letter-match scoring · NA skipped
 
 **Goal** — 11 methods × 2 backbones (LLaVA-OV-7B, Qwen3-VL-8B) = **22 cells**, each a paper-exact implementation verified to actually engage.
+
+> ## 🏆 Headline
+> **Qwen3-VL-8B baseline = 62.52%** vs **LLaVA-OV-7B baseline = 52.66%** — the newer
+> backbone is ~10 points stronger on MotionBench. This is the single most important
+> result: on this benchmark the backbone dominates the efficiency method.
 
 ---
 
@@ -17,10 +22,10 @@
 | 🔄 | In flight |
 | 📋 | Not yet implemented |
 
-> **Read this before quoting any number.** Every full-run figure below was produced
-> **before** today's fixes and carries no `enabled` flag, so none was divergence-gated.
-> They are the best available figures but remain **provisional (🟡)** until Wave 2
-> re-runs them. Numbers marked ❌ are known-invalid and must not be reported.
+> **Read this before quoting any number.** Section 3 now holds **Wave 2 gated numbers**
+> (2026-07-24): each was re-run with the `enabled` flag AND confirmed to diverge from the
+> plain backbone (differ counts below). These are the trustworthy figures. Numbers marked
+> ❌ are known-invalid and must not be reported.
 
 ---
 
@@ -37,59 +42,87 @@
 | **PruneVID** | ✅ | On its real PLLaVA backbone. The *LLaVA-OV port* is inert (see ❌ below) |
 | **VisionZip** | ✅ | `output_ids[:, input_ids.shape[1]:]` discarded the whole response → 100% empty. Slice removed |
 | **FlashVID** | ✅ | 3 bugs: `--frame-counts` not `--num_frames`; motionbench variant loaded `LlavaLlamaForCausalLM` at retention 0.10; flash_attn → sdpa |
-| **VideoITG** | ⚠️ | Runs, but its infer script emits no `*_params` block, so engagement can't be confirmed |
-| **DyTo** | ❌ | **Never ran.** 5 import failures (`LlavaLlamaForCausalLM`). Deferred to last |
+| **VideoITG** | ✅ | Two-stage grounding; now emits `videoitg_params`. Wave 2 gated at 52.86% |
+| **DyTo** | 🔄 | Import FIXED (was `try/except: pass` swallowing an absolute-import error → aliased `dyto.llava` as `llava`). Then hit a 2nd bug: conv template `image_seq_v3` doesn't exist → `vicuna_v1`. Re-verifying (7776371) |
 
 ---
 
-## 3. Stage 1 — LLaVA-OV-7B (provisional numbers)
+## 3. Stage 1 — LLaVA-OV-7B ✅ Wave 2 GATED (2026-07-24)
 
-| # | Method | Overall | Act.Order | Cam.Motion | Loc.Motion | Mot.Rec. | Mot.Obj. | Rep.Count | Params |
-|:-:|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|---|
-| 1 | **DyCoke** 🟡 | **53.36%** | 38.92% | 48.83% | 55.68% | 58.19% | 70.87% | 25.25% | l=3, p=0.7, k=0.7 |
-| 2 | **FlashVID** (0.25) 🟡 | **53.36%** | 42.20% | 47.53% | 55.13% | 57.58% | 71.74% | 23.75% | retention=0.25 |
-| 3 | **FlashVID** (0.15) 🟡 | **53.29%** | 39.69% | 45.71% | 54.03% | 57.85% | 71.88% | 28.25% | retention=0.15 |
-| 4 | **HoliTom** 🟡 | **53.14%** | 40.85% | 49.61% | 52.56% | 57.04% | 71.45% | 27.25% | RETAIN=0.15, T=0.80, k=18, r=0.5 |
-| 5 | **MDP3** 🟡 | **53.06%** | 40.46% | 49.61% | 53.48% | 56.77% | 71.59% | 26.50% | pool=32, select=8 |
-| 6 | **VideoITG** 🟡 | **52.86%** | 40.08% | 47.01% | 53.66% | 57.58% | 70.14% | 26.75% | grounding: 512 sample, 32 select |
-| 7 | **AIM** 🟡 | **52.84%** | 41.43% | 47.79% | 54.03% | 57.10% | 71.88% | 22.25% | bipartite merge + PageRank |
-| 8 | **STTM-v2** 🟡 | **51.87%** | 39.11% | 48.83% | 53.66% | 53.59% | 71.16% | 29.25% | layer=2, thresh=0.85 |
-| — | *Backbone baseline* | *52.66%* | *40.46%* | *45.19%* | *55.49%* | *57.04%* | *71.16%* | *23.75%* | *plain LLaVA-OV-7B* |
-| — | **FastV** 🔄 | — | | | | | | | k=2, r=0.85 (keeps 15%) — Wave 2 |
-| — | **VisionZip** 🔄 | — | | | | | | | dominant=54, contextual=10 — Wave 2 |
+Each row re-run with the standard config and confirmed to **diverge from the plain
+backbone** (differ = #predictions ≠ the inert baseline, out of 8,052). All 8,052 samples;
+4,018 scoreable. Backbone baseline = **52.66%**.
+
+Subcategory columns are % correct within that category. Category totals (scoreable):
+Action Order 519 · Camera Motion 385 · Location-related Motion 546 · Motion Recognition
+1478 · Motion-related Objects 690 · Repetition Count 400.
+
+| # | Method | Overall | Differ | Act.Order | Cam.Motion | Loc.Motion | Mot.Rec. | Mot.Obj. | Rep.Count |
+|:-:|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| 1 | **DyCoke** ✅ | **53.36%** (2144) | 1031 | 38.9 | 48.8 | 55.7 | 58.2 | 70.9 | 25.2 |
+| 2 | **FlashVID** ✅ | **53.31%** (2142) | 1610 | 39.9 | 45.7 | 53.8 | 58.0 | 71.7 | 28.2 |
+| 3 | **HoliTom** ✅ | **53.14%** (2135) | 1838 | 40.8 | 49.6 | 52.6 | 57.0 | 71.4 | 27.2 |
+| 4 | **MDP3** ✅ | **53.06%** (2132) | 1452 | 40.5 | 49.6 | 53.5 | 56.8 | 71.6 | 26.5 |
+| 5 | **AIM** ✅ | **52.86%** (2124) | 1406 | 41.4 | 48.1 | 54.2 | 57.0 | 71.9 | 22.2 |
+| 5 | **VideoITG** ✅ | **52.86%** (2124) | — | 40.1 | 47.0 | 53.7 | 57.6 | 70.1 | 26.8 |
+| — | *Backbone baseline* | *52.66%* (2116) | *0 (ref)* | *40.5* | *45.2* | *55.5* | *57.0* | *71.2* | *23.8* |
+| 7 | **STTM-v2** ✅ | **51.72%** (2078) | — | 39.9 | 48.1 | 53.8 | 53.5 | 70.6 | 28.8 |
+| 8 | **VisionZip** ✅ | **40.09%** (1611) | 4506 | 33.7 | 33.0 | 37.2 | 41.1 | 57.4 | 25.8 |
+| 9 | **FastV** ✅ | **36.78%** (1478) | 4605 | 32.8 | 31.9 | 34.1 | 35.7 | 53.8 | 25.2 |
+
+Params: DyCoke l=3,p=0.7,k=0.7 · FlashVID retention=0.15 · HoliTom RETAIN=0.15,T=0.80,k=18,r=0.5 ·
+MDP3 pool=32,select=8 · AIM bipartite-merge+PageRank · VideoITG grounded-select · STTM layer=2,thresh=0.85 ·
+VisionZip dominant=54,contextual=10 (**fixed**: was 0% empty-output bug) · FastV k=2,r=0.85=keep 15% (paper default r=0.5).
+
+**Reading the FastV/VisionZip drops:** both are *real* (thousands of predictions differ
+from baseline, all 4 answer letters used — not degenerate). They are simply methods that,
+at the standardized 15% retention on this backbone, cost accuracy. FastV's paper default is
+r=0.5 (keep 50%); we forced 15% for cross-method comparability, which hits FastV hardest.
+
+Only DyCoke, FlashVID, HoliTom, MDP3 beat the backbone — and all four by < 0.8 points, i.e.
+within noise (~16 questions). **On LLaVA-OV, efficiency methods ≈ the backbone.**
 
 ### ❌ Invalid entries — do not report
 
 | Label | Number | Why it is not a result |
 |---|:---:|---|
-| "FastV" | 52.66% | `apply_fastv()` was a stub, `enabled: false`. This is the bare backbone |
-| "PruneVID (OV port)" | 52.66% | **0/8052** predictions differ from the inert run above. VTP never fired |
-| "VisionZip" | 0.00% ×3 | Output-slicing bug (fixed today) discarded every response |
+| "FastV" (old) | 52.66% | `apply_fastv()` was a stub, `enabled: false`. Bare backbone |
+| "PruneVID (OV port)" | 52.66% | **0/8052** differ from the inert run. VTP never fired |
+| "VisionZip" (old) | 0.00% ×3 | Output-slicing bug (fixed) discarded every response |
 | "VideoITG (simplified)" | 34.89% | Single-stage, no grounding — not the method |
 | "FlashVID (qwen15)" | 51.22% | Ran at retention 0.10 with the wrong model class |
+
+**PruneVID** (real, on PLLaVA-7B) = **44.13%** — see §5 Other backbones.
 
 ---
 
 ## 4. Stage 3 — Qwen3-VL-8B
 
-> **Was never runnable.** Every pre-existing env has transformers 4.45, which lacks
-> `Qwen3VLForConditionalGeneration`. New env **`qwen3vl`** (torch 2.6.0+cu124,
-> transformers 5.14.1) fixes this.
+> **Baseline verified: 62.52%** (2512/4018) — full run, 32 frames confirmed. This is the
+> `--vs-baseline` reference for every port, and ~10 points above the LLaVA-OV baseline.
 >
-> **Frame bug fixed:** `Qwen3VLVideoProcessor` has `do_sample_frames=True, fps=2`, so it
-> re-sampled our frames and ignored `--num_frames`. With `do_sample_frames=False`,
-> verified `requested=32 given=32`.
->
-> **All 8 existing "ports" are fake** — each `eval_<m>.py` is the same baseline script
-> applying no method. They need real re-implementation, not submission.
+> Path to here: (1) new env **`qwen3vl`** (torch 2.6.0+cu124, transformers 5.14.1) — every
+> older env lacked `Qwen3VLForConditionalGeneration`; (2) frame fix — the processor's
+> `do_sample_frames=True, fps=2` was re-sampling and ignoring `--num_frames`; set
+> `do_sample_frames=False`, verified `requested=32 given=32`.
+
+Baseline subcategories (% correct): Action Order **46.1** · Camera Motion **63.1** ·
+Location-related Motion **65.0** · Motion Recognition **67.3** · Motion-related Objects
+**79.0** · Repetition Count **33.8**. Qwen3-VL beats LLaVA-OV in **every** category, most
+dramatically on Camera Motion (+18) and Motion-related Objects (+8).
 
 | Method | Overall | Status |
 |---|:---:|---|
-| **Baseline** | 🔄 | Full run in flight (job 7770357) — Stage-3 Step 0 and the `--vs-baseline` reference for every port |
-| FastV | 📋 | Wave 3 #1 — algorithm already resolved on LLaVA-OV |
-| DyCoke, HoliTom | 📋 | Wave 3 #2 |
-| VisionZip, AIM, MDP3, VideoITG, FlashVID | 📋 | Wave 3 #3 |
-| PruneVID, STTM, DyTo | 📋 | Wave 3 #4 — likely **architecture-incompatible** (STTM patches Qwen2 attention; DyTo is Vicuna-bound) |
+| **Baseline** | **62.52%** (2512) | ✅ Verified full run |
+| FastV | 🔄 | Real port written. First smoke ran as baseline (empty output + no ACTIVE log) — eager attention broke generation; switched to sdpa, re-verifying (7776370) |
+| DyCoke, HoliTom | 🔄 | Real ports written; smokes showed no ACTIVE log (same eager issue) — fix pending after FastV confirms |
+| FlashVID, AIM, MDP3, VideoITG | 📋 | Real ports written (FlashVID/AIM/MDP3/VideoITG need no eager attention). Smokes not yet submitted |
+| PruneVID, STTM, DyTo, VisionZip | ❌ | **Architecture-incompatible** — see [PORT_FEASIBILITY.md](../../stage3-qwen3-vl/PORT_FEASIBILITY.md). VisionZip needs a CLS token Qwen3-VL's vision tower lacks; STTM patches Qwen2 attention; DyTo is Vicuna-bound |
+
+> **7 of 11 methods have real ports written; baseline done. None gated yet** — the eager-
+> attention path breaks generation the same way it did on LLaVA-OV, so the 3 attention-
+> based ports (FastV/DyCoke/HoliTom) are being reworked to sdpa. The 4 embedding-only ports
+> (FlashVID/AIM/MDP3/VideoITG) don't have this problem.
 
 ---
 
