@@ -80,6 +80,62 @@ def _alias_dyto_llava():
     sys.modules["llava"] = stub
 
 
+
+def _install_finch_shim(enable: bool):
+    """
+    Make DyTo's `FINCH(..., tw_finch=...)` call runnable — as an explicitly
+    LABELLED VARIANT, never as DyTo-as-published.
+
+    Why this is needed: dyto/llava/model/llava_arch.py:192 calls
+        FINCH(image, verbose=False, tw_finch=tw_finch)
+    but DyTo pins `finch-clust==0.2.0` (pyproject.toml / PKG-INFO), and pristine
+    0.2.0 from PyPI contains `tw_finch` ZERO times. We verified the pinned version
+    is the one installed and that our copy matches upstream byte-for-byte. Upstream
+    `ssarfraz/FINCH-Clustering` keeps TW-FINCH as a SEPARATE implementation, not a
+    parameter. DyTo's published artifacts are therefore internally inconsistent.
+
+    This shim swallows the unsupported kwarg so the rest of DyTo (ToMe merging,
+    dynamic budget, the LLaVA-NeXT pipeline) can run. The clustering that results
+    is **standard FINCH, not the temporal-weighted TW-FINCH the paper specifies**,
+    so any number produced is a VARIANT:
+
+        "DyTo (standard FINCH, not TW-FINCH)"
+
+    It must never be reported as "DyTo". The summary records
+    `finch_variant: "standard-FINCH-not-TW-FINCH"` and `paper_faithful: false` so
+    the caveat travels with the data, not just the prose.
+    """
+    if not enable:
+        return False
+    import finch as _finch
+
+    orig = _finch.FINCH
+    if getattr(orig, "_dyto_shimmed", False):
+        return True
+
+    def _finch_shim(*args, **kwargs):
+        kwargs.pop("tw_finch", None)          # unsupported in every release
+        return orig(*args, **kwargs)
+
+    _finch_shim._dyto_shimmed = True
+    _finch.FINCH = _finch_shim
+    # llava_arch did `from finch import FINCH`, so patch that binding too.
+    try:
+        import sys
+        m = sys.modules.get("dyto.llava.model.llava_arch")
+        if m is not None and hasattr(m, "FINCH"):
+            m.FINCH = _finch_shim
+    except Exception:
+        pass
+    import logging
+    logging.warning(
+        "DyTo VARIANT ACTIVE: FINCH tw_finch kwarg dropped (unsupported in "
+        "finch-clust==0.2.0, the version DyTo itself pins). Clustering is "
+        "STANDARD FINCH, not TW-FINCH. Report as 'DyTo (standard FINCH, not "
+        "TW-FINCH)' — NOT as DyTo.")
+    return True
+
+
 def load_model(model_path: str, rope_scaling_factor: int = 2):
     _alias_dyto_llava()
     from dyto.llava.model.builder import load_pretrained_model
@@ -102,6 +158,7 @@ def load_model(model_path: str, rope_scaling_factor: int = 2):
     #     'list' object has no attribute 'shape'
     # at llava_arch.py:325. DyTo's temporal aggregation (FINCH + ToMe) operates on
     # uniform per-frame features, so the flat path is the correct one for video.
+    _install_finch_shim(os.environ.get("DYTO_FINCH_SHIM", "0") == "1")
     model.config.mm_patch_merge_type = "flat"
     model.config.image_aspect_ratio = "square"
     return tokenizer, model.cuda(), image_processor

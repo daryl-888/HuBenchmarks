@@ -12,6 +12,7 @@ module load Miniforge3/py3.10
 export PYTHONNOUSERSITE=1
 unset HF_HUB_OFFLINE; unset HF_DATASETS_OFFLINE
 export PYTHONPATH=/project/rhu/dpalfaro/dyto_pkgs:/project/rhu/dpalfaro/code/DYTO:${PYTHONPATH:-}
+export DYTO_FINCH_SHIM=1   # LABELLED VARIANT: standard FINCH, not TW-FINCH
 export DYTO_ROOT=/project/rhu/dpalfaro/code/DYTO
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
 export TRANSFORMERS_OFFLINE=1
