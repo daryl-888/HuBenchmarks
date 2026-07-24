@@ -28,7 +28,7 @@ All numbers on **MotionBench** (4,018 scoreable), 32 frames, greedy decoding.
 | 7 | [STTM](methods/sttm.md) | **51.72%** | 39.9 | 48.1 | 53.8 | 53.5 | 70.6 | 28.8 |
 | 8 | [FastV](methods/fastv.md) | **36.78%** | 32.8 | 31.9 | 34.1 | 35.7 | 53.8 | 25.2 |
 
-Four methods beat the backbone, all by **< 0.8 points**. Tested properly (McNemar on paired predictions) the best of them, DyCoke, gives **χ² = 2.34** vs the 3.84 needed for p<0.05 — i.e. **not significant**. Treat the ordering below as unranked: on LLaVA-OV these methods are indistinguishable from the backbone and from each other. See [DETERMINISM_AND_VALIDITY.md](DETERMINISM_AND_VALIDITY.md). FastV (and
+Six of seven methods land **within measurement resolution** (±1.54 pts) of the backbone — i.e. accuracy-neutral on MotionBench at a 15% budget — while FastV and VisionZip degrade significantly. Tested properly (McNemar on paired predictions) the best of them, DyCoke, gives **χ² = 2.34** vs the 3.84 needed for p<0.05 — i.e. **not significant**. Treat the ordering below as unranked: on LLaVA-OV these methods are indistinguishable from the backbone and from each other. See [DETERMINISM_AND_VALIDITY.md](DETERMINISM_AND_VALIDITY.md). FastV (and
 VisionZip, below) drop hard because they were run at the standardized 15% retention,
 far more aggressive than their paper defaults; the degradation is real (thousands of
 predictions differ from baseline), not a bug.

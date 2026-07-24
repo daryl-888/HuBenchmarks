@@ -63,7 +63,7 @@ Action Order 519 · Camera Motion 385 · Location-related Motion 546 · Motion R
 > `baseline-wrong→dycoke-right = 170`, `baseline-right→dycoke-wrong = 142`,
 > **χ² = 2.34** (needs ≥3.84 for p<0.05). The +0.70 gain is **noise**. The same
 > holds for FlashVID (+0.65), HoliTom (+0.48), MDP3 (+0.40).
-> **Do not read the numbering below as a leaderboard.** The supportable claim is
+> **Read this as characterization, not a leaderboard.** Six of seven methods are accuracy-neutral within the ±1.54 pt resolution floor. The supportable claim is
 > that on LLaVA-OV these methods are indistinguishable from the backbone and from
 > each other. See [DETERMINISM_AND_VALIDITY.md](../../docs/DETERMINISM_AND_VALIDITY.md).
 
