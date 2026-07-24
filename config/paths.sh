@@ -29,7 +29,29 @@ export W_VICUNA="${W_VICUNA:-$HUVLLM_WEIGHTS/llava-v1.6-vicuna-7b}"      # liuha
 export W_LLAVA15="${W_LLAVA15:-$HUVLLM_WEIGHTS/llava-v1.5-7b}"           # liuhaotian/llava-v1.5-7b
 export W_VIDEOITG="${W_VIDEOITG:-$HUVLLM_WEIGHTS/videoitg-8b}"           # nvidia/VideoITG-8B
 
-# MotionBench dataset: video_info.meta.jsonl + self-collected/ + public-dataset/.
+# ---------------------------------------------------------------------------
+# MotionBench dataset
+# ---------------------------------------------------------------------------
+# Source: https://huggingface.co/datasets/zai-org/MotionBench
+#
+#   pip install -U huggingface_hub
+#   huggingface-cli download zai-org/MotionBench \
+#       --repo-type dataset --local-dir ~/data/MotionBench
+#
+# Note: MotionBench does NOT redistribute every source video. `video_info.meta.jsonl`
+# ships with the repo, but the public-dataset subsets (MedVid, SportsSloMo, HA-ViD)
+# must be reconstructed from their original sources using the mapping files and
+# instructions in the MotionBench GitHub repo. Self-collected clips come with the
+# dataset. Expected layout once assembled:
+#
+#   $MOTIONBENCH/
+#   ├── video_info.meta.jsonl     # 8,052 records
+#   ├── self-collected/           # .mp4
+#   └── public-dataset/           # .mp4 (reconstructed)
+#
+# EXAMPLE for a non-Carya machine — uncomment and edit:
+#   export MOTIONBENCH="$HOME/data/MotionBench"
+#
 export MOTIONBENCH="${MOTIONBENCH:-/project/rhu/MotionBench_Data/MotionBench}"
 export MOTIONBENCH_META="${MOTIONBENCH_META:-$MOTIONBENCH/video_info.meta.jsonl}"
 

@@ -87,3 +87,34 @@ PYTHONNOUSERSITE=1 $HUVLLM_ENVS/<env>/bin/python3 -c "import <pkg>; print(<pkg>.
 - **Qwen3-VL re-samples frames.** `Qwen3VLVideoProcessor` has
   `do_sample_frames=True, fps=2`, so it ignores your `--num_frames` unless you
   pass `do_sample_frames=False` to the processor.
+
+## 7. Hardware used for the published results
+
+All numbers in [RESULTS.md](RESULTS.md) were produced on the **UH Carya** cluster:
+
+| | |
+|---|---|
+| GPU | **NVIDIA Ada-generation, ~44.4 GiB usable per device** (`gpu:ada`, 2 per node) |
+| Nodes used | `compute-9-[3,4,6]`, `compute-10-[8,9]` |
+| Per job | 1 GPU · 8 CPU cores · 124 GB RAM |
+| Batch size | **1** (required for video models) |
+| Precision | bfloat16 (Qwen3-VL), float16 (LLaVA-family) |
+
+**Runtimes** (full 8,052-sample run): LLaVA-OV methods 1.8–7.4 h; Qwen3-VL ~8–10 h
+(it carries ~11,664 visual tokens per sample vs ~6,273 for LLaVA-OV).
+
+**Memory notes for replicators**
+* ~44 GiB was enough for every LLaVA-OV method at 32 frames.
+* Qwen3-VL-8B at 32 frames fits, but with less headroom.
+* **DyTo at its paper default of 100 frames does not fit** — it OOM'd needing an
+  extra ~5 GiB. We run it at 32 frames (its FINCH stage selects ~25 regardless).
+  On an 80 GB card the paper default should be reachable.
+* Set `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True` to reduce fragmentation.
+
+**Reproducibility caveat.** Re-running the same configuration reproduced
+**bit-identical** predictions across different nodes of this same GPU generation
+(verified: 0/8052 differences on three separate pairs). We have **not** tested
+reproduction on a different GPU generation. Because floating-point reduction order
+can differ across architectures and `argmax` can flip on near-ties, replicators on
+other hardware should expect *close* but not necessarily identical numbers. See
+[DETERMINISM_AND_VALIDITY.md](DETERMINISM_AND_VALIDITY.md).
