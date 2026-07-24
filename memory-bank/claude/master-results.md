@@ -67,30 +67,39 @@ Action Order 519 · Camera Motion 385 · Location-related Motion 546 · Motion R
 > that on LLaVA-OV these methods are indistinguishable from the backbone and from
 > each other. See [DETERMINISM_AND_VALIDITY.md](../../docs/DETERMINISM_AND_VALIDITY.md).
 
-| # | Method | Overall | Differ | Act.Order | Cam.Motion | Loc.Motion | Mot.Rec. | Mot.Obj. | Rep.Count |
-|:-:|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| 1 | **DyCoke** ✅ | **53.36%** (2144) | 1031 | 38.9 | 48.8 | 55.7 | 58.2 | 70.9 | 25.2 |
-| 2 | **FlashVID** ✅ | **53.31%** (2142) | 1610 | 39.9 | 45.7 | 53.8 | 58.0 | 71.7 | 28.2 |
-| 3 | **HoliTom** ✅ | **53.14%** (2135) | 1838 | 40.8 | 49.6 | 52.6 | 57.0 | 71.4 | 27.2 |
-| 4 | **MDP3** ✅ | **53.06%** (2132) | 1452 | 40.5 | 49.6 | 53.5 | 56.8 | 71.6 | 26.5 |
-| 5 | **AIM** ✅ | **52.86%** (2124) | 1406 | 41.4 | 48.1 | 54.2 | 57.0 | 71.9 | 22.2 |
-| 5 | **VideoITG** ✅ | **52.86%** (2124) | — | 40.1 | 47.0 | 53.7 | 57.6 | 70.1 | 26.8 |
-| — | *Backbone baseline* | *52.66%* (2116) | *0 (ref)* | *40.5* | *45.2* | *55.5* | *57.0* | *71.2* | *23.8* |
-| 7 | **STTM-v2** ✅ | **51.72%** (2078) | — | 39.9 | 48.1 | 53.8 | 53.5 | 70.6 | 28.8 |
-| 8 | **VisionZip** ✅ | **40.09%** (1611) | 4506 | 33.7 | 33.0 | 37.2 | 41.1 | 57.4 | 25.8 |
-| 9 | **FastV** ✅ | **36.78%** (1478) | 4605 | 32.8 | 31.9 | 34.1 | 35.7 | 53.8 | 25.2 |
+### 3a. Results — accuracy, venue, subcategories
 
-Params: DyCoke l=3,p=0.7,k=0.7 · FlashVID retention=0.15 · HoliTom RETAIN=0.15,T=0.80,k=18,r=0.5 ·
-MDP3 pool=32,select=8 · AIM bipartite-merge+PageRank · VideoITG grounded-select · STTM layer=2,thresh=0.85 ·
-VisionZip dominant=54,contextual=10 (**fixed**: was 0% empty-output bug) · FastV k=2,r=0.85=keep 15% (paper default r=0.5).
+| # | Method | Venue | Year | Overall | Differ | Act.Order | Cam.Motion | Loc.Motion | Mot.Rec. | Mot.Obj. | Rep.Count |
+|:-:|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| 1 | **DyCoke** ✅ | arXiv 2411.14401 | 2024 | **53.36%** (2144) | 1031 | 38.9 | 48.8 | 55.7 | 58.2 | 70.9 | 25.2 |
+| 2 | **FlashVID** ✅ | ICLR (Oral) | 2026 | **53.31%** (2142) | 1610 | 39.9 | 45.7 | 53.8 | 58.0 | 71.7 | 28.2 |
+| 3 | **HoliTom** ✅ | — | 2025 | **53.14%** (2135) | 1838 | 40.8 | 49.6 | 52.6 | 57.0 | 71.4 | 27.2 |
+| 4 | **MDP3** ✅ | ICCV | 2025 | **53.06%** (2132) | 1452 | 40.5 | 49.6 | 53.5 | 56.8 | 71.6 | 26.5 |
+| 5 | **AIM** ✅ | ICCV | 2025 | **52.86%** (2124) | 1406 | 41.4 | 48.1 | 54.2 | 57.0 | 71.9 | 22.2 |
+| 5 | **VideoITG** ✅ | — | 2025 | **52.86%** (2124) | 1193 | 40.1 | 47.0 | 53.7 | 57.6 | 70.1 | 26.8 |
+| — | *Backbone baseline* | — | — | *52.66%* (2116) | *0 (ref)* | *40.5* | *45.2* | *55.5* | *57.0* | *71.2* | *23.8* |
+| 7 | **STTM** ✅ | — | 2025 | **51.72%** (2078) | 4859 | 39.9 | 48.1 | 53.8 | 53.5 | 70.6 | 28.8 |
+| 8 | **VisionZip** ✅ | — | 2024 | **40.09%** (1611) | 4506 | 33.7 | 33.0 | 37.2 | 41.1 | 57.4 | 25.8 |
+| 9 | **FastV** ✅ | arXiv 2403.06764 | 2024 | **36.78%** (1478) | 4605 | 32.8 | 31.9 | 34.1 | 35.7 | 53.8 | 25.2 |
 
-**Reading the FastV/VisionZip drops:** both are *real* (thousands of predictions differ
-from baseline, all 4 answer letters used — not degenerate). They are simply methods that,
-at the standardized 15% retention on this backbone, cost accuracy. FastV's paper default is
-r=0.5 (keep 50%); we forced 15% for cross-method comparability, which hits FastV hardest.
+*Numbering is presentation order only — see the significance warning above.*
+*Differ = predictions ≠ the plain backbone, out of 8,052 (0 would mean the method never ran).*
 
-Only DyCoke, FlashVID, HoliTom, MDP3 beat the backbone — and all four by < 0.8 points, i.e.
-within noise (~16 questions). **On LLaVA-OV, efficiency methods ≈ the backbone.**
+### 3b. Per-model detail — mechanism, parameters, notes
+
+| Method | Mechanism | Parameters used | Notes |
+|---|---|---|---|
+| **DyCoke** | Two-stage: temporal token merging across frames, then dynamic KV-cache pruning at LLM layer *l* | `l=3, p=0.7, k=0.7` | Highest score, but +0.70 over baseline is **not significant** (χ²=2.34). Builder defaulted to flash-attn (absent) → forced `sdpa` |
+| **FlashVID** | Pre-LLM temporal-segment merge; score = α·saliency + (1−α)·distinctiveness | `retention_ratio=0.15, alpha=0.7, T=0.8` | Three bugs fixed: retention was **hardcoded 0.25** ignoring the CLI; the alt script loaded `LlavaLlamaForCausalLM` (wrong class); arg is `--frame-counts` not `--num_frames` |
+| **HoliTom** | Outer (pre-LLM) temporal-segment retain + inner (in-LLM) attention merge from layer *k* | `RETAIN_RATIO=0.15, T=0.80, k=18, r=0.5` | Env-var driven. Requires `transformers==4.45.2` exactly |
+| **MDP3** | Conditional determinantal point process frame selection, **before** the model | `pool_frames=32, select_frames=8` | Only genuinely model-agnostic method here. `libnccl.so.2` lives in the conda env, not `mdp3_pkgs`; arg is `--pool-frames` |
+| **AIM** | Bipartite soft-matching merge (4 steps: 50→25→12.5→6.25%) + PageRank pruning | compiled into patched `llava_arch.py` (no CLI knobs) | Params not CLI-configurable; recorded in the summary for gate-ability |
+| **VideoITG** | Two-stage grounded frame selection: grounding pass scores frames, inference pass consumes chosen indices | grounding: 512 sampled, 32 selected, 2 fps | Needs `frame_scores.jsonl` from stage 1. Smoke initially called the wrong script (`eval_videoitg.py` vs `..._infer.py`) |
+| **STTM** | Quadtree spatio-temporal merging patched into Qwen2 attention | `sa_start_layer_idx=2, sa_tree_thresh=0.85` | Efficiency comes from LLM layers; vision tower runs normally |
+| **VisionZip** | Dominant tokens (CLS-attention) + contextual tokens (key-vector similarity merge) | `dominant=54, contextual=10` | **Was 0% across 3 runs** — `output_ids[:, input_ids.shape[1]:]` discarded every response (LLaVA-1.5 returns only new tokens). Fixed → 40.09% |
+| **FastV** | Attention-rerank: rank image tokens at layer K by received attention, keep top fraction | `k=2, r=0.85` (keeps 15%) | Was a **no-op stub** (`enabled:false`) reporting the bare backbone. Rebuilt paper-exact. Paper default is `r=0.5`; **our 15% is far more aggressive**, which explains the −15.9 drop |
+| **PruneVID** | Video Token Pruning: DPC-KNN clustering → temporal segments → cluster-centroid merge | `cluster_ratio=0.5, temporal_segment_ratio=0.25, layer=10` | Runs on **PLLaVA-7B** (its published backbone) = 44.13%. The LLaVA-OV port was inert until switched to `PrunableDynamicCache.kv_cache`; full run in flight |
+| **DyTo** | FINCH clustering (~25 of 100 frames) + ToMe dynamic merge | `temporal_aggregation=spatial_tome_finch_dynamic_all_frms, rope_scaling=2` | ❌ **Not reproducible from published artifacts** — two defects in released code ([evidence](../../docs/UPSTREAM_DEFECTS.md)) |
 
 ### ❌ Invalid entries — do not report
 
@@ -130,16 +139,16 @@ from 23.8% → 33.8%.
 
 ### Method ports
 
-| Method | Overall | Smoke gate | Notes |
-|---|:---:|:---:|---|
-| **Baseline** | **62.52%** (2512) | ✅ | reference for all divergence checks |
-| FastV | 🔄 full run | ✅ | `ACTIVE: visual=11664 keep=1750` |
-| DyCoke | 🔄 full run | ✅ | `stage1=8165 stage2=5716 (net 49%)` |
-| HoliTom | 🔄 full run | ✅ | `outer=1750 inner=875 (net 7.5%)` |
-| FlashVID | 🔄 full run | ✅ | `keep=1750 (15.0%)` |
-| AIM | 🔄 full run | ✅ | `after_merge=1750 keep=1750` |
-| MDP3 | 🔄 full run | ✅ | pool 32 → select 8 |
-| VideoITG | 🔄 full run | ✅ | grounded frame selection |
+| Method | Venue | Year | Overall | Smoke gate | Parameters | Notes |
+|---|:---:|:---:|:---:|:---:|---|---|
+| **Baseline** | — | — | **62.52%** (2512) | ✅ | 32 frames, no method | Reference for every divergence check |
+| FastV | arXiv | 2024 | 🔄 full run | ✅ | k=2, r=0.85 | `ACTIVE: visual=11664 keep=1750`. Attention recomputed from q/k (sdpa returns none) |
+| DyCoke | arXiv | 2024 | 🔄 full run | ✅ | l=3, p=0.7, k=0.7 | `stage1=8165 stage2=5716 (net 49%)` |
+| HoliTom | — | 2025 | 🔄 full run | ✅ | RETAIN=0.15, T=0.80, k=18, r=0.5 | `outer=1750 inner=875 (net 7.5%)` |
+| FlashVID | ICLR (Oral) | 2026 | 🔄 full run | ✅ | retention=0.15, α=0.7 | `keep=1750 (15.0%)`. Embedding-only → no eager attention needed |
+| AIM | ICCV | 2025 | 🔄 full run | ✅ | 4 merge steps + PageRank | `after_merge=1750 keep=1750` |
+| MDP3 | ICCV | 2025 | 🔄 full run | ✅ | pool=32, select=8 | Selector loaded by file path — `vlmeval` imports a symbol removed in transformers 5.x |
+| VideoITG | — | 2025 | 🔄 full run | ✅ | 512 sampled, 32 selected | Stage-1 grounding indices reused verbatim |
 | VisionZip (contextual-only) | 🔄 full run pending | ✅ | 5/8 divergence, 11664->1750 (15%). Hook on `vis.merger`; token count preserved for masked_scatter. Partial by design (no CLS) |
 | PruneVID | 🟡 blocked | — | VTP core IS separable, but the LLaVA-OV port is still inert — fix that first |
 | STTM | ❌ | — | ships a wholesale Qwen2Model_forward replacement; no separable merge fn |
