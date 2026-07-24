@@ -57,3 +57,28 @@ results table, ✅ = gated, 🔄 = running/unverified, ❌ = known no-op/crash.
 Each method's page lists its "ACTIVE" log line — e.g.
 `FastV ACTIVE: img_len=6273 keep=941 (dropped 5332)`. Its absence in a run's stderr
 means the method did not engage, regardless of what accuracy it reported.
+
+## Hardening: divergence checking is mandatory (2026-07-24)
+
+`--vs-baseline` is now wired into **every** smoke sbatch (26 files), not optional.
+
+The reason is a concrete near-miss. Two Qwen3-VL ports (FlashVID, AIM) printed
+their `ACTIVE` log — `keep=1750 (15.0%)`, i.e. the hook fired and computed the
+right token budget — yet produced **byte-identical predictions to the backbone**.
+Every other check passed. Only the divergence comparison exposed that the pruning
+had no effect.
+
+The root cause chain is worth recording, because each bug hid the next:
+
+1. `attention_mask` is **`None`** under sdpa, so the code's `mask + pruning`
+   silently did nothing (the guard `if am is not None and am.dim()==4` never held).
+2. Constructing a mask then broke generation entirely (100% empty output): the
+   hook also fires on **decode** steps where `q_len == 1`, and `float32`'s
+   `finfo.min` overflows **bfloat16** to `-inf`, producing NaNs.
+3. Recomputing attention returned `None` because Qwen3-VL passes `hidden_states`
+   as a **kwarg** — the hook was reading the (empty) positional tuple.
+4. Three ports referenced an undefined `add` (it lives in `state["add"]`).
+
+**Lesson generalized:** an "ACTIVE"-style log proves the *hook ran*, not that the
+*method affected the output*. Only prediction-level divergence proves the latter.
+Both signals are now required before a number is recorded.
