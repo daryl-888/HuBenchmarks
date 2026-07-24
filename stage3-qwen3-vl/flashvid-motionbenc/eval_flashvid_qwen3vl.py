@@ -101,6 +101,14 @@ def apply_flashvid(model, retention_ratio: float = 0.15, alpha: float = 0.7,
         def _mask(module, a_, k_):
             kw = dict(k_)
             am = kw.get("attention_mask", None)
+            if not getattr(self, "_maskdiag", False):
+                import logging
+                logging.warning("MASK-DIAG: attention_mask=%s dim=%s shape=%s seq_len=%s args=%d",
+                                type(am).__name__,
+                                getattr(am, "dim", lambda: None)() if am is not None else None,
+                                tuple(am.shape) if am is not None and hasattr(am,"shape") else None,
+                                seq_len, len(a_))
+                self._maskdiag = True
             if am is not None and am.dim() == 4 and am.shape[-1] == seq_len:
                 kw["attention_mask"] = am + add.to(am.dtype)
                 return (a_, kw)

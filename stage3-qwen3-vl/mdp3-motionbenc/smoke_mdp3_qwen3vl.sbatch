@@ -16,6 +16,7 @@ module purge
 module load Miniforge3/py3.10
 
 export PYTHONNOUSERSITE=1
+export PYTHONPATH=/project/rhu/dpalfaro/mdp3_pkgs:${PYTHONPATH:-}
 unset HF_HUB_OFFLINE
 unset HF_DATASETS_OFFLINE
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
