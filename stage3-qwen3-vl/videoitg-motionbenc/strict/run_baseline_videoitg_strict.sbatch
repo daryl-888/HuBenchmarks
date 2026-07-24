@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH -J baseline_motionbench
-#SBATCH -o /project/rhu/dpalfaro/results/baseline_%j.out
-#SBATCH -e /project/rhu/dpalfaro/results/baseline_%j.err
+#SBATCH -J s3_videoitg_strict_baseline_strict
+#SBATCH -o /project/rhu/dpalfaro/results/s3_videoitg_strict_baseline_strict_%j.out
+#SBATCH -e /project/rhu/dpalfaro/results/s3_videoitg_strict_baseline_strict_%j.err
 #SBATCH -N 1
 #SBATCH -n 8
 #SBATCH --gpus=ada:1

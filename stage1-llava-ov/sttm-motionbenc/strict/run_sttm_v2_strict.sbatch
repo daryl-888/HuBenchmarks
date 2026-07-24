@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH -J sttm_v2_motionbench
-#SBATCH -o /project/rhu/dpalfaro/results/sttm_v2_%j.out
-#SBATCH -e /project/rhu/dpalfaro/results/sttm_v2_%j.err
+#SBATCH -J s1_sttm_strict_v2_strict
+#SBATCH -o /project/rhu/dpalfaro/results/s1_sttm_strict_v2_strict_%j.out
+#SBATCH -e /project/rhu/dpalfaro/results/s1_sttm_strict_v2_strict_%j.err
 #SBATCH -N 1
 #SBATCH -n 8
 #SBATCH --gpus=ada:1

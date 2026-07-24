@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH -J ovqwen15_videoitg_motionbench
-#SBATCH -o /project/rhu/dpalfaro/results/baseline_%j.out
-#SBATCH -e /project/rhu/dpalfaro/results/baseline_%j.err
+#SBATCH -J s1_videoitg_run_baseline
+#SBATCH -o /project/rhu/dpalfaro/results/s1_videoitg_run_baseline_%j.out
+#SBATCH -e /project/rhu/dpalfaro/results/s1_videoitg_run_baseline_%j.err
 #SBATCH -N 1
 #SBATCH -n 8
 #SBATCH --gpus=ada:1

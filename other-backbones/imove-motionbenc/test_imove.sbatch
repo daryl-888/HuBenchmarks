@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH -J imove_test
-#SBATCH -o /project/rhu/dpalfaro/results/imove_test_%j.out
-#SBATCH -e /project/rhu/dpalfaro/results/imove_test_%j.err
+#SBATCH -J ob_imove_smoke
+#SBATCH -o /project/rhu/dpalfaro/results/ob_imove_smoke_%j.out
+#SBATCH -e /project/rhu/dpalfaro/results/ob_imove_smoke_%j.err
 #SBATCH -N 1
 #SBATCH -n 8
 #SBATCH --gpus=ada:1

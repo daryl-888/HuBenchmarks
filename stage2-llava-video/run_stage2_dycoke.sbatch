@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J stage2_dycoke -o /project/rhu/dpalfaro/results/stage2_dycoke_%j.out -e /project/rhu/dpalfaro/results/stage2_dycoke_%j.err
+#SBATCH -J s2_run_stage2_dycoke.sbatch_run_stage2_dycoke
 #SBATCH -N 1 -n 8 --gpus=ada:1 --mem=64G -t 48:00:00
 #SBATCH --mail-type=END --mail-user=dpalfaro@cougarnet.uh.edu
 module purge && module load Miniforge3/py3.10

@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH -J qwen3vl_base_smoke
-#SBATCH -o /project/rhu/dpalfaro/results/qwen3vl_base_smoke_%j.out
-#SBATCH -e /project/rhu/dpalfaro/results/qwen3vl_base_smoke_%j.err
+#SBATCH -J s3_baseline_smoke_qwen3vl
+#SBATCH -o /project/rhu/dpalfaro/results/s3_baseline_smoke_qwen3vl_%j.out
+#SBATCH -e /project/rhu/dpalfaro/results/s3_baseline_smoke_qwen3vl_%j.err
 #SBATCH -N 1
 #SBATCH -n 8
 #SBATCH --gpus=ada:1

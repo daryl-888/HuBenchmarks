@@ -1,8 +1,8 @@
 #!/bin/bash
 # LLaVA-Video-7B baseline — no STTM patch, same backbone as STTM run.
-#SBATCH -J llavavid_baseline
-#SBATCH -o /project/rhu/dpalfaro/results/llavavid_baseline_%j.out
-#SBATCH -e /project/rhu/dpalfaro/results/llavavid_baseline_%j.err
+#SBATCH -J ob_sttm-llavavid_strict_baseline_sttm_llavavid_strict
+#SBATCH -o /project/rhu/dpalfaro/results/ob_sttm-llavavid_strict_baseline_sttm_llavavid_strict_%j.out
+#SBATCH -e /project/rhu/dpalfaro/results/ob_sttm-llavavid_strict_baseline_sttm_llavavid_strict_%j.err
 #SBATCH -N 1
 #SBATCH -n 8
 #SBATCH --gpus=ada:1

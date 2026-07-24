@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH -J ovqwen3_aim_motionbench
-#SBATCH -o /project/rhu/dpalfaro/results/stage3_aim_%j.out
-#SBATCH -e /project/rhu/dpalfaro/results/stage3_aim_%j.err
+#SBATCH -J s3_aim_run
+#SBATCH -o /project/rhu/dpalfaro/results/s3_aim_run_%j.out
+#SBATCH -e /project/rhu/dpalfaro/results/s3_aim_run_%j.err
 #SBATCH -N 1
 #SBATCH -n 8
 #SBATCH --gpus=ada:1

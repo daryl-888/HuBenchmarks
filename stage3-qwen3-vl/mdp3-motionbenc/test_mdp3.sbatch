@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH -J mdp3_test
-#SBATCH -o /project/rhu/dpalfaro/results/mdp3_test_%j.out
-#SBATCH -e /project/rhu/dpalfaro/results/mdp3_test_%j.err
+#SBATCH -J s3_mdp3_smoke
+#SBATCH -o /project/rhu/dpalfaro/results/s3_mdp3_smoke_%j.out
+#SBATCH -e /project/rhu/dpalfaro/results/s3_mdp3_smoke_%j.err
 #SBATCH -N 1
 #SBATCH -n 8
 #SBATCH --gpus=ada:1

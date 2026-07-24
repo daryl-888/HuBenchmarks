@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH -J fastv_test
-#SBATCH -o /project/rhu/dpalfaro/results/fastv_test_%j.out
-#SBATCH -e /project/rhu/dpalfaro/results/fastv_test_%j.err
+#SBATCH -J s1_fastv_strict2
+#SBATCH -o /project/rhu/dpalfaro/results/s1_fastv_strict2_%j.out
+#SBATCH -e /project/rhu/dpalfaro/results/s1_fastv_strict2_%j.err
 #SBATCH -N 1
 #SBATCH -n 8
 #SBATCH --gpus=ada:1

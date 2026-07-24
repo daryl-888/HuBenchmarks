@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH -J trajvit_motionbench
-#SBATCH -o /project/rhu/dpalfaro/results/trajvit_%j.out
-#SBATCH -e /project/rhu/dpalfaro/results/trajvit_%j.err
+#SBATCH -J ob_trajvit_strict
+#SBATCH -o /project/rhu/dpalfaro/results/ob_trajvit_strict_%j.out
+#SBATCH -e /project/rhu/dpalfaro/results/ob_trajvit_strict_%j.err
 #SBATCH -N 1
 #SBATCH -n 8
 #SBATCH --gpus=ada:1

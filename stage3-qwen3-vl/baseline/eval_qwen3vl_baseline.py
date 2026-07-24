@@ -115,12 +115,31 @@ def run_inference(model, processor, frames: list, question: str,
     )
 
     # Process video + text together
+    # CRITICAL: Qwen3VLVideoProcessor has do_sample_frames=True and fps=2, so by
+    # default it RE-SAMPLES whatever frame list we hand it, ignoring --num_frames.
+    # With no video_metadata it also warns "Defaulting to fps=24". We already
+    # sampled exactly num_frames uniformly in load_video, so turn the processor's
+    # own sampling OFF and let it consume our frames verbatim.
     inputs = processor(
         text=[text],
         images=None,
         videos=[frames],
         return_tensors="pt",
+        do_sample_frames=False,
     )
+    # Report the frame count that ACTUALLY reaches the model, once, so a silent
+    # re-sample can never go unnoticed again.
+    if not getattr(run_inference, "_frames_logged", False):
+        import logging
+        pvg = inputs.get("pixel_values_videos", None)
+        gt = inputs.get("video_grid_thw", None)
+        logging.warning("Qwen3-VL FRAMES: requested=%d given=%d "
+                        "pixel_values_videos=%s video_grid_thw=%s",
+                        num_frames, len(frames),
+                        tuple(pvg.shape) if pvg is not None else None,
+                        gt.tolist() if gt is not None else None)
+        run_inference._frames_logged = True
+
     inputs = {k: v.to(model.device) for k, v in inputs.items()}
 
     output_ids = model.generate(

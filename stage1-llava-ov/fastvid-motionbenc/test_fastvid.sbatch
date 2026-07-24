@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH -J ovqwen2_fastvid_test
-#SBATCH -o /project/rhu/dpalfaro/results/fastvid_test_%j.out
-#SBATCH -e /project/rhu/dpalfaro/results/fastvid_test_%j.err
+#SBATCH -J s1_fastvid_smoke
+#SBATCH -o /project/rhu/dpalfaro/results/s1_fastvid_smoke_%j.out
+#SBATCH -e /project/rhu/dpalfaro/results/s1_fastvid_smoke_%j.err
 #SBATCH -N 1
 #SBATCH -n 8
 #SBATCH --gpus=ada:1

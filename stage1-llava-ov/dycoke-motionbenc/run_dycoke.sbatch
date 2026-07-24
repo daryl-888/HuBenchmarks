@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH -J ovqwen2_dycoke_motionbench
-#SBATCH -o /project/rhu/dpalfaro/results/stage1_dycoke_%j.out
-#SBATCH -e /project/rhu/dpalfaro/results/stage1_dycoke_%j.err
+#SBATCH -J s1_dycoke_run
+#SBATCH -o /project/rhu/dpalfaro/results/s1_dycoke_run_%j.out
+#SBATCH -e /project/rhu/dpalfaro/results/s1_dycoke_run_%j.err
 #SBATCH -N 1
 #SBATCH -n 8
 #SBATCH --gpus=ada:1

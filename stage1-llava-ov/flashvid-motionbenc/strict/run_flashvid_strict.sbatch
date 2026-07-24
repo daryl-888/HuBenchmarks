@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH -J flashvid_motionbench
-#SBATCH -o /project/rhu/dpalfaro/results/flashvid_%j.out
-#SBATCH -e /project/rhu/dpalfaro/results/flashvid_%j.err
+#SBATCH -J s1_flashvid_strict3
+#SBATCH -o /project/rhu/dpalfaro/results/s1_flashvid_strict3_%j.out
+#SBATCH -e /project/rhu/dpalfaro/results/s1_flashvid_strict3_%j.err
 #SBATCH -N 1
 #SBATCH -n 8
 #SBATCH --gpus=ada:1

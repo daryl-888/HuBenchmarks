@@ -1,9 +1,9 @@
 #!/bin/bash
 # VideoITG Stage 2 test — 50 samples. Run after test_grounding.sbatch.
 # Update GROUNDING_JSONL with the job ID from the grounding step.
-#SBATCH -J videoitg_test
-#SBATCH -o /project/rhu/dpalfaro/results/videoitg_test_%j.out
-#SBATCH -e /project/rhu/dpalfaro/results/videoitg_test_%j.err
+#SBATCH -J s3_videoitg_strict2
+#SBATCH -o /project/rhu/dpalfaro/results/s3_videoitg_strict2_%j.out
+#SBATCH -e /project/rhu/dpalfaro/results/s3_videoitg_strict2_%j.err
 #SBATCH -N 1
 #SBATCH -n 8
 #SBATCH --gpus=ada:1

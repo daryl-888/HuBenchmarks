@@ -3,9 +3,9 @@
 # Prints BAD_HANG (read blocks) or MISSING (not found in either subdir).
 # Run this BEFORE inference jobs. Move any BAD_HANG files to
 # /project/rhu/dpalfaro/bad_videos/ so utils.py skips them automatically.
-#SBATCH -J mb_scan
-#SBATCH -o /project/rhu/dpalfaro/results/mb_scan_%j.out
-#SBATCH -e /project/rhu/dpalfaro/results/mb_scan_%j.err
+#SBATCH -J s3_dycoke_run_scan_videos
+#SBATCH -o /project/rhu/dpalfaro/results/s3_dycoke_run_scan_videos_%j.out
+#SBATCH -e /project/rhu/dpalfaro/results/s3_dycoke_run_scan_videos_%j.err
 #SBATCH -N 1
 #SBATCH -n 8
 #SBATCH --mem=16G

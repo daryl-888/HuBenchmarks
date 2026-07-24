@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH -J ovqwen3_mdp3_motionbench
-#SBATCH -o /project/rhu/dpalfaro/results/mdp3_%j.out
-#SBATCH -e /project/rhu/dpalfaro/results/mdp3_%j.err
+#SBATCH -J s3_mdp3_run
+#SBATCH -o /project/rhu/dpalfaro/results/s3_mdp3_run_%j.out
+#SBATCH -e /project/rhu/dpalfaro/results/s3_mdp3_run_%j.err
 #SBATCH -N 1
 #SBATCH -n 8
 #SBATCH --gpus=ada:1

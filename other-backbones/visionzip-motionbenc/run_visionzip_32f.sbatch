@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH -J visionzip_32f_motionbench
-#SBATCH -o /project/rhu/dpalfaro/results/visionzip_%j.out
-#SBATCH -e /project/rhu/dpalfaro/results/visionzip_%j.err
+#SBATCH -J ob_visionzip_run_32f
+#SBATCH -o /project/rhu/dpalfaro/results/ob_visionzip_run_32f_%j.out
+#SBATCH -e /project/rhu/dpalfaro/results/ob_visionzip_run_32f_%j.err
 #SBATCH -N 1
 #SBATCH -n 8
 #SBATCH --gpus=ada:1

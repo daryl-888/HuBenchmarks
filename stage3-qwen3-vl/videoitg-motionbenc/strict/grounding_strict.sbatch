@@ -3,9 +3,9 @@
 # Scores 512 uniformly sampled frames per video using VideoITG-8B.
 # Outputs frame_scores.jsonl with top-32 frame indices per sample.
 # Run this first, then submit run_videoitg.sbatch.
-#SBATCH -J videoitg_grounding
-#SBATCH -o /project/rhu/dpalfaro/results/videoitg_grounding_%j.out
-#SBATCH -e /project/rhu/dpalfaro/results/videoitg_grounding_%j.err
+#SBATCH -J s3_videoitg_strict_grounding_strict
+#SBATCH -o /project/rhu/dpalfaro/results/s3_videoitg_strict_grounding_strict_%j.out
+#SBATCH -e /project/rhu/dpalfaro/results/s3_videoitg_strict_grounding_strict_%j.err
 #SBATCH -N 1
 #SBATCH -n 8
 #SBATCH --gpus=ada:1

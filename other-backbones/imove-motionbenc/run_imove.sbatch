@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH -J imove_motionbench
-#SBATCH -o /project/rhu/dpalfaro/results/imove_%j.out
-#SBATCH -e /project/rhu/dpalfaro/results/imove_%j.err
+#SBATCH -J ob_imove_run
+#SBATCH -o /project/rhu/dpalfaro/results/ob_imove_run_%j.out
+#SBATCH -e /project/rhu/dpalfaro/results/ob_imove_run_%j.err
 #SBATCH -N 1
 #SBATCH -n 8
 #SBATCH --gpus=ada:1
