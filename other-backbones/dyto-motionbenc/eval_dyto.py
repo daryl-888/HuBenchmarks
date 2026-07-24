@@ -48,7 +48,39 @@ def load_video_frames(video_path: str, num_frames: int):
 # CRITICAL: Do NOT use device_map="auto" (the builder's default is "auto").
 # device_map causes meta-device loading which silently drops vision encoder weights.
 # Must pass device_map=None and then call model.cuda() explicitly.
+def _alias_dyto_llava():
+    """
+    DyTo vendors LLaVA as `dyto.llava`, but its own internals use ABSOLUTE
+    imports — e.g. dyto/llava/model/llava_arch.py line 20 does
+        from llava.constants import IGNORE_INDEX, ...
+    There is no top-level `llava` package, so that raises ModuleNotFoundError.
+    dyto/llava/model/__init__.py wraps its imports in `try/except: pass`, which
+    SWALLOWS the error — the result is the misleading
+        ImportError: cannot import name 'LlavaLlamaForCausalLM' from 'dyto.llava.model'
+    that made this look like a missing class for 5 failed jobs.
+
+    Fix: register `dyto.llava` under the name `llava` (and pre-register its
+    submodules) BEFORE anything imports DyTo, so the absolute imports resolve.
+    """
+    import os
+    import sys
+    import types
+
+    if "llava" in sys.modules:
+        return
+    # The stub must exist BEFORE dyto.llava is imported: its __init__ chain is
+    # what performs the absolute `from llava.constants import ...`. Giving the
+    # stub a __path__ pointing at dyto's vendored llava dir makes `llava.<sub>`
+    # resolve to the same files. Verified working on Carya.
+    here = os.environ.get("DYTO_ROOT", "/project/rhu/dpalfaro/code/DYTO")
+    vendored = os.path.join(here, "dyto", "llava")
+    stub = types.ModuleType("llava")
+    stub.__path__ = [vendored]
+    sys.modules["llava"] = stub
+
+
 def load_model(model_path: str, rope_scaling_factor: int = 2):
+    _alias_dyto_llava()
     from dyto.llava.model.builder import load_pretrained_model
     from dyto.llava.mm_utils import get_model_name_from_path
     model_name = get_model_name_from_path(model_path)
@@ -62,6 +94,7 @@ def load_model(model_path: str, rope_scaling_factor: int = 2):
 @torch.inference_mode()
 def run_inference(tokenizer, model, image_processor, pil_frames, image_sizes,
                   question: str, conv_template: str, temporal_aggregation: str) -> str:
+    _alias_dyto_llava()
     from dyto.llava.mm_utils import tokenizer_image_token, process_images
     from dyto.llava.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN
     from dyto.llava.conversation import conv_templates
