@@ -46,4 +46,5 @@ OUTDIR=/project/rhu/dpalfaro/results/stage1_aim_run1
 
 echo "=== GATE: did the method actually engage? ==="
 python3 /project/rhu/dpalfaro/code/HuVLLM_scripts/check_run.py "${OUTDIR}" \
-    --expect-method aim --smoke || echo "GATE FAILED - do not record this run"
+    --expect-method aim \
+    --vs-baseline /project/rhu/dpalfaro/results/fastv_run1 --smoke || echo "GATE FAILED - do not record this run"

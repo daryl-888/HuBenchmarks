@@ -46,4 +46,5 @@ cd /project/rhu/dpalfaro
 OUTDIR=/project/rhu/dpalfaro/results/w2_mdp3_run
 echo "=== GATE: did the method actually engage? ==="
 python3 /project/rhu/dpalfaro/code/HuVLLM_scripts/check_run.py "${OUTDIR}" \
-    --expect-method mdp3 || echo "GATE FAILED - do not record this run"
+    --expect-method mdp3 \
+    --vs-baseline /project/rhu/dpalfaro/results/fastv_run1 || echo "GATE FAILED - do not record this run"

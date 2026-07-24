@@ -37,4 +37,5 @@ OUT=/project/rhu/dpalfaro/results/s3_mdp3_smoke_${SLURM_JOB_ID}
 
 echo "=== GATE ==="
 python3 /project/rhu/dpalfaro/code/HuVLLM_scripts/check_run.py "${OUT}" \
-    --expect-method mdp3 --smoke || echo "GATE FAILED - do not record"
+    --expect-method mdp3 \
+    --vs-baseline /project/rhu/dpalfaro/results/qwen3vl_baseline_run1 --smoke || echo "GATE FAILED - do not record"

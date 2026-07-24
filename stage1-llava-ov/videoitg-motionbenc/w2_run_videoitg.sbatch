@@ -35,4 +35,5 @@ cd /project/rhu/dpalfaro
 OUT=/project/rhu/dpalfaro/results/w2_videoitg_run
 echo "=== GATE: did videoitg actually engage? ==="
 python3 /project/rhu/dpalfaro/code/HuVLLM_scripts/check_run.py "$OUT" \
-    --expect-method videoitg || echo "GATE FAILED - do not record this run"
+    --expect-method videoitg \
+    --vs-baseline /project/rhu/dpalfaro/results/fastv_run1 || echo "GATE FAILED - do not record this run"

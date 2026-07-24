@@ -37,4 +37,5 @@ OUT=/project/rhu/dpalfaro/results/s3_flashvid_smoke_${SLURM_JOB_ID}
 
 echo "=== GATE ==="
 python3 /project/rhu/dpalfaro/code/HuVLLM_scripts/check_run.py "${OUT}" \
-    --expect-method flashvid --smoke || echo "GATE FAILED - do not record"
+    --expect-method flashvid \
+    --vs-baseline /project/rhu/dpalfaro/results/qwen3vl_baseline_run1 --smoke || echo "GATE FAILED - do not record"

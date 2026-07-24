@@ -36,4 +36,5 @@ cd /project/rhu/dpalfaro
 OUT=/project/rhu/dpalfaro/results/w2_flashvid_run
 echo "=== GATE ==="
 python3 /project/rhu/dpalfaro/code/HuVLLM_scripts/check_run.py "$OUT" \
-    --expect-method flashvid || echo "GATE FAILED - do not record"
+    --expect-method flashvid \
+    --vs-baseline /project/rhu/dpalfaro/results/fastv_run1 || echo "GATE FAILED - do not record"

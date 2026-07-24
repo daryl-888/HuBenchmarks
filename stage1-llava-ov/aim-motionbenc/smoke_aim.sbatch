@@ -32,4 +32,5 @@ cd /project/rhu/dpalfaro
 OUT=/project/rhu/dpalfaro/results/aim_smoke_${SLURM_JOB_ID}
 echo "=== GATE: did aim actually engage? ==="
 python3 /project/rhu/dpalfaro/code/HuVLLM_scripts/check_run.py "$OUT" \
-    --expect-method aim --smoke || echo "GATE FAILED - do not record this run"
+    --expect-method aim \
+    --vs-baseline /project/rhu/dpalfaro/results/fastv_run1 --smoke || echo "GATE FAILED - do not record this run"

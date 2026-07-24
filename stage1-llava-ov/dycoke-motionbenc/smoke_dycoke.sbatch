@@ -32,4 +32,5 @@ cd /project/rhu/dpalfaro
 OUT=/project/rhu/dpalfaro/results/dycoke_smoke_${SLURM_JOB_ID}
 echo "=== GATE: did dycoke actually engage? ==="
 python3 /project/rhu/dpalfaro/code/HuVLLM_scripts/check_run.py "$OUT" \
-    --expect-method dycoke --smoke || echo "GATE FAILED - do not record this run"
+    --expect-method dycoke \
+    --vs-baseline /project/rhu/dpalfaro/results/fastv_run1 --smoke || echo "GATE FAILED - do not record this run"

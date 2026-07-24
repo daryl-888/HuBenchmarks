@@ -110,20 +110,32 @@ def apply_flashvid(model, retention_ratio: float = 0.15, alpha: float = 0.7,
                                 seq_len, len(a_))
                 self._maskdiag = True
             # BUILD-MASK: under sdpa Qwen3-VL passes attention_mask=None (pure
-            # causal) and passes it POSITIONALLY. Adding to None silently dropped
-            # our pruning mask, which is why the port printed ACTIVE but produced
-            # byte-identical output. So: if no mask exists, construct a full 4D
-            # additive causal mask and fold the pruning into it.
-            dt = add.dtype
-            if am is None:
-                neg = _torch.finfo(dt).min
-                causal = _torch.full((seq_len, seq_len), neg, dtype=dt, device=add.device)
-                causal = _torch.triu(causal, diagonal=1)          # allow j <= i
-                am = causal.unsqueeze(0).unsqueeze(0)             # (1,1,S,S)
-            elif am.dim() != 4 or am.shape[-1] != seq_len:
+            # causal), positionally. Adding to None silently dropped our pruning
+            # mask (port printed ACTIVE but output was byte-identical).
+            # Two things must be right or generation breaks:
+            #   * this hook also fires on DECODE steps where q_len == 1 (not
+            #     seq_len) -- a fixed (S,S) mask is wrong there.
+            #   * the model runs bf16; float32's finfo.min overflows bf16 to -inf
+            #     and yields NaNs, so build the mask in the hidden-state dtype.
+            hs = a_[0] if len(a_) > 0 and hasattr(a_[0], "dim") else kw.get("hidden_states")
+            if hs is None or hs.dim() != 3:
                 return None
-            kw["attention_mask"] = am + add.to(am.dtype)
-            # the layer may also receive it positionally (args=1 seen in diag)
+            q_len = hs.shape[1]
+            kv_len = seq_len
+            dt = hs.dtype
+            neg = _torch.finfo(dt).min
+            add_row = add.to(dt)[..., :kv_len]                 # (1,1,1,kv)
+            if am is None:
+                if q_len == 1:
+                    # decode: attend to all cached kv, minus the pruned columns
+                    m = _torch.zeros((1, 1, 1, kv_len), dtype=dt, device=hs.device)
+                else:
+                    m = _torch.full((q_len, kv_len), neg, dtype=dt, device=hs.device)
+                    m = _torch.triu(m, diagonal=kv_len - q_len + 1).unsqueeze(0).unsqueeze(0)
+                am = m
+            elif am.dim() != 4:
+                return None
+            kw["attention_mask"] = am + add_row
             if len(a_) >= 2 and hasattr(a_[1], "dim"):
                 a_ = list(a_); a_[1] = kw["attention_mask"]; a_ = tuple(a_)
             return (a_, kw)

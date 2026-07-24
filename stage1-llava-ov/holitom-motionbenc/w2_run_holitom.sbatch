@@ -39,4 +39,5 @@ HOLITOM_r=0.5 \
 OUT=/project/rhu/dpalfaro/results/w2_holitom_run
 echo "=== GATE: did holitom actually engage? ==="
 python3 /project/rhu/dpalfaro/code/HuVLLM_scripts/check_run.py "$OUT" \
-    --expect-method holitom || echo "GATE FAILED - do not record this run"
+    --expect-method holitom \
+    --vs-baseline /project/rhu/dpalfaro/results/fastv_run1 || echo "GATE FAILED - do not record this run"
