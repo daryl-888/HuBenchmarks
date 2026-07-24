@@ -35,12 +35,30 @@ predictions differ from baseline), not a bug.
 
 ## Qwen3-VL-8B methods
 
-| Method | Overall | Status |
-|---|:---:|---|
-| Baseline | **62.52%** | ✅ |
-| FastV, DyCoke, HoliTom | 🔄 | attention-based; reworked eager→sdpa, verifying |
-| MDP3, VideoITG, FlashVID, AIM | 🔄 | ported (frame/embedding-based), verifying |
-| VisionZip, STTM, PruneVID, DyTo | ❌ | architecture-incompatible ([why](../stage3-qwen3-vl/PORT_FEASIBILITY.md)) |
+All 7 ports are **smoke-verified**: each prints its own `ACTIVE` log AND its
+predictions diverge from the Qwen3-VL baseline. Full 8,052-sample runs are in
+flight (~10h each — Qwen3-VL carries 11,664 visual tokens per sample).
+
+| Method | Overall | Smoke gate | Notes |
+|---|:---:|:---:|---|
+| **Baseline** | **62.52%** | ✅ | reference for every divergence check |
+| FastV | 🔄 pending | ✅ verified | `ACTIVE: visual=11664 keep=1750` |
+| DyCoke | 🔄 pending | ✅ verified | `stage1_keep=8165 stage2_keep=5716 (net 49%)` |
+| HoliTom | 🔄 pending | ✅ verified | `outer=1750 inner=875 (net 7.5%)` |
+| FlashVID | 🔄 pending | ✅ verified | `keep=1750 (15.0%)` |
+| AIM | 🔄 pending | ✅ verified | `after_merge=1750 keep=1750` |
+| MDP3 | 🔄 pending | ✅ verified | frame selection, pool 32 → 8 |
+| VideoITG | 🔄 pending | ✅ verified | grounded frame selection |
+| VisionZip | 🟡 partial | — | contextual half portable; dominant half needs a CLS token Qwen3-VL lacks |
+| PruneVID | 🟡 blocked | — | VTP core *is* separable, but its LLaVA-OV port is still inert — fix that first |
+| STTM, DyTo | ❌ | — | genuinely not portable ([why](../stage3-qwen3-vl/PORT_FEASIBILITY.md)) |
+
+> **Getting these 7 to engage took untangling a 5-bug chain** where each bug hid the
+> next — `attention_mask` is `None` under sdpa, bf16 overflow from an fp32 mask,
+> `hidden_states` passed as a kwarg, an undefined variable, and a transformers-5.x
+> import conflict. Two ports printed `ACTIVE` while producing byte-identical output
+> to the baseline; only the divergence gate caught it. See
+> [METHODOLOGY.md](METHODOLOGY.md#hardening-divergence-checking-is-mandatory-2026-07-24).
 
 ## Other backbones (each method's native model)
 
