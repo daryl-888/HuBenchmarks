@@ -49,7 +49,7 @@ flight (~10h each — Qwen3-VL carries 11,664 visual tokens per sample).
 | AIM | 🔄 pending | ✅ verified | `after_merge=1750 keep=1750` |
 | MDP3 | 🔄 pending | ✅ verified | frame selection, pool 32 → 8 |
 | VideoITG | 🔄 pending | ✅ verified | grounded frame selection |
-| VisionZip | 🔄 verifying | — | contextual-only variant; hook moved to `vis.merger` after two no-op attempts (7780504) |
+| VisionZip (contextual-only) | 🔄 full run pending | ✅ verified | 5/8 divergence; `merger out 11664 -> 1750 (15%)`. **Partial by design** — dominant half needs a CLS token Qwen3-VL lacks |
 | PruneVID | 🟡 blocked | — | VTP core *is* separable, but its LLaVA-OV port is still inert — fix that first |
 | STTM, DyTo | ❌ | — | genuinely not portable ([why](../stage3-qwen3-vl/PORT_FEASIBILITY.md)) |
 

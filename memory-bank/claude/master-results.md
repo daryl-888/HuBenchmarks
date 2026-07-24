@@ -140,7 +140,7 @@ from 23.8% → 33.8%.
 | AIM | 🔄 full run | ✅ | `after_merge=1750 keep=1750` |
 | MDP3 | 🔄 full run | ✅ | pool 32 → select 8 |
 | VideoITG | 🔄 full run | ✅ | grounded frame selection |
-| VisionZip | 🔄 verifying | — | contextual-only variant; hook moved to `vis.merger` (LLM consumes merger output, not last_hidden_state) — 7780504 |
+| VisionZip (contextual-only) | 🔄 full run pending | ✅ | 5/8 divergence, 11664->1750 (15%). Hook on `vis.merger`; token count preserved for masked_scatter. Partial by design (no CLS) |
 | PruneVID | 🟡 blocked | — | VTP core IS separable, but the LLaVA-OV port is still inert — fix that first |
 | STTM | ❌ | — | ships a wholesale Qwen2Model_forward replacement; no separable merge fn |
 | DyTo | ❌ | — | mechanism lives in LLaVA's llava_arch.py; Vicuna-bound |
