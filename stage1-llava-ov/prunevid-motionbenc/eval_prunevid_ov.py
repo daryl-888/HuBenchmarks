@@ -56,9 +56,25 @@ def _load_prunevid_primitives():
     path = os.path.join(root, "models", "pllava", "modeling_pllava.py")
     if not os.path.exists(path):
         raise ImportError(f"PruneVid source not found at {path} (set $SRC_PRUNEVID)")
-    spec = importlib.util.spec_from_file_location("_pv_modeling", path)
+    # modeling_pllava.py uses RELATIVE imports (`from .xxx import`), so loading it
+    # as a bare file fails with "attempted relative import with no known parent
+    # package". Give it a real package context by putting the repo root on
+    # sys.path and importing it by its dotted name instead.
+    if root not in sys.path:
+        sys.path.insert(0, root)
+    try:
+        from models.pllava.modeling_pllava import cluster_dpc_knn
+        return cluster_dpc_knn
+    except Exception:
+        pass
+    # Fallback: exec the file under a synthetic package so relative imports resolve.
+    pkg = "models.pllava"
+    spec = importlib.util.spec_from_file_location(
+        pkg + ".modeling_pllava", path,
+        submodule_search_locations=[os.path.dirname(path)])
     mod = importlib.util.module_from_spec(spec)
-    sys.modules["_pv_modeling"] = mod
+    mod.__package__ = pkg
+    sys.modules[spec.name] = mod
     try:
         spec.loader.exec_module(mod)
     except Exception as e:

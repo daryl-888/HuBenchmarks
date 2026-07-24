@@ -108,11 +108,18 @@ def run_inference(tokenizer, model, image_processor, pil_frames, image_sizes,
     # process_images returns a TENSOR for plain configs but a LIST of per-patch
     # tensors under anyres/multi-patch — calling .to() on a list raises
     # "'list' object has no attribute 'shape'". Handle both.
+    # process_images returns a TENSOR for plain configs but a LIST of per-patch
+    # tensors under anyres. DyTo's own generate() path calls .shape on `images`,
+    # so passing a list through raises "'list' object has no attribute 'shape'"
+    # from inside DyTo. Stack back to a single tensor when the shapes allow.
     image_tensor = process_images(pil_frames, image_processor, model.config)
     if isinstance(image_tensor, (list, tuple)):
-        image_tensor = [t.to(dtype=torch.float16, device="cuda") for t in image_tensor]
-    else:
-        image_tensor = image_tensor.to(dtype=torch.float16, device="cuda")
+        try:
+            image_tensor = torch.stack(list(image_tensor), dim=0)
+        except Exception:
+            # ragged patches can't be stacked — fall back to the first-scale view
+            image_tensor = image_tensor[0]
+    image_tensor = image_tensor.to(dtype=torch.float16, device="cuda")
     output_ids = model.generate(input_ids, images=image_tensor, image_sizes=image_sizes,
         do_sample=False, temperature=0, max_new_tokens=16, use_cache=True,
         temporal_aggregation=temporal_aggregation)
