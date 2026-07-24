@@ -1,6 +1,6 @@
 # Master Results Table — HuBenchmarks
 
-> **Last updated**: 2026-07-23 13:58 CDT
+> **Last updated**: 2026-07-23 (late session — smoke-verification pass)
 > **Benchmark**: MotionBench — 8,052 MCQ video samples, 4,018 scoreable, 4,034 NA
 > **Standard eval**: 32 frames, `do_sample=False`, `max_new_tokens=16`, letter-match scoring, NA-skip
 
@@ -12,6 +12,24 @@
 
 ### Stage 1 — LLaVA-OV-7B (`llava-ov-7b`, `LlavaQwenForCausalLM`) *(Mid-2024)*
 *12/13 methods complete, VisionZip rerunning*
+
+> **Verification status (2026-07-23)** — every method now smoke-tested with
+> `check_run.py --smoke` to confirm it actually engages (not a silent no-op):
+>
+> | Method | Smoke gate | Note |
+> |---|---|---|
+> | FastV | ✅ **PASS — genuinely prunes** | rebuilt paper-exact; `img_len=6273 keep=941` (15%); 2/4 preds diverge from baseline |
+> | DyCoke | ✅ PASS | fixed: builder defaulted to flash_attn (not installed) → sdpa |
+> | HoliTom | ✅ PASS | |
+> | AIM | ✅ PASS | |
+> | STTM | ✅ PASS | |
+> | PruneVID (PLLaVA) | ✅ PASS | real backbone; the *OV port* remains inert |
+> | VideoITG | ⚠️ PASS + warn | runs, but infer script emits no `*_params` block |
+> | MDP3 | ✅ full run PASS (53.06%) | smoke had `libnccl.so.2` + wrong arg (`--pool-frames`, not `--num_frames`) |
+> | FlashVID | 🔧 smoke resubmitted | uses `--frame-counts`, not `--num_frames` |
+> | VisionZip | ❌ **FAIL — 100% empty predictions** | same class of bug as FastV's eager-attention failure |
+> | DyTo | ❌ **never ran** — 5 consecutive import failures | its one 5.25% "result" emitted free-form captions, not letters; below random. Not a result. |
+
 
 | # | Model | Conference | Year | Overall | Act. Order | Cam. Motion | Loc. Motion | Mot. Rec. | Mot. Objs. | Rep. Count | Parameters | Notes |
 |---|-------|-----------|------|:-------:|:----------:|:----------:|:----------:|:---------:|:----------:|:----------:|------------|-------|
@@ -30,7 +48,7 @@
 | 13 | **VisionZip** | — | 2024 | — | — | — | — | — | — | — | dominant=54, contextual=10 | 🔄 Rerunning (7768829, 7769201) |
 
 ### Stage 2 — LLaVA-Video-7B (`llava-video-7b`) *(Late-2024)*
-*8 methods submitted, all pending — results expected in ~2-3 hours*
+*ALL CANCELLED 2026-07-23 — user descoped Stage 2. Jobs 7769192-7769209 killed to free nodes.*
 
 | Method | Overall | Status | Job ID |
 |--------|:-------:|:------:|:------:|
@@ -46,7 +64,18 @@
 *Not applicable to Stage 2: FastVID (model bug), PruneVID (PLLaVA-7B), VisionZip (LLaVA-1.5), DyTo (Vicuna)*
 
 ### Stage 3 — Qwen3-VL-8B (`qwen3-vl-8b`) *(Late-2025)*
-*Ported (8 method directories exist) — not yet run*
+
+> **UNBLOCKED 2026-07-23.** Stage 3 was never runnable: every pre-existing conda env
+> has transformers 4.45, which lacks `Qwen3VLForConditionalGeneration`. New env
+> **`qwen3vl`** (torch 2.6.0+cu124, transformers 5.14.1) loads it. Baseline verified
+> (smoke 7770277 = 50% on 8 samples) and the **full baseline is running (7770357)**.
+>
+> **Frame bug found+fixed:** `Qwen3VLVideoProcessor` has `do_sample_frames=True, fps=2`,
+> so it RE-SAMPLED our frames and ignored `--num_frames` (warning: "Defaulting to
+> fps=24"). Fixed with `do_sample_frames=False`; verified `requested=32 given=32`.
+>
+> **All 8 existing "ports" are fake** — each `eval_<m>.py` is the same baseline script
+> applying no method. They need real re-implementation, not submission.
 
 | Method | Overall | Status |
 |--------|:-------:|:------:|

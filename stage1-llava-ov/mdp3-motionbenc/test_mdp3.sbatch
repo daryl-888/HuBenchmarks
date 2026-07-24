@@ -35,7 +35,7 @@ cd /project/rhu/dpalfaro
 
 /project/rhu/dpalfaro/conda/envs/mdp3/bin/python3 \
     /project/rhu/dpalfaro/code/stage1-llava-ov/mdp3-motionbenc/eval_mdp3.py \
-    --meta-file    /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl --num_frames 32 \
+    --meta-file    /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
     --video-roots  /project/rhu/MotionBench_Data/MotionBench \
     --model-path   /project/rhu/dpalfaro/weights/llava-ov-7b \
     --output-dir   /project/rhu/dpalfaro/results/mdp3_test_${SLURM_JOB_ID} \
