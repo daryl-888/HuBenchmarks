@@ -115,28 +115,39 @@ revealed only after the previous one cleared:
 | 4 | `'list' object has no attribute 'shape'` at `llava_arch.py:325` | the weights ship `mm_patch_merge_type="spatial_unpad"` / `image_aspect_ratio="anyres"`, which builds a **list** of per-patch features, but DyTo's own `temporal_aggregation` does `T, N, D = image_features.shape` and needs a **3-D tensor**. The two paths are mutually incompatible for video. | ✅ fixed (force `flat`/`square`) |
 | 5 | `FINCH() got an unexpected keyword argument 'tw_finch'` | **BLOCKED** — see below | ❌ open |
 
-### The remaining blocker
+### The remaining blocker — RESOLVED as an upstream inconsistency
 
 `dyto/llava/model/llava_arch.py:192` calls
 
 ```python
-c, num_clust, _ = FINCH(image, verbose=False, tw_finch=tw_finch)
+c, num_clust, _ = FINCH(image, verbose=False, tw_finch=tw_finch)   # tw_finch=True at :233
 ```
 
-but **no released `finch-clust` accepts `tw_finch`** (checked 0.1.0–0.2.3), and the
-upstream research repo `ssarfraz/FINCH-Clustering` keeps **TW-FINCH as a separate
-implementation, not a parameter**. DyTo therefore depends on a *fork* that merged
-the two, which its README does not identify.
+We chased the exact dependency rather than assume. Findings:
 
-**This is an upstream packaging gap, not a bug in our harness.** Fabricating a
-`tw_finch` shim would silently change the clustering the paper specifies — exactly
-the "variant reported as the method" failure this project refuses to make. Options,
-in order of honesty:
+| Evidence | Result |
+|---|---|
+| DyTo's own pin (`pyproject.toml`, `PKG-INFO`) | **`finch-clust==0.2.0`** — an exact version, *not* a fork or git URL |
+| Version installed on Carya | **0.2.0** — the pin is already satisfied |
+| Pristine 0.2.0 downloaded from PyPI and unpacked | `def FINCH(data, initial_rank=None, req_clust=None, distance=..., ensure_early_exit=..., verbose=..., use_ann_above_samples=...)` — **`tw_finch` appears 0 times** |
+| Our installed copy vs pristine | identical (both 0 occurrences) — no local corruption |
+| Upstream `ssarfraz/FINCH-Clustering` | keeps **TW-FINCH as a separate implementation**, not a parameter of `FINCH()` |
 
-1. Obtain the exact FINCH fork DyTo used (needs the authors' clarification), or
-2. Run DyTo with standard FINCH and label the row **"DyTo (FINCH, not TW-FINCH)"**
-   as a documented variant, or
-3. Record DyTo as **not reproducible from published artifacts**.
+**Conclusion: DyTo's published artifacts are internally inconsistent.** Its code
+requires `FINCH(..., tw_finch=...)`, but the dependency it pins has never exposed
+that argument in any release. The authors must have developed against a local
+FINCH modification that was neither published nor referenced. No amount of
+environment work on our side can resolve this — it is not a version mismatch we
+can correct, because the pinned version *is* installed.
 
-Progress note: DyTo now loads, builds prompts, and reaches its FINCH stage — bugs
-1–4 are genuinely fixed. Only the dependency remains.
+**Therefore DyTo is recorded as: not reproducible from published artifacts.**
+
+Fabricating a `tw_finch` shim (e.g. routing to standard FINCH, or hand-porting
+TW-FINCH) would silently substitute a different clustering algorithm than the paper
+specifies. That is precisely the "variant reported as the method" failure this
+project exists to prevent. If a number is wanted anyway, the only honest form is a
+clearly-labelled variant — **"DyTo (standard FINCH, not TW-FINCH)"** — never "DyTo".
+
+Progress note: bugs 1–4 are genuinely fixed. DyTo now loads its Vicuna backbone,
+builds prompts, processes video, and reaches its FINCH clustering stage. Only the
+unresolvable dependency remains.
