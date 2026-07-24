@@ -117,7 +117,7 @@ is made or implied.
 | weights sourcing documented | ✅ 7 HF repos listed |
 | **environment pins** | ✅ **12 lockfiles** in `config/envs/` (`pip freeze` from the exact envs used) |
 | hardware documented | ✅ GPU/nodes/runtimes/OOM notes in SETUP.md §7 |
-| method source repos | ⚠️ **not vendored** — external clones + `patches/` |
+| method source repos | ✅ **6 upstream SHAs pinned** + real git diffs; `apply_all.sh` verified end-to-end. ⚠️ DyTo has no git history — cannot be pinned |
 | determinism across separate runs/nodes | ✅ 0/8052 differences, 3 pairs |
 | determinism across **different GPU models** | ❌ never tested |
 
@@ -133,11 +133,16 @@ claimed `dycoke11` ran transformers 4.45 and `dyto` ran 4.38.2/torch 2.2.0. The
 live environments actually run **4.40.0 / torch 2.12.0+cu130**. The docs have been
 corrected to the verified values.
 
-**Two gaps remain, both real:**
-1. **Method source repos are not vendored** — a replicator clones them from the
-   URLs in SETUP.md and applies `patches/`. If an upstream repo moves or its
-   history is rewritten, exact reproduction breaks. Vendoring (submodules) would
-   close this.
+**Upstream pinning is now closed.** `config/paths.sh` exports the six exact
+commits we ran (`SHA_DYCOKE=dd7463498203`, etc.), our modifications are real
+`git diff` patches in `patches/diffs/`, and `patches/apply_all.sh --check`
+verifies both. Dry-run against the live cluster repos: **6/6 SHAs match, 3/3
+patches detected as applied.** If upstream force-pushes, the SHAs still recover
+our code.
+
+**Two gaps remain:**
+1. **DyTo cannot be pinned** — our copy has no `.git`, so it is vendored as plain
+   files. Everything else is reproducible by SHA + patch.
 2. **Cross-GPU determinism is untested.** Runs reproduced bit-identically across
    nodes (`compute-9-3` vs `compute-9-6`), but those are the same Ada generation.
    Replicators on other hardware should expect *close*, not identical, numbers.
