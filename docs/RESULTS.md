@@ -68,7 +68,7 @@ flight (~10h each — Qwen3-VL carries 11,664 visual tokens per sample).
 | PruneVID (LLaVA-OV port) | LLaVA-OV-7B | 🔄 pending | ✅ **now engages** — 4/8 divergence after switching to `PrunableDynamicCache.kv_cache`; was inert |
 | [VisionZip](methods/visionzip.md) | LLaVA-1.5-7B | **39.97%** | 🟡 |
 | STTM-LLaVAVid | LLaVA-Video-7B | **53.33%** | 🟡 |
-| [DyTo](methods/dyto.md) | Vicuna-7B | 🔄 | import fixed; verifying |
+| [DyTo](methods/dyto.md) | Vicuna-7B | ❌ | **Not reproducible from published artifacts** — two defects in released code ([evidence](UPSTREAM_DEFECTS.md#1-blocking-dyto-is-not-reproducible-from-published-artifacts)) |
 | iMove, TrajViT | — | — | ❌ no public code |
 
 ## Known-invalid numbers (do not cite)
