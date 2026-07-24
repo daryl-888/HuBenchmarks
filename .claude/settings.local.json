@@ -10,7 +10,9 @@
       "WebFetch(domain:paperswithcode.com)",
       "WebFetch(domain:motion-bench.github.io)",
       "Bash(find /tmp/MotionBench -type f \\\\\\( -name \"*.md\" -o -name \"README*\" \\\\\\) | head -10)",
-      "Read(//tmp/MotionBench/**)"
+      "Read(//tmp/MotionBench/**)",
+      "Bash(python3 -)",
+      "Bash(python3 -c \"import ast;ast.parse\\(open\\('stage3-qwen3-vl/holitom-motionbenc/eval_holitom_qwen3vl.py'\\).read\\(\\)\\);print\\('OK'\\)\")"
     ]
   }
 }

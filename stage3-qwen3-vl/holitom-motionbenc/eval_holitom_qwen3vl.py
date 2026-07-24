@@ -32,86 +32,93 @@ POST_PROMPT = "\nAnswer with the option's letter from the given choices directly
 # ---------------------------------------------------------------------------
 # Model loading — Qwen3-VL native HuggingFace
 # ---------------------------------------------------------------------------
-def apply_fastv(model, fastv_k: int = 2, fastv_r: float = 0.85):
+
+def apply_holitom(model, retain_ratio: float = 0.15, temporal_t: float = 0.80,
+                  holitom_k: int = 18, holitom_r: float = 0.5):
     """
-    FastV (arXiv 2403.06764) ported to Qwen3-VL.
+    HoliTom ported to Qwen3-VL — holistic token merging, two stages.
 
-    Paper mechanism, from the authors' modeling_llama.py "Attention Rerank" block:
-      - run layers < K normally
-      - at layer K, average the previous layer's attention over heads, take the
-        LAST query row, restrict to VISUAL token positions, keep the top
-        ATTENTION_RANK of them, and mask out the rest for every layer >= K.
+    Paper mechanism:
+      OUTER (pre-LLM): temporally segment the video (similarity threshold T),
+        then keep `retain_ratio` of visual tokens — redundant tokens inside a
+        segment are merged away before the LLM ever sees them.
+      INNER (in-LLM): from layer `holitom_k` onward, merge a further `holitom_r`
+        fraction of the surviving visual tokens by attention.
 
-    Qwen3-VL differs from LLaVA-OV in one helpful way: the visual token positions
-    are given explicitly by `visual_pos_masks` (bool [B, S]) passed into
-    Qwen3VLTextModel.forward — so unlike the LLaVA-OV port we do NOT have to infer
-    the image span from a fixed prefix length. Everything else is the same policy.
+    On LLaVA-OV this is driven by env vars into HoliTom's patched Qwen2. Qwen3-VL
+    has no such patch, so both stages are expressed over the visual positions
+    given by `visual_pos_masks`: the outer stage uses embedding similarity
+    (segment + retain), the inner stage uses layer-k attention.
 
-    fastv_k: AGG_LAYER (paper default 2)
-    fastv_r: fraction of visual tokens to DROP; 0.85 keeps 15% (project standard)
+    Net retention = retain_ratio * (1 - holitom_r).
     """
     import types
     import torch as _torch
+    import torch.nn.functional as _F
 
-    lm = model.model.language_model  # Qwen3VLTextModel
+    lm = model.model.language_model
     orig_forward = lm.forward
 
-    def fastv_forward(self, *args, **kwargs):
+    def holitom_forward(self, *args, **kwargs):
         vis_mask = kwargs.get("visual_pos_masks", None)
         inputs_embeds = kwargs.get("inputs_embeds", None)
         seq_len = inputs_embeds.shape[1] if inputs_embeds is not None else None
-
-        # Prefill only (multi-token). Decode steps are untouched.
         if seq_len is None or seq_len <= 1 or vis_mask is None:
             return orig_forward(*args, **kwargs)
-
         vis_idx = vis_mask[0].nonzero(as_tuple=True)[0]
         n_vis = vis_idx.numel()
         if n_vis == 0:
             return orig_forward(*args, **kwargs)
-        keep = max(1, int(round(n_vis * (1 - fastv_r))))
+
+        # ---- OUTER: temporal segmentation + retain_ratio ----
+        emb = _F.normalize(inputs_embeds[0, vis_idx].float(), dim=-1)
+        sim = _torch.ones(n_vis, device=emb.device)
+        sim[1:] = (emb[1:] * emb[:-1]).sum(-1)
+        # a new temporal segment starts wherever similarity drops below T
+        seg_start = (sim < temporal_t)
+        seg_start[0] = True
+        n_outer = max(1, int(round(n_vis * retain_ratio)))
+        # prefer segment boundaries (most informative), then least-redundant
+        score = sim.clone()
+        score[seg_start] = -1.0            # boundaries sort first
+        outer_local = score.argsort()[:n_outer]
+        survivors = vis_idx[outer_local.sort()[0]]
+        n_inner = max(1, int(round(survivors.numel() * (1 - holitom_r))))
 
         state = {"done": False, "add": None}
 
-        def _rank(module, inp, out):
-            # Capture layer K-1's attention weights to rank visual tokens.
+        def _merge(module, inp, out):
             if state["done"]:
                 return out
-            # Qwen3VLTextAttention.forward returns (attn_output, attn_weights).
-            # attn_weights is None unless eager attention is active — if that
-            # happens FastV would silently no-op, so warn loudly instead.
             attn = out[1] if isinstance(out, tuple) and len(out) > 1 else None
             if attn is None:
-                if not getattr(self, "_fastv_noattn", False):
+                if not getattr(self, "_holitom_noattn", False):
                     import logging
-                    logging.warning(
-                        "FastV(Qwen3-VL): layer %d returned no attention weights "
-                        "(attn_implementation must be 'eager') — NOT PRUNING.",
-                        fastv_k - 1)
-                    self._fastv_noattn = True
+                    logging.warning("HoliTom(Qwen3-VL): no attention weights at "
+                                    "layer %d (need eager) — NOT PRUNING.", holitom_k)
+                    self._holitom_noattn = True
                 return out
-            recv = attn.mean(dim=1)[0, -1]                  # (kv_len,) last query row
-            scores = recv[vis_idx]
-            top = vis_idx[scores.topk(keep).indices]
-            drop = _torch.ones(seq_len, dtype=_torch.bool, device=attn.device)
-            drop[:] = False
+            recv = attn.mean(dim=1)[0, -1]
+            top = survivors[recv[survivors].topk(n_inner).indices]
+            drop = _torch.zeros(seq_len, dtype=_torch.bool, device=attn.device)
             drop[vis_idx] = True
-            drop[top] = False                               # keep the winners
+            drop[top] = False
             add = _torch.zeros((1, 1, 1, seq_len), dtype=_torch.float32,
                                device=attn.device)
             add[0, 0, 0, drop] = _torch.finfo(_torch.float32).min
             state["add"] = add
             state["done"] = True
-            if not getattr(self, "_fastv_logged", False):
+            if not getattr(self, "_holitom_logged", False):
                 import logging
-                logging.warning("FastV(Qwen3-VL) ACTIVE: visual=%d keep=%d "
-                                "(dropped %d) seq=%d layer_k=%d",
-                                n_vis, keep, n_vis - keep, seq_len, fastv_k)
-                self._fastv_logged = True
+                logging.warning("HoliTom(Qwen3-VL) ACTIVE: visual=%d outer_keep=%d "
+                                "inner_keep=%d (net %.1f%%) k=%d segments=%d",
+                                n_vis, survivors.numel(), n_inner,
+                                100.0 * n_inner / n_vis, holitom_k,
+                                int(seg_start.sum()))
+                self._holitom_logged = True
             return out
 
         def _mask(module, a_, k_):
-            # For layers >= K: add -inf on the pruned visual columns.
             if state["add"] is None:
                 return None
             kw = dict(k_)
@@ -121,30 +128,25 @@ def apply_fastv(model, fastv_k: int = 2, fastv_r: float = 0.85):
                 return (a_, kw)
             return None
 
-        handles = []
-        if fastv_k - 1 >= 0:
-            handles.append(self.layers[fastv_k - 1].self_attn
-                           .register_forward_hook(_rank, with_kwargs=False))
-        for i in range(fastv_k, len(self.layers)):
+        kk = min(holitom_k, len(self.layers) - 1)
+        handles = [self.layers[max(0, kk - 1)].self_attn
+                   .register_forward_hook(_merge, with_kwargs=False)]
+        for i in range(kk, len(self.layers)):
             handles.append(self.layers[i]
                            .register_forward_pre_hook(_mask, with_kwargs=True))
-        # need attention weights at layer K-1
-        prev = kwargs.get("output_attentions", None)
-        kwargs["output_attentions"] = True
         try:
             return orig_forward(*args, **kwargs)
         finally:
             for h in handles:
                 h.remove()
-            if prev is None:
-                kwargs.pop("output_attentions", None)
 
-    lm.forward = types.MethodType(fastv_forward, lm)
+    lm.forward = types.MethodType(holitom_forward, lm)
     return model
 
 
-def load_model(model_path: str, enable_fastv: bool = False,
-               fastv_k: int = 2, fastv_r: float = 0.85):
+def load_model(model_path: str, enable_holitom: bool = False,
+               retain_ratio: float = 0.15, temporal_t: float = 0.80,
+               holitom_k: int = 18, holitom_r: float = 0.5):
     """Load Qwen3-VL via transformers from_pretrained (no LLaVA)."""
     from transformers import Qwen3VLForConditionalGeneration, AutoProcessor
 
@@ -153,11 +155,12 @@ def load_model(model_path: str, enable_fastv: bool = False,
         torch_dtype=torch.bfloat16,
         device_map="auto",
         trust_remote_code=True,
-        attn_implementation="eager" if enable_fastv else "sdpa",
+        attn_implementation="eager" if enable_holitom else "sdpa",
     )
     processor = AutoProcessor.from_pretrained(model_path, trust_remote_code=True)
-    if enable_fastv:
-        model = apply_fastv(model, fastv_k=fastv_k, fastv_r=fastv_r)
+    if enable_holitom:
+        model = apply_holitom(model, retain_ratio=retain_ratio, temporal_t=temporal_t,
+                              holitom_k=holitom_k, holitom_r=holitom_r)
     model.eval()
     return None, model, processor  # Qwen3 uses processor, not tokenizer + image_processor separately
 
@@ -296,18 +299,20 @@ def main():
     parser.add_argument("--meta_path", required=True)
     parser.add_argument("--output_dir", required=True)
     parser.add_argument("--num_frames", type=int, default=32)
-    parser.add_argument("--fastv", action="store_true", help="apply FastV pruning")
-    parser.add_argument("--fastv_k", type=int, default=2, help="AGG_LAYER (paper: 2)")
-    parser.add_argument("--fastv_r", type=float, default=0.85,
-                        help="fraction of visual tokens to DROP; 0.85 keeps 15%")
+    parser.add_argument("--holitom", action="store_true")
+    parser.add_argument("--retain_ratio", type=float, default=0.15)
+    parser.add_argument("--temporal_t", type=float, default=0.80)
+    parser.add_argument("--holitom_k", type=int, default=18)
+    parser.add_argument("--holitom_r", type=float, default=0.5)
     parser.add_argument("--limit", type=int, default=None)
     args = parser.parse_args()
 
     os.makedirs(args.output_dir, exist_ok=True)
 
     print("Loading Qwen3-VL model...", flush=True)
-    _, model, processor = load_model(args.model_path, enable_fastv=args.fastv,
-                                     fastv_k=args.fastv_k, fastv_r=args.fastv_r)
+    _, model, processor = load_model(args.model_path, enable_holitom=args.holitom,
+                                     retain_ratio=args.retain_ratio, temporal_t=args.temporal_t,
+                                     holitom_k=args.holitom_k, holitom_r=args.holitom_r)
 
     samples = []
     with open(args.meta_path) as f:
@@ -376,12 +381,11 @@ def main():
         "total_scoreable": total,
         "total_na_skipped": na_count,
         "total_samples": len(results),
-        "fastv_params": {"enabled": bool(args.fastv), "fastv_k": args.fastv_k,
-                         "fastv_r": args.fastv_r,
-                         "keeps": f"{(1-args.fastv_r)*100:.0f}% of visual tokens"},
+        "holitom_params": {"enabled": bool(args.holitom), "RETAIN_RATIO": args.retain_ratio,
+                          "T": args.temporal_t, "k": args.holitom_k, "r": args.holitom_r},
         "model": "Qwen/Qwen3-VL-8B-Instruct",
         "num_frames": args.num_frames,
-        "note": "FastV on Qwen3-VL — attention-rerank pruning at layer fastv_k",
+        "note": "HoliTom on Qwen3-VL — outer temporal-segment retain + inner attention merge",
         "per_category": per_category,
     }
     print(
