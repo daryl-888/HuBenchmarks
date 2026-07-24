@@ -120,18 +120,24 @@ from 23.8% → 33.8%.
 
 ### Method ports
 
-| Method | Overall | Status |
-|---|:---:|---|
-| **Baseline** | **62.52%** (2512) | ✅ Verified full run (subcategories above) |
-| FastV | 🔄 | Real port written. First smoke ran as baseline (empty output + no ACTIVE log) — eager attention broke generation; switched to sdpa, re-verifying (7776370) |
-| DyCoke, HoliTom | 🔄 | Real ports written; smokes showed no ACTIVE log (same eager issue) — fix pending after FastV confirms |
-| FlashVID, AIM, MDP3, VideoITG | 📋 | Real ports written (FlashVID/AIM/MDP3/VideoITG need no eager attention). Smokes not yet submitted |
-| PruneVID, STTM, DyTo, VisionZip | ❌ | **Architecture-incompatible** — see [PORT_FEASIBILITY.md](../../stage3-qwen3-vl/PORT_FEASIBILITY.md). VisionZip needs a CLS token Qwen3-VL's vision tower lacks; STTM patches Qwen2 attention; DyTo is Vicuna-bound |
+| Method | Overall | Smoke gate | Notes |
+|---|:---:|:---:|---|
+| **Baseline** | **62.52%** (2512) | ✅ | reference for all divergence checks |
+| FastV | 🔄 full run | ✅ | `ACTIVE: visual=11664 keep=1750` |
+| DyCoke | 🔄 full run | ✅ | `stage1=8165 stage2=5716 (net 49%)` |
+| HoliTom | 🔄 full run | ✅ | `outer=1750 inner=875 (net 7.5%)` |
+| FlashVID | 🔄 full run | ✅ | `keep=1750 (15.0%)` |
+| AIM | 🔄 full run | ✅ | `after_merge=1750 keep=1750` |
+| MDP3 | 🔄 full run | ✅ | pool 32 → select 8 |
+| VideoITG | 🔄 full run | ✅ | grounded frame selection |
+| VisionZip | 🟡 partial | — | contextual half portable (k-vectors recoverable from fused qkv); dominant half needs CLS, absent in Qwen3-VL |
+| PruneVID | 🟡 blocked | — | VTP core IS separable, but the LLaVA-OV port is still inert — fix that first |
+| STTM | ❌ | — | ships a wholesale Qwen2Model_forward replacement; no separable merge fn |
+| DyTo | ❌ | — | mechanism lives in LLaVA's llava_arch.py; Vicuna-bound |
 
-> **7 of 11 methods have real ports written; baseline done. None gated yet** — the eager-
-> attention path breaks generation the same way it did on LLaVA-OV, so the 3 attention-
-> based ports (FastV/DyCoke/HoliTom) are being reworked to sdpa. The 4 embedding-only ports
-> (FlashVID/AIM/MDP3/VideoITG) don't have this problem.
+**7 full runs in flight** (~10h each). Getting them to engage required untangling a
+5-bug chain; two ports printed `ACTIVE` while producing byte-identical output and
+only the divergence gate caught it. See PORT_FEASIBILITY.md and METHODOLOGY.md.
 
 ---
 
