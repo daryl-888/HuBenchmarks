@@ -241,6 +241,14 @@ def main():
         "total_samples":    len(results),
         "model":            args.model_path,
         "grounding_jsonl":  args.grounding_jsonl,
+        # `enabled` lets scripts/check_run.py confirm the method actually ran.
+        # VideoITG is two-stage: the grounding pass selects frames, this pass
+        # consumes them. Engagement == a grounding file was supplied and used.
+        "videoitg_params": {
+            "enabled":       bool(args.grounding_jsonl),
+            "stage":         "infer (consumes grounding frame_scores.jsonl)",
+            "grounding_src": args.grounding_jsonl,
+        },
     }
     print(
         f"\nAccuracy: {correct}/{total} = {accuracy:.4f}  ({na_count} NA skipped)",
