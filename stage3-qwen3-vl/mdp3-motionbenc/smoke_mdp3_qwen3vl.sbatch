@@ -16,6 +16,9 @@ module purge
 module load Miniforge3/py3.10
 
 export PYTHONNOUSERSITE=1
+# vlmeval (the MDP3 selector) lives in code/MDP3. Do NOT add mdp3_pkgs here —
+# it ships its own torch and shadows the qwen3vl env, breaking the C extensions.
+export PYTHONPATH=/project/rhu/dpalfaro/code/MDP3:${PYTHONPATH:-}
 unset HF_HUB_OFFLINE
 unset HF_DATASETS_OFFLINE
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface

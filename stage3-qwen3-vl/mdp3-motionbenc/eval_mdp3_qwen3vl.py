@@ -33,6 +33,34 @@ POST_PROMPT = "\nAnswer with the option's letter from the given choices directly
 # Model loading — Qwen3-VL native HuggingFace
 # ---------------------------------------------------------------------------
 
+def _load_mdp3_class():
+    """
+    Load MDP3's frame selector WITHOUT importing the `vlmeval` package.
+
+    `from vlmeval.smp.mdp3_frame_selector import MDP3` triggers
+    vlmeval/__init__ -> smp/__init__ -> ... -> vlm/idefics.py, which does
+        from transformers import AutoModelForVision2Seq
+    That symbol was REMOVED in transformers 5.x — but Qwen3-VL *requires*
+    transformers 5.x, so the package chain can never import in this env.
+
+    The selector module itself only needs torch / PIL / transformers, so we load
+    the single file directly by path and skip the package entirely.
+    """
+    import importlib.util
+    import os
+    import sys
+
+    mdp3_root = os.environ.get("SRC_MDP3", "/project/rhu/dpalfaro/code/MDP3")
+    path = os.path.join(mdp3_root, "vlmeval", "smp", "mdp3_frame_selector.py")
+    if not os.path.exists(path):
+        raise ImportError(f"MDP3 selector not found at {path} (set $SRC_MDP3)")
+    spec = importlib.util.spec_from_file_location("_mdp3_frame_selector", path)
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules["_mdp3_frame_selector"] = mod
+    spec.loader.exec_module(mod)
+    return mod.MDP3
+
+
 def select_frames_mdp3(pil_frames, question: str, num_select: int):
     """
     MDP3 (ICCV 2025) frame selection, ported to Qwen3-VL.
@@ -48,7 +76,7 @@ def select_frames_mdp3(pil_frames, question: str, num_select: int):
     """
     import logging
     import numpy as _np
-    from vlmeval.smp.mdp3_frame_selector import MDP3
+    MDP3 = _load_mdp3_class()
 
     selector = MDP3("cuda")
     selector.n_selection = num_select
