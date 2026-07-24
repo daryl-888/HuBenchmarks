@@ -15,7 +15,8 @@ PYTHONPATH: /project/rhu/dpalfaro/code/FlashVID
 import argparse, json, os, re, sys
 import torch
 from tqdm import tqdm
-VIDEO_BASE="/project/rhu/MotionBench_Data/MotionBench"
+# Dataset root. Override with $MOTIONBENCH (see config/paths.sh)
+VIDEO_BASE = os.environ.get("MOTIONBENCH", "/project/rhu/MotionBench_Data/MotionBench")
 POST_PROMPT="\nAnswer with the option's letter from the given choices directly."
 
 def load_model(model_path, retention_ratio=0.15, alpha=0.7, temporal_threshold=0.8):

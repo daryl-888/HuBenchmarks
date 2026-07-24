@@ -29,7 +29,8 @@ import torch
 from tqdm import tqdm
 
 
-VIDEO_BASE = "/project/rhu/MotionBench_Data/MotionBench"
+# Dataset root. Override with $MOTIONBENCH (see config/paths.sh)
+VIDEO_BASE = os.environ.get("MOTIONBENCH", "/project/rhu/MotionBench_Data/MotionBench")
 
 
 # ---------------------------------------------------------------------------
