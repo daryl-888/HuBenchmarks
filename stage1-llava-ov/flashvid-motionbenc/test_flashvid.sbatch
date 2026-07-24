@@ -29,7 +29,7 @@ cd /project/rhu/dpalfaro
     --video-roots  /project/rhu/MotionBench_Data/MotionBench \
     --model-path   /project/rhu/dpalfaro/weights/llava-ov-7b \
     --output-dir   /project/rhu/dpalfaro/results/flashvid_test_${SLURM_JOB_ID} \
-    --num_frames 32 \
+    \
     --conv-template qwen_2 \
     --enable-flashvid \
     --retention-ratio 0.1 \
