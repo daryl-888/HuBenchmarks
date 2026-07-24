@@ -222,10 +222,19 @@ def check_not_identical_to_baseline(rows, baseline_dir, g):
                 except json.JSONDecodeError:
                     pass
     mine = [r.get("prediction") for r in rows]
-    if len(base) != len(mine):
-        g.warn(f"--vs-baseline: length mismatch ({len(mine)} vs {len(base)}), "
-               f"cannot compare cleanly")
+    # A smoke run (--limit N) is SHORTER than the full baseline. Previously we
+    # warned and returned here, which silently skipped the single most important
+    # check on every smoke test — PruneVID-OV "passed" that way while being a
+    # no-op. Samples are emitted in the same order, so compare the overlapping
+    # prefix instead of giving up.
+    n = min(len(mine), len(base))
+    if n == 0:
+        g.warn("--vs-baseline: no overlapping samples to compare")
         return
+    if len(base) != len(mine):
+        g.warn(f"--vs-baseline: comparing first {n} samples "
+               f"(run has {len(mine)}, baseline {len(base)})")
+    mine, base = mine[:n], base[:n]
     diffs = sum(1 for a, b in zip(mine, base) if a != b)
     if diffs == 0:
         g.fail(f"predictions are IDENTICAL to baseline {baseline_dir} "
