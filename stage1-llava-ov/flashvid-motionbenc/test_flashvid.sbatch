@@ -42,4 +42,4 @@ cd /project/rhu/dpalfaro
 OUTDIR=/project/rhu/dpalfaro/results/flashvid_test_${SLURM_JOB_ID}
 echo "=== GATE: did the method actually engage? ==="
 python3 /project/rhu/dpalfaro/code/HuVLLM_scripts/check_run.py "${OUTDIR}" \
-    --expect-method flashvid || echo "GATE FAILED - do not record this run"
+    --expect-method flashvid --smoke || echo "GATE FAILED - do not record this run"

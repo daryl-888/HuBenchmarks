@@ -40,4 +40,4 @@ OUT=/project/rhu/dpalfaro/results/fastv_smoke_${SLURM_JOB_ID}
 
 echo "=== GATE: did FastV actually prune (predictions differ from baseline)? ==="
 python3 /project/rhu/dpalfaro/code/HuVLLM_scripts/check_run.py "${OUT}" \
-    --expect-method fastv || echo "(gate: single-run checks; --vs-baseline needs a matching baseline run)"
+    --expect-method fastv --smoke || echo "(gate: single-run checks; --vs-baseline needs a matching baseline run)"

@@ -40,4 +40,4 @@ HOLITOM_r=0.5 \
 OUT=/project/rhu/dpalfaro/results/holitom_smoke_${SLURM_JOB_ID}
 echo "=== GATE: did holitom actually engage? ==="
 python3 /project/rhu/dpalfaro/code/HuVLLM_scripts/check_run.py "$OUT" \
-    --expect-method holitom || echo "GATE FAILED - do not record this run"
+    --expect-method holitom --smoke || echo "GATE FAILED - do not record this run"

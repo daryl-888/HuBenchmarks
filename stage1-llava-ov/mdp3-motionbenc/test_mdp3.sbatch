@@ -47,4 +47,4 @@ cd /project/rhu/dpalfaro
 OUTDIR=/project/rhu/dpalfaro/results/mdp3_test_${SLURM_JOB_ID}
 echo "=== GATE: did the method actually engage? ==="
 python3 /project/rhu/dpalfaro/code/HuVLLM_scripts/check_run.py "${OUTDIR}" \
-    --expect-method mdp3 || echo "GATE FAILED - do not record this run"
+    --expect-method mdp3 --smoke || echo "GATE FAILED - do not record this run"

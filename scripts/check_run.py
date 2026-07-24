@@ -247,6 +247,11 @@ def main():
                     help="method name that SHOULD have engaged (e.g. dycoke)")
     ap.add_argument("--strict", action="store_true",
                     help="treat WARN as failure too")
+    ap.add_argument("--smoke", action="store_true",
+                    help="smoke-test mode (--limit run): skip the completeness, "
+                         "NA-accounting and accuracy-band checks, which are "
+                         "meaningless on a handful of samples and otherwise bury "
+                         "the real signal (did the method engage?)")
     ap.add_argument("--vs-baseline", metavar="RUN_DIR",
                     help="a baseline run to compare against; if this run's "
                          "predictions are IDENTICAL to it, the method was a "
@@ -264,9 +269,14 @@ def main():
     rows = iter_results(args.run_dir, g)
 
     if summary is not None:
-        check_completeness(summary, rows, g)
-        check_na_accounting(summary, g)
-        check_accuracy_band(summary, g)
+        if args.smoke:
+            n = summary.get("total_samples", len(rows))
+            print(f"{YELLOW}[smoke]{RESET} --limit run ({n} samples): skipping "
+                  f"completeness / NA / accuracy-band checks.")
+        else:
+            check_completeness(summary, rows, g)
+            check_na_accounting(summary, g)
+            check_accuracy_band(summary, g)
         check_method_engaged(summary, args.expect_method, g)
     check_predictions_nondegenerate(rows, g)
 
