@@ -49,7 +49,15 @@ def _attn_last_row(module, inp, kv_len):
     the papers rank by.
     """
     import torch as _t
+    import logging
     hs = inp[0] if isinstance(inp, (tuple, list)) and len(inp) else None
+    if not getattr(module, "_attndiag", False):
+        logging.warning("ATTNDIAG: inp_type=%s len=%s hs=%s dim=%s has_qproj=%s head_dim=%s",
+                        type(inp).__name__, len(inp) if hasattr(inp,"__len__") else None,
+                        type(hs).__name__,
+                        getattr(hs,"dim",lambda:None)() if hs is not None else None,
+                        hasattr(module,"q_proj"), getattr(module,"head_dim",None))
+        module._attndiag = True
     if hs is None or not hasattr(hs, "dim") or hs.dim() != 3:
         return None
     try:
