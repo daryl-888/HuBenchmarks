@@ -122,10 +122,25 @@ def apply_visionzip_contextual(model, contextual_num=1750):
         merged.index_add_(0, assign, src)
         counts.index_add_(0, assign, _torch.ones(src.shape[0], 1, device=flat.device))
         merged = (merged / counts).to(feats.dtype)
+        # CRITICAL: Qwen3VLModel.forward does
+        #     inputs_embeds.masked_scatter(video_mask, video_embeds)
+        # which requires len(video_embeds) == number of video placeholder tokens
+        # in input_ids. Returning a SHORTER tensor breaks that scatter and yields
+        # empty generations (verified: 8/8 divergence but 100% empty output).
+        # So we keep the token COUNT and write each merged centroid back into the
+        # slots that were assigned to it — the standard trick every other working
+        # Qwen3-VL port here uses. Information is reduced (that is the method);
+        # the sequence length is preserved (that is the constraint).
+        out_full = flat.clone()
+        out_full[target_idx] = merged
+        src_idx = _torch.arange(n, device=flat.device)[keep_mask]
+        out_full[src_idx] = merged[assign]
+        merged = out_full.reshape(feats.shape)
         if not state["logged"]:
             import logging
             logging.warning("VisionZip-contextual(Qwen3-VL) ACTIVE: merger out %d -> %d "
-                            "(%.1f%%) [contextual-only; dominant half needs CLS]",
+                            "(%.1f%%) [contextual-only; dominant half needs CLS; "
+                            "token count preserved for masked_scatter]",
                             n, c_num, 100.0 * c_num / n)
             state["logged"] = True
         return merged
