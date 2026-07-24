@@ -128,7 +128,7 @@ def main():
     parser.add_argument("--model-path", required=True)
     parser.add_argument("--meta-path", required=True)
     parser.add_argument("--output-dir", required=True)
-    parser.add_argument("--conv-template", default="image_seq_v3")
+    parser.add_argument("--conv-template", default="vicuna_v1")
     parser.add_argument("--num-frames", type=int, default=100)
     parser.add_argument("--temporal-aggregation", default="spatial_tome_finch_dynamic_all_frms")
     parser.add_argument("--rope-scaling", type=int, default=2)

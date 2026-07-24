@@ -57,8 +57,19 @@ def apply_fastv(model, fastv_k: int = 2, fastv_r: float = 0.85):
     orig_forward = lm.forward
 
     def fastv_forward(self, *args, **kwargs):
+        if not getattr(self, "_fastv_entered", False):
+            import logging
+            logging.warning("FastV(Qwen3-VL): wrapper ENTERED, kwargs=%s args=%d",
+                            list(kwargs.keys()), len(args))
+            self._fastv_entered = True
         vis_mask = kwargs.get("visual_pos_masks", None)
         inputs_embeds = kwargs.get("inputs_embeds", None)
+        # Qwen3VLTextModel may receive these positionally too.
+        if inputs_embeds is None:
+            for a in args:
+                if hasattr(a, "dim") and a.dim() == 3 and a.is_floating_point():
+                    inputs_embeds = a
+                    break
         seq_len = inputs_embeds.shape[1] if inputs_embeds is not None else None
 
         # Prefill only (multi-token). Decode steps are untouched.
@@ -153,7 +164,10 @@ def load_model(model_path: str, enable_fastv: bool = False,
         torch_dtype=torch.bfloat16,
         device_map="auto",
         trust_remote_code=True,
-        attn_implementation="eager" if enable_fastv else "sdpa",
+        # eager broke generation (100% empty output) on the smoke — load sdpa and
+        # request attentions per-call instead (Qwen3 attention honours
+        # output_attentions=True even under sdpa by falling back for that call).
+        attn_implementation="sdpa",
     )
     processor = AutoProcessor.from_pretrained(model_path, trust_remote_code=True)
     if enable_fastv:
