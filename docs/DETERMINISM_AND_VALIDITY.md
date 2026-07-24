@@ -4,6 +4,24 @@ An honest assessment of *why re-running a model reproduces identical results*, w
 that property legitimately proves, and — importantly — **where this methodology is
 weak**. Written to be read critically, including by us.
 
+> ## The one distinction to take away
+>
+> **Determinism tells you _whether a method did anything_. It says nothing about
+> whether the resulting accuracy difference is _meaningful_.**
+>
+> These are two separate questions, and conflating them is the central error this
+> document exists to prevent:
+>
+> | Question | Answered by | Our result |
+> |---|---|---|
+> | Did the method actually execute? | prediction divergence vs baseline (needs determinism) | ✅ yes for every recorded number |
+> | Is the accuracy difference real? | a significance test (McNemar) | ❌ **no** — on LLaVA-OV, none of the method-vs-baseline gaps are significant |
+>
+> Determinism is a powerful *verification* tool — it caught four silent failures
+> that would otherwise have entered the results as legitimate numbers. It is **not**
+> evidence that a method is better. §3.1 shows our best method's +0.70 point "win"
+> has **χ² = 2.34**, below the 3.84 needed for p<0.05: it is noise.
+
 ---
 
 ## 1. Why identical inputs give byte-identical outputs
