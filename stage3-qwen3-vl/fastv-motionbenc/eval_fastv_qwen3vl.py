@@ -127,10 +127,24 @@ def apply_fastv(model, fastv_k: int = 2, fastv_r: float = 0.85):
                 return None
             kw = dict(k_)
             am = kw.get("attention_mask", None)
-            if am is not None and am.dim() == 4 and am.shape[-1] == seq_len:
-                kw["attention_mask"] = am + state["add"].to(am.dtype)
-                return (a_, kw)
-            return None
+            # BUILD-MASK: under sdpa Qwen3-VL passes attention_mask=None (pure
+            # causal) and passes it POSITIONALLY. Adding to None silently dropped
+            # our pruning mask, which is why the port printed ACTIVE but produced
+            # byte-identical output. So: if no mask exists, construct a full 4D
+            # additive causal mask and fold the pruning into it.
+            dt = add.dtype
+            if am is None:
+                neg = _torch.finfo(dt).min
+                causal = _torch.full((seq_len, seq_len), neg, dtype=dt, device=add.device)
+                causal = _torch.triu(causal, diagonal=1)          # allow j <= i
+                am = causal.unsqueeze(0).unsqueeze(0)             # (1,1,S,S)
+            elif am.dim() != 4 or am.shape[-1] != seq_len:
+                return None
+            kw["attention_mask"] = am + add.to(am.dtype)
+            # the layer may also receive it positionally (args=1 seen in diag)
+            if len(a_) >= 2 and hasattr(a_[1], "dim"):
+                a_ = list(a_); a_[1] = kw["attention_mask"]; a_ = tuple(a_)
+            return (a_, kw)
 
         handles = []
         if fastv_k - 1 >= 0:
