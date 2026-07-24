@@ -41,7 +41,7 @@ def load_model(model_path: str):
 
     tokenizer, model, image_processor, _ = load_pretrained_model(
         model_path, None,
-        get_model_name_from_path(model_path),
+        get_model_name_from_path(model_path, attn_implementation="sdpa"),
         device_map="cuda:0",
     )
     model.half().eval()

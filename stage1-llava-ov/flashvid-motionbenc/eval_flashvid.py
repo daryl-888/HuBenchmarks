@@ -23,7 +23,11 @@ def load_model(model_path, retention_ratio=0.15, alpha=0.7, temporal_threshold=0
     _sys.path.insert(0,"/project/rhu/dpalfaro/code/FlashVID")
     from llava.model.builder import load_pretrained_model
     from flashvid import flashvid as apply_flashvid
-    t,m,ip,_=load_pretrained_model(model_path,None,"llava_qwen")
+    # attn_implementation="sdpa" is REQUIRED: the builder defaults to
+    # flash_attention_2, which is not installed in this env (ImportError:
+    # "flash_attn seems to be not installed"). sdpa is the verified-working path.
+    t,m,ip,_=load_pretrained_model(model_path,None,"llava_qwen",
+                                   attn_implementation="sdpa")
     m=apply_flashvid(m,retention_ratio=retention_ratio,alpha=alpha,
                      temporal_threshold=temporal_threshold,do_segment=True)
     m=m.cuda(); m.eval()
