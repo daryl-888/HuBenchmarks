@@ -1,180 +1,135 @@
-# Master Results Table — HuBenchmarks
+# Master Results — HuBenchmarks / MotionBench
 
-> **Last updated**: 2026-07-23 (late session — smoke-verification pass)
-> **Benchmark**: MotionBench — 8,052 MCQ video samples, 4,018 scoreable, 4,034 NA
-> **Standard eval**: 32 frames, `do_sample=False`, `max_new_tokens=16`, letter-match scoring, NA-skip
+**Updated** 2026-07-23 · **Benchmark** MotionBench (8,052 samples · 4,018 scoreable · 4,034 NA)
+**Standard config** 32 frames · retention 0.15 where the method exposes one · `do_sample=False` · `max_new_tokens=16` · letter-match scoring · NA skipped
 
-> **Critical Correction (2026-07-23)**: `llava-ov-7b` already uses Qwen2 internally (`LlavaQwenForCausalLM`, `hidden_size=3584`). The "qwen_1_5" vs "qwen_2" distinction is **only a conv template difference** (prompt formatting), not different model weights. The duplicate `llava-ov-7b-qwen2` directory on Carya has been deleted. Both columns in the table below run the **same model** with different templates — identical results are expected and correct.
+**Goal** — 11 methods × 2 backbones (LLaVA-OV-7B, Qwen3-VL-8B) = **22 cells**, each a paper-exact implementation verified to actually engage.
 
 ---
 
-## 📊 Results by Stage
+## 1. Legend
 
-### Stage 1 — LLaVA-OV-7B (`llava-ov-7b`, `LlavaQwenForCausalLM`) *(Mid-2024)*
-*12/13 methods complete, VisionZip rerunning*
+| Mark | Meaning |
+|:---:|---|
+| ✅ | Verified: method provably engages (smoke-gated, predictions diverge from baseline) |
+| 🟡 | Provisional: number exists but predates the verification harness — **not** gated |
+| ❌ | Invalid: silent no-op, crash, or below random. **Not a result.** |
+| 🔄 | In flight |
+| 📋 | Not yet implemented |
 
-> **Verification status (2026-07-23)** — every method now smoke-tested with
-> `check_run.py --smoke` to confirm it actually engages (not a silent no-op):
+> **Read this before quoting any number.** Every full-run figure below was produced
+> **before** today's fixes and carries no `enabled` flag, so none was divergence-gated.
+> They are the best available figures but remain **provisional (🟡)** until Wave 2
+> re-runs them. Numbers marked ❌ are known-invalid and must not be reported.
+
+---
+
+## 2. Verification status — LLaVA-OV-7B (10/11 methods verified)
+
+| Method | Engages? | Evidence / fix required to get there |
+|---|:---:|---|
+| **FastV** | ✅ | Rebuilt paper-exact from the authors' code. `img_len=6273 keep=941` (15%); 2/4 predictions diverge from baseline |
+| **DyCoke** | ✅ | Builder defaulted to flash_attn (absent) → sdpa |
+| **HoliTom** | ✅ | — |
+| **AIM** | ✅ | — |
+| **STTM** | ✅ | — |
+| **MDP3** | ✅ | `libnccl.so.2` lives in the conda env, not `mdp3_pkgs`; arg is `--pool-frames` |
+| **PruneVID** | ✅ | On its real PLLaVA backbone. The *LLaVA-OV port* is inert (see ❌ below) |
+| **VisionZip** | ✅ | `output_ids[:, input_ids.shape[1]:]` discarded the whole response → 100% empty. Slice removed |
+| **FlashVID** | ✅ | 3 bugs: `--frame-counts` not `--num_frames`; motionbench variant loaded `LlavaLlamaForCausalLM` at retention 0.10; flash_attn → sdpa |
+| **VideoITG** | ⚠️ | Runs, but its infer script emits no `*_params` block, so engagement can't be confirmed |
+| **DyTo** | ❌ | **Never ran.** 5 import failures (`LlavaLlamaForCausalLM`). Deferred to last |
+
+---
+
+## 3. Stage 1 — LLaVA-OV-7B (provisional numbers)
+
+| # | Method | Overall | Act.Order | Cam.Motion | Loc.Motion | Mot.Rec. | Mot.Obj. | Rep.Count | Params |
+|:-:|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|---|
+| 1 | **DyCoke** 🟡 | **53.36%** | 38.92% | 48.83% | 55.68% | 58.19% | 70.87% | 25.25% | l=3, p=0.7, k=0.7 |
+| 2 | **FlashVID** (0.25) 🟡 | **53.36%** | 42.20% | 47.53% | 55.13% | 57.58% | 71.74% | 23.75% | retention=0.25 |
+| 3 | **FlashVID** (0.15) 🟡 | **53.29%** | 39.69% | 45.71% | 54.03% | 57.85% | 71.88% | 28.25% | retention=0.15 |
+| 4 | **HoliTom** 🟡 | **53.14%** | 40.85% | 49.61% | 52.56% | 57.04% | 71.45% | 27.25% | RETAIN=0.15, T=0.80, k=18, r=0.5 |
+| 5 | **MDP3** 🟡 | **53.06%** | 40.46% | 49.61% | 53.48% | 56.77% | 71.59% | 26.50% | pool=32, select=8 |
+| 6 | **VideoITG** 🟡 | **52.86%** | 40.08% | 47.01% | 53.66% | 57.58% | 70.14% | 26.75% | grounding: 512 sample, 32 select |
+| 7 | **AIM** 🟡 | **52.84%** | 41.43% | 47.79% | 54.03% | 57.10% | 71.88% | 22.25% | bipartite merge + PageRank |
+| 8 | **STTM-v2** 🟡 | **51.87%** | 39.11% | 48.83% | 53.66% | 53.59% | 71.16% | 29.25% | layer=2, thresh=0.85 |
+| — | *Backbone baseline* | *52.66%* | *40.46%* | *45.19%* | *55.49%* | *57.04%* | *71.16%* | *23.75%* | *plain LLaVA-OV-7B* |
+| — | **FastV** 🔄 | — | | | | | | | k=2, r=0.85 (keeps 15%) — Wave 2 |
+| — | **VisionZip** 🔄 | — | | | | | | | dominant=54, contextual=10 — Wave 2 |
+
+### ❌ Invalid entries — do not report
+
+| Label | Number | Why it is not a result |
+|---|:---:|---|
+| "FastV" | 52.66% | `apply_fastv()` was a stub, `enabled: false`. This is the bare backbone |
+| "PruneVID (OV port)" | 52.66% | **0/8052** predictions differ from the inert run above. VTP never fired |
+| "VisionZip" | 0.00% ×3 | Output-slicing bug (fixed today) discarded every response |
+| "VideoITG (simplified)" | 34.89% | Single-stage, no grounding — not the method |
+| "FlashVID (qwen15)" | 51.22% | Ran at retention 0.10 with the wrong model class |
+
+---
+
+## 4. Stage 3 — Qwen3-VL-8B
+
+> **Was never runnable.** Every pre-existing env has transformers 4.45, which lacks
+> `Qwen3VLForConditionalGeneration`. New env **`qwen3vl`** (torch 2.6.0+cu124,
+> transformers 5.14.1) fixes this.
 >
-> | Method | Smoke gate | Note |
-> |---|---|---|
-> | FastV | ✅ **PASS — genuinely prunes** | rebuilt paper-exact; `img_len=6273 keep=941` (15%); 2/4 preds diverge from baseline |
-> | DyCoke | ✅ PASS | fixed: builder defaulted to flash_attn (not installed) → sdpa |
-> | HoliTom | ✅ PASS | |
-> | AIM | ✅ PASS | |
-> | STTM | ✅ PASS | |
-> | PruneVID (PLLaVA) | ✅ PASS | real backbone; the *OV port* remains inert |
-> | VideoITG | ⚠️ PASS + warn | runs, but infer script emits no `*_params` block |
-> | MDP3 | ✅ **smoke PASS** + full run PASS (53.06%) | fixed `libnccl.so.2` path + `--pool-frames` (not `--num_frames`) |
-> | FlashVID | ✅ **PASS** | 3 bugs: `--frame-counts` not `--num_frames`; the *motionbench* variant loaded **LlavaLlamaForCausalLM** (wrong class, FlashVID refused to wrap) at retention **0.10**; and flash_attn default → sdpa. Now uses `eval_flashvid.py` @ 0.15. |
-> | VisionZip | ✅ **FIXED → PASS** | root cause: code sliced `output_ids[:, input_ids.shape[1]:]`, but LLaVA-1.5's `generate()` returns ONLY new tokens — the slice discarded the whole response. Now 0/50 empty. |
-> | DyTo | ❌ **never ran** — 5 consecutive import failures | its one 5.25% "result" emitted free-form captions, not letters; below random. Not a result. |
-
-
-
-> ### ⚠️ Status of the numbers in the table below (2026-07-23)
->
-> **Every full-run number below was produced BEFORE today's fixes.** None of those
-> runs carries the new `enabled` instrumentation (all show `enabled=None` in their
-> summary.json), so none was divergence-gated. They are retained as the best
-> available figures, but they are **provisional** until re-run.
->
-> Specifically invalidated / suspect:
-> * **VisionZip 0.00%** (`visionzip_run1/ovqwen15/ovqwen2`) — produced by the
->   output-slicing bug fixed today. **Discard.** The 39.97% (`visionzip_run2_32f`)
->   predates it and is the only usable VisionZip figure so far.
-> * **FastV 52.66%** — `enabled: False`. Inert backbone, not FastV.
-> * **PruneVID-OV 52.66%** — 0/8052 predictions differ from that inert run.
-> * **FlashVID** — the motionbench variant ran at retention **0.10** with the wrong
->   model class; the 0.15/0.25 rows need re-running under the corrected script.
-> * **DyTo 5.25%** — emitted captions, not letters; below random. **Not a result.**
-> * **STTM-LLaVAVid 0.00%** (`sttm_llavavid_run1/run2`) — failed runs.
->
-> Wave 2 (full re-runs of the 10 verified methods) will replace these with gated numbers.
-
-| # | Model | Conference | Year | Overall | Act. Order | Cam. Motion | Loc. Motion | Mot. Rec. | Mot. Objs. | Rep. Count | Parameters | Notes |
-|---|-------|-----------|------|:-------:|:----------:|:----------:|:----------:|:---------:|:----------:|:----------:|------------|-------|
-| 1 | **DyCoke** | arXiv | 2024 | **53.36%** (2144/4018) | 38.92% (202/519) | 48.83% (188/385) | 55.68% (304/546) | 58.19% (860/1478) | 70.87% (489/690) | 25.25% (101/400) | l=3, p=0.7, k=0.7 | Best overall. Two-stage token merging + KV cache prune. |
-| 2 | **FlashVID** (0.25) | ICLR | 2026 | **53.36%** (2144/4018) | 42.20% (219/519) | 47.53% (183/385) | 55.13% (301/546) | 57.58% (851/1478) | 71.74% (495/690) | 23.75% (95/400) | retention_ratio=0.25 | ICLR 2026 Oral |
-| 3 | **FlashVID** (0.15) | ICLR | 2026 | **53.29%** (2141/4018) | 39.69% (206/519) | 45.71% (176/385) | 54.03% (295/546) | 57.85% (855/1478) | 71.88% (496/690) | 28.25% (113/400) | retention_ratio=0.15 | Standard retention ratio |
-| 4 | **HoliTom** | — | 2025 | **53.14%** (2135/4018) | 40.85% (212/519) | 49.61% (191/385) | 52.56% (287/546) | 57.04% (843/1478) | 71.45% (493/690) | 27.25% (109/400) | RETAIN_RATIO=0.15, T=0.80, k=18, r=0.5 | |
-| 5 | **MDP3** | arXiv | 2025 | **53.06%** (2132/4018) | 40.46% (210/519) | 49.61% (191/385) | 53.48% (292/546) | 56.77% (839/1478) | 71.59% (494/690) | 26.50% (106/400) | pool_frames=32, select_frames=8 | |
-| 6 | **VideoITG** | — | 2025 | **52.86%** (2124/4018) | 40.08% (208/519) | 47.01% (181/385) | 53.66% (293/546) | 57.58% (851/1478) | 70.14% (484/690) | 26.75% (107/400) | grounding: 512 sample, 32 select, 2fps | |
-| 7 | **AIM** | ICCV | 2025 | **52.84%** (2123/4018) | 41.43% (215/519) | 47.79% (184/385) | 54.03% (295/546) | 57.10% (844/1478) | 71.88% (496/690) | 22.25% (89/400) | aim env, eager attention | Bipartite soft matching + PageRank prune. |
-| — | **PruneVID (OV port)** — INERT | — | 2024 | **52.66%** (2116/4018) | 40.46% (210/519) | 45.19% (174/385) | 55.49% (303/546) | 57.04% (843/1478) | 71.16% (491/690) | 23.75% (95/400) | cluster_ratio=0.5, temporal_segment_ratio=0.25 | ⚠️ Byte-identical to the inert FastV baseline (2116/4018, all categories match). The VTP port to LLaVA-OV did NOT prune — this is the plain backbone, not a PruneVID result. Real PruneVID is on PLLaVA-7B → 44%, see Other Backbones. |
-| — | **Backbone baseline** (mislabelled "FastV") | — | 2024 | **52.66%** (2116/4018) | 40.46% (210/519) | 45.19% (174/385) | 55.49% (303/546) | 57.04% (843/1478) | 71.16% (491/690) | 23.75% (95/400) | k=2, r=0.5 (INERT) | ⚠️ NOT a FastV result. `apply_fastv()` is a stub — `enabled: false` in summary.json. This is the plain LLaVA-OV-7B backbone. Do not rank as a method. |
-| 10 | **STTM-v2** | — | 2025 | **51.87%** (2084/4018) | 39.11% (203/519) | 48.83% (188/385) | 53.66% (293/546) | 53.59% (792/1478) | 71.16% (491/690) | 29.25% (117/400) | sa_start_layer_idx=2, sa_tree_thresh=0.85 | |
-| 11 | **FlashVID** (0.15, qwen15) | ICLR | 2026 | **51.22%** (2058/4018) | 39.50% (205/519) | 41.04% (158/385) | 54.95% (300/546) | 54.19% (801/1478) | 71.16% (491/690) | 25.75% (103/400) | retention_ratio=0.15, qwen_1_5 template | qwen_1_5 template run only. |
-| 12 | **VideoITG** (simplified) | — | 2025 | **34.89%** (1402/4018) | 14.45% (75/519) | 45.19% (174/385) | 55.49% (303/546) | 44.65% (660/1478) | 20.29% (140/690) | 12.50% (50/400) | single-stage, no grounding | |
-| 13 | **VisionZip** | — | 2024 | — | — | — | — | — | — | — | dominant=54, contextual=10 | 🔄 Rerunning (7768829, 7769201) |
-
-### Stage 2 — LLaVA-Video-7B (`llava-video-7b`) *(Late-2024)*
-*ALL CANCELLED 2026-07-23 — user descoped Stage 2. Jobs 7769192-7769209 killed to free nodes.*
-
-| Method | Overall | Status | Job ID |
-|--------|:-------:|:------:|:------:|
-| AIM | — | ⚡ RUNNING | 7769192 |
-| FastV | — | ⚡ RUNNING | 7769194 |
-| DyCoke | — | ⏳ PENDING | 7769193 |
-| FlashVID | — | ⏳ PENDING | 7769195 |
-| HoliTom | — | ⏳ PENDING | 7769196 |
-| MDP3 | — | ⏳ PENDING | 7769197 |
-| VideoITG | — | ⏳ PENDING | 7769198 |
-| STTM | — | ⏳ PENDING | 7769209 |
-
-*Not applicable to Stage 2: FastVID (model bug), PruneVID (PLLaVA-7B), VisionZip (LLaVA-1.5), DyTo (Vicuna)*
-
-### Stage 3 — Qwen3-VL-8B (`qwen3-vl-8b`) *(Late-2025)*
-
-> **UNBLOCKED 2026-07-23.** Stage 3 was never runnable: every pre-existing conda env
-> has transformers 4.45, which lacks `Qwen3VLForConditionalGeneration`. New env
-> **`qwen3vl`** (torch 2.6.0+cu124, transformers 5.14.1) loads it. Baseline verified
-> (smoke 7770277 = 50% on 8 samples) and the **full baseline is running (7770357)**.
->
-> **Frame bug found+fixed:** `Qwen3VLVideoProcessor` has `do_sample_frames=True, fps=2`,
-> so it RE-SAMPLED our frames and ignored `--num_frames` (warning: "Defaulting to
-> fps=24"). Fixed with `do_sample_frames=False`; verified `requested=32 given=32`.
+> **Frame bug fixed:** `Qwen3VLVideoProcessor` has `do_sample_frames=True, fps=2`, so it
+> re-sampled our frames and ignored `--num_frames`. With `do_sample_frames=False`,
+> verified `requested=32 given=32`.
 >
 > **All 8 existing "ports" are fake** — each `eval_<m>.py` is the same baseline script
 > applying no method. They need real re-implementation, not submission.
 
 | Method | Overall | Status |
-|--------|:-------:|:------:|
-| AIM | — | 📋 Ported, not submitted |
-| DyCoke | — | 📋 Ported, not submitted |
-| FastV | — | 📋 Ported, not submitted |
-| FlashVID | — | 📋 Ported, not submitted |
-| HoliTom | — | 📋 Ported, not submitted |
-| MDP3 | — | 📋 Ported, not submitted |
-| STTM | — | 📋 Ported, not submitted |
-| VideoITG | — | 📋 Ported, not submitted |
-
-### Other Backbones
-*Methods with non-LLaVA backbones (separate evaluation track)*
-
-| Method | Backbone | Overall | Status | Job ID |
-|--------|----------|:-------:|:------:|:------:|
-| DyTo | LLaVA-NeXT Vicuna-7B | — | 🔄 PENDING (builder patched) | 7769212 |
-| PruneVID | PLLaVA-7B | **44.00%** (1768/4018) | ✅ Real result, `pruning_enabled: True` (prunevid_run2) | — |
-| VisionZip | LLaVA-v1.5-7b | 39.97% | 🔄 Stage 1 rerun (Vicuna LLM) | 7768829, 7769201 |
-| STTM-LLaVAVid | LLaVA-Video-7B | **53.33%** | ✅ Experiment run (job 7706552) | — |
-| iMove | LLaVA-NeXT | — | ❌ No public code | — |
-| TrajViT | LLaVA-NeXT | — | ❌ No public code | — |
+|---|:---:|---|
+| **Baseline** | 🔄 | Full run in flight (job 7770357) — Stage-3 Step 0 and the `--vs-baseline` reference for every port |
+| FastV | 📋 | Wave 3 #1 — algorithm already resolved on LLaVA-OV |
+| DyCoke, HoliTom | 📋 | Wave 3 #2 |
+| VisionZip, AIM, MDP3, VideoITG, FlashVID | 📋 | Wave 3 #3 |
+| PruneVID, STTM, DyTo | 📋 | Wave 3 #4 — likely **architecture-incompatible** (STTM patches Qwen2 attention; DyTo is Vicuna-bound) |
 
 ---
 
-## Template Comparison: qwen_1_5 vs qwen_2
+## 5. Other backbones (separate track)
 
-| Model | qwen_1_5 | qwen_2 | Delta | Notes |
-|-------|:--------:|:------:|:-----:|-------|
-| DyCoke | **53.36%** | **53.36%** | 0.00 | Identical — template has no effect |
-| HoliTom | **53.14%** | **53.14%** | 0.00 | Identical |
-| MDP3 | **53.06%** | **53.06%** | 0.00 | Identical |
-| Backbone baseline (via FastV stub) | **52.66%** | **52.66%** | 0.00 | Identical — plain backbone, both templates |
-| FlashVID (0.15) | **51.22%** | **53.29%** | -2.07 | ⚠️ Different results! Only method with diff |
+| Method | Backbone | Overall | Status |
+|---|---|:---:|---|
+| PruneVID | PLLaVA-7B | **44.00%** 🟡 | Real result (`pruning_enabled: True`) |
+| VisionZip | LLaVA-1.5-7B | **39.97%** 🟡 | Only usable VisionZip figure; the 0.00% runs are ❌ |
+| STTM-LLaVAVid | LLaVA-Video-7B | **53.33%** 🟡 | `sttm_llavavid_t80_full` |
+| DyTo | LLaVA-NeXT Vicuna-7B | ❌ 5.25% | Emitted captions, not letters. Below random. Not a result |
+| iMove, TrajViT | — | — | ❌ No public code / weights |
 
-FlashVID's result difference (51.22% vs 53.29%) suggests one of its runs may have had different hyperparameters or a different code path — not just a template difference. Worth investigating.
-
----
-
-## Currently Running / Queued (2026-07-23 13:58 CDT)
-
-| Job ID | Model | Stage | Status | Time |
-|:------:|-------|:-----:|:------:|:----:|
-| 7768241 | MDP3 OV1.5 rerun | Stage 1 | ⚡ RUNNING | ~3h |
-| 7768829 | VisionZip v1 | Stage 1 | ⚡ RUNNING | ~2.5h |
-| 7769192 | stage2_aim | Stage 2 | ⚡ RUNNING | ~20m |
-| 7769194 | stage2_fastv | Stage 2 | ⚡ RUNNING | ~20m |
-| 7769212 | DyTo (vicuna) | Other | ⏳ PENDING | — |
-| 7769193 | stage2_dycoke | Stage 2 | ⏳ PENDING | — |
-| 7769195 | stage2_flashvid | Stage 2 | ⏳ PENDING | — |
-| 7769196 | stage2_holitom | Stage 2 | ⏳ PENDING | — |
-| 7769197 | stage2_mdp3 | Stage 2 | ⏳ PENDING | — |
-| 7769198 | stage2_videoitg | Stage 2 | ⏳ PENDING | — |
-| 7769201 | VisionZip v3 | Stage 1 | ⏳ PENDING | — |
-| 7769209 | stage2_sttm | Stage 2 | ⏳ PENDING | — |
+*Stage 2 (LLaVA-Video-7B) was descoped 2026-07-23; those jobs were cancelled.*
 
 ---
 
-## Conv Template Reference
+## 6. Known duplicate rows (to dedupe)
 
-| Template | When to Use |
-|----------|-------------|
-| `qwen_1_5` | Original template for LLaVA-OV. Standard. |
-| `qwen_2` | Alternative prompt format. Produces identical results (minor template-only diff). |
+Verified at prediction level — **0/8052 differ**, i.e. the same run recorded under
+several names (the old "ovqwen15 vs ovqwen2" split was the *same model*):
 
-All numbers above use the `qwen_2` template unless otherwise noted. The `qwen_1_5` results are listed separately only for FlashVID where a discrepancy was observed.
+* DyCoke 53.36% → `ovqwen_dycoke_run1`, `dycoke_ovqwen15_fresh`, `dycoke_ovqwen2_fresh`
+* MDP3 53.06% → `mdp3_qwen15_run`, `mdp3_ovqwen15_fresh`, `ovqwen2_mdp3_run1`
+* HoliTom 53.14%, VideoITG 52.86% → 2 dirs each
 
-## Subcategory Reference
+⚠️ `flashvid_run4` ties DyCoke's score exactly but differs in **1240/8052** predictions —
+same number, different behaviour. **Score-matching alone is never evidence.**
 
-| Subcategory | Total Scoreable |
-|-------------|:---------------:|
-| Action Order | 519 |
-| Camera Motion | 385 |
-| Location-related Motion | 546 |
-| Motion Recognition | 1,478 |
-| Motion-related Objects | 690 |
-| Repetition Count | 400 |
-| **Total Scoreable** | **4,018** |
-| NA (skipped) | 4,034 |
-| **Total Samples** | **8,052** |
+---
+
+## 7. Reference
+
+**Subcategories** — Action Order 519 · Camera Motion 385 · Location-related Motion 546 ·
+Motion Recognition 1,478 · Motion-related Objects 690 · Repetition Count 400 · **Total 4,018**
+(+4,034 NA = 8,052 samples).
+
+**Conv template** — `qwen_1_5` and `qwen_2` differ only in prompt formatting, not weights.
+`llava-ov-7b` already uses Qwen2 internally (`LlavaQwenForCausalLM`); the duplicate
+`llava-ov-7b-qwen2` weights directory was a byte-for-byte copy and has been deleted.
+
+**Verification** — `python3 scripts/check_run.py <run> --expect-method <m> [--smoke] [--vs-baseline <ref>]`.
+0 differing predictions vs the backbone ⇒ silent no-op ⇒ the method did not run.
