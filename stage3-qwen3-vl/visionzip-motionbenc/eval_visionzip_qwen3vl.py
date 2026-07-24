@@ -78,60 +78,59 @@ def apply_visionzip_contextual(model, contextual_num=1750):
     tgt = vis.blocks[-2].attn
     tgt.register_forward_hook(_grab_metric, with_kwargs=True)
 
-    orig = vis.forward
+    # WHERE TO HOOK — this cost two failed attempts, so it is worth stating:
+    # Qwen3VLVisionModel.forward ends with
+    #     merged_hidden_states = self.merger(hidden_states)
+    #     return BaseModelOutputWithDeepstackFeatures(last_hidden_state=hidden_states, ...)
+    # i.e. the tensor the LLM actually consumes is the MERGER's output, while
+    # `last_hidden_state` carries the UN-merged patches. Overwriting
+    # last_hidden_state (attempt 1) or returning a bare tensor (attempt 2) is
+    # therefore discarded downstream — the port logged ACTIVE with 0/8 divergence
+    # and `tokens=46656`, the pre-merger patch count rather than the ~11.6k the
+    # LLM sees. So we hook `self.merger` and reduce ITS output.
+    merger = getattr(vis, "merger", None)
+    if merger is None:
+        raise RuntimeError("Qwen3-VL vision tower has no .merger to hook")
 
-    def vz_forward(self, *a, **kw):
-        out = orig(*a, **kw)
-        m = metric_store.get("k")
-        if m is None:
+    state = {"logged": False}
+
+    def _reduce(module, inp, out):
+        feats = out
+        if not hasattr(feats, "dim"):
             return out
-        # Qwen3VLModel.get_image_features calls self.visual(...) and consumes a
-        # BaseModelOutputWithDeepstackFeatures dataclass — returning a bare tensor
-        # here was silently ignored, which is why this port logged ACTIVE while
-        # producing 0/8 divergence. Extract the tensor, merge, then WRITE IT BACK
-        # into the same container the caller will read.
-        feats = None
-        if hasattr(out, "last_hidden_state"):
-            feats = out.last_hidden_state
-        elif isinstance(out, tuple):
-            feats = out[0]
-        elif hasattr(out, "dim"):
-            feats = out
-        if feats is None or not hasattr(feats, "dim") or feats.dim() < 2:
-            return out
-        n = feats.shape[-2] if feats.dim() == 3 else feats.shape[0]
+        flat = feats.reshape(-1, feats.shape[-1])
+        n = flat.shape[0]
         c_num = min(contextual_num, n)
         if c_num >= n:
             return out
-        mn = _F.normalize(m[:n].float(), dim=-1)
+        m = metric_store.get("k")
+        # VisionZip merges by similarity of the layer -2 KEY vectors. The merger
+        # output is shorter than the pre-merger patch stream, so fall back to the
+        # merged features themselves when the metric can't be aligned.
+        if m is not None and m.shape[0] >= n:
+            basis = _F.normalize(m[:n].float(), dim=-1)
+        else:
+            basis = _F.normalize(flat.float(), dim=-1)
         step = max(1, n // c_num)
-        target_idx = _torch.arange(0, n, step, device=mn.device)[:c_num]
-        mask = ~_torch.isin(_torch.arange(n, device=mn.device), target_idx)
-        sim = mn[mask] @ mn[target_idx].t()
+        target_idx = _torch.arange(0, n, step, device=flat.device)[:c_num]
+        keep_mask = ~_torch.isin(_torch.arange(n, device=flat.device), target_idx)
+        sim = basis[keep_mask] @ basis[target_idx].t()
         assign = sim.argmax(dim=1)
-        flat = feats.reshape(-1, feats.shape[-1])
         merged = flat[target_idx].clone().float()
         counts = _torch.ones(c_num, 1, device=flat.device)
-        src = flat[mask].float()
+        src = flat[keep_mask].float()
         merged.index_add_(0, assign, src)
         counts.index_add_(0, assign, _torch.ones(src.shape[0], 1, device=flat.device))
         merged = (merged / counts).to(feats.dtype)
-        if not getattr(self, "_vz_logged", False):
+        if not state["logged"]:
             import logging
-            logging.warning("VisionZip-contextual(Qwen3-VL) ACTIVE: tokens=%d -> %d "
+            logging.warning("VisionZip-contextual(Qwen3-VL) ACTIVE: merger out %d -> %d "
                             "(%.1f%%) [contextual-only; dominant half needs CLS]",
                             n, c_num, 100.0 * c_num / n)
-            self._vz_logged = True
-        merged = merged.unsqueeze(0) if feats.dim() == 3 else merged
-        # write back into whatever container the caller expects
-        if hasattr(out, "last_hidden_state"):
-            out.last_hidden_state = merged
-            return out
-        if isinstance(out, tuple):
-            return (merged,) + tuple(out[1:])
+            state["logged"] = True
         return merged
 
-    vis.forward = types.MethodType(vz_forward, vis)
+    merger.register_forward_hook(_reduce)
     return model
 
 
