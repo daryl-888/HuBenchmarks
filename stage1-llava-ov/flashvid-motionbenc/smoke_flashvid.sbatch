@@ -24,17 +24,14 @@ cd /project/rhu/dpalfaro
 
 /project/rhu/dpalfaro/conda/envs/flashvid/bin/python3 \
     /project/rhu/dpalfaro/code/stage1-llava-ov/flashvid-motionbenc/eval_flashvid.py \
-    --meta-file    /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
-    --video-roots  /project/rhu/MotionBench_Data/MotionBench \
-    --model-path   /project/rhu/dpalfaro/weights/llava-ov-7b \
-    --output-dir /project/rhu/dpalfaro/results/flashvid_smoke_${SLURM_JOB_ID} \
+    --model_path /project/rhu/dpalfaro/weights/llava-ov-7b \
+    --meta_path  /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
+    --output_dir /project/rhu/dpalfaro/results/flashvid_smoke_${SLURM_JOB_ID} \
     --num_frames 32 \
-    --conv-template qwen_2 \
-    --enable-flashvid \
-    --retention-ratio 0.15 \
+    --conv_template qwen_2 \
+    --retention_ratio 0.15 \
     --alpha 0.7 \
-    --temporal-threshold 0.8 \
-    --max-new-tokens 16 \
+    --temporal_threshold 0.8 \
     --limit 8
 
 OUT=/project/rhu/dpalfaro/results/flashvid_smoke_${SLURM_JOB_ID}
