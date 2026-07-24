@@ -62,8 +62,16 @@ def apply_dycoke(model, dycoke_l: int = 3, dycoke_p: float = 0.7,
     orig_forward = lm.forward
 
     def dycoke_forward(self, *args, **kwargs):
+        if not getattr(self, "_dycoke_entered", False):
+            import logging
+            logging.warning("Dycoke(Qwen3-VL): wrapper ENTERED, kwargs=%s", list(kwargs.keys()))
+            self._dycoke_entered = True
         vis_mask = kwargs.get("visual_pos_masks", None)
         inputs_embeds = kwargs.get("inputs_embeds", None)
+        if inputs_embeds is None:
+            for a in args:
+                if hasattr(a, "dim") and a.dim() == 3 and a.is_floating_point():
+                    inputs_embeds = a; break
         seq_len = inputs_embeds.shape[1] if inputs_embeds is not None else None
         if seq_len is None or seq_len <= 1 or vis_mask is None:
             return orig_forward(*args, **kwargs)
@@ -155,7 +163,7 @@ def load_model(model_path: str, enable_dycoke: bool = False,
         torch_dtype=torch.bfloat16,
         device_map="auto",
         trust_remote_code=True,
-        attn_implementation="eager" if enable_dycoke else "sdpa",
+        attn_implementation="sdpa",  # eager broke generation (empty output); request attn per-call
     )
     processor = AutoProcessor.from_pretrained(model_path, trust_remote_code=True)
     if enable_dycoke:

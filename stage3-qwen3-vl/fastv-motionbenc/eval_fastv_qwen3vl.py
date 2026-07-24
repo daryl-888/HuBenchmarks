@@ -97,8 +97,8 @@ def apply_fastv(model, fastv_k: int = 2, fastv_r: float = 0.85):
                     import logging
                     logging.warning(
                         "FastV(Qwen3-VL): layer %d returned no attention weights "
-                        "(attn_implementation must be 'eager') — NOT PRUNING.",
-                        fastv_k - 1)
+                        "under sdpa+output_attentions — NOT PRUNING. If this fires, "
+                        "the port needs a per-module eager swap.", fastv_k - 1)
                     self._fastv_noattn = True
                 return out
             recv = attn.mean(dim=1)[0, -1]                  # (kv_len,) last query row
