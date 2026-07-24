@@ -130,7 +130,7 @@ dramatically on Camera Motion (+18) and Motion-related Objects (+8).
 
 | Method | Backbone | Overall | Status |
 |---|---|:---:|---|
-| PruneVID | PLLaVA-7B | **44.00%** 🟡 | Real result (`pruning_enabled: True`) |
+| PruneVID | PLLaVA-7B | **44.13%** ✅ | Wave 2 gated (`enabled: True`). **Not run on LLaVA-OV**: its VTP is bound to PLLaVA — the OV port produced 0/8052 divergence (inert). PLLaVA-7B is its published backbone. |
 | VisionZip | LLaVA-1.5-7B | **39.97%** 🟡 | Only usable VisionZip figure; the 0.00% runs are ❌ |
 | STTM-LLaVAVid | LLaVA-Video-7B | **53.33%** 🟡 | `sttm_llavavid_t80_full` |
 | DyTo | LLaVA-NeXT Vicuna-7B | ❌ 5.25% | Emitted captions, not letters. Below random. Not a result |
