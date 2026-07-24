@@ -49,7 +49,7 @@ flight (~10h each — Qwen3-VL carries 11,664 visual tokens per sample).
 | AIM | 🔄 pending | ✅ verified | `after_merge=1750 keep=1750` |
 | MDP3 | 🔄 pending | ✅ verified | frame selection, pool 32 → 8 |
 | VideoITG | 🔄 pending | ✅ verified | grounded frame selection |
-| VisionZip | ❌ no-op | — | contextual-only port written, but **0/8 divergence** — the merge is computed and discarded. Not a result. |
+| VisionZip | 🔄 verifying | — | contextual-only variant; hook moved to `vis.merger` after two no-op attempts (7780504) |
 | PruneVID | 🟡 blocked | — | VTP core *is* separable, but its LLaVA-OV port is still inert — fix that first |
 | STTM, DyTo | ❌ | — | genuinely not portable ([why](../stage3-qwen3-vl/PORT_FEASIBILITY.md)) |
 
@@ -64,7 +64,8 @@ flight (~10h each — Qwen3-VL carries 11,664 visual tokens per sample).
 
 | Method | Backbone | Overall | Status |
 |---|---|:---:|---|
-| [PruneVID](methods/prunevid.md) | PLLaVA-7B | **44.13%** | ✅ (its published backbone; LLaVA-OV port was inert) |
+| [PruneVID](methods/prunevid.md) | PLLaVA-7B | **44.13%** | ✅ (its published backbone) |
+| PruneVID (LLaVA-OV port) | LLaVA-OV-7B | 🔄 pending | ✅ **now engages** — 4/8 divergence after switching to `PrunableDynamicCache.kv_cache`; was inert |
 | [VisionZip](methods/visionzip.md) | LLaVA-1.5-7B | **39.97%** | 🟡 |
 | STTM-LLaVAVid | LLaVA-Video-7B | **53.33%** | 🟡 |
 | [DyTo](methods/dyto.md) | Vicuna-7B | 🔄 | import fixed; verifying |
