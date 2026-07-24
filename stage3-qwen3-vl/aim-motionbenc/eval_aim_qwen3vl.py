@@ -136,7 +136,11 @@ def apply_aim(model, merge_steps: int = 4, prune_ratio: float = 0.15):
             #     seq_len) -- a fixed (S,S) mask is wrong there.
             #   * the model runs bf16; float32's finfo.min overflows bf16 to -inf
             #     and yields NaNs, so build the mask in the hidden-state dtype.
-            hs = a_[0] if len(a_) > 0 and hasattr(a_[0], "dim") else kw.get("hidden_states")
+            # hidden_states may arrive positionally OR as a kwarg (Qwen3-VL uses
+            # kwargs — verified ATTNDIAG len=0), so check both.
+            hs = kw.get("hidden_states")
+            if hs is None and len(a_) > 0 and hasattr(a_[0], "dim"):
+                hs = a_[0]
             if hs is None or hs.dim() != 3:
                 return None
             q_len = hs.shape[1]
