@@ -11,6 +11,7 @@ This folder is the replication hub: start here, then follow the links.
 | [RESULTS.md](RESULTS.md) | The authoritative results table — every method × backbone, with subcategories and verification status. |
 | [METHODOLOGY.md](METHODOLOGY.md) | How a run is defined, scored, and — critically — **verified to actually engage** (the anti-silent-failure gate). |
 | [DETERMINISM_AND_VALIDITY.md](DETERMINISM_AND_VALIDITY.md) | Why re-runs reproduce exactly, what that proves — and where this methodology is **flawed** (incl. significance testing). |
+| [VALIDITY_ASSESSMENT.md](VALIDITY_ASSESSMENT.md) | Critical self-audit: honesty & scoring-accuracy ratings per layer, with the significance tests behind them. |
 | [backbones/](backbones/) | One page per backbone: architecture, which methods run on it, and per-category baseline. |
 | [methods/](methods/) | One page per method: the algorithm, our port, parameters, and how to reproduce it. |
 
