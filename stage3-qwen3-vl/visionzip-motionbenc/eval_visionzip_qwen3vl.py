@@ -85,8 +85,19 @@ def apply_visionzip_contextual(model, contextual_num=1750):
         m = metric_store.get("k")
         if m is None:
             return out
-        feats = out[0] if isinstance(out, tuple) else out
-        if not hasattr(feats, "dim") or feats.dim() < 2:
+        # Qwen3VLModel.get_image_features calls self.visual(...) and consumes a
+        # BaseModelOutputWithDeepstackFeatures dataclass — returning a bare tensor
+        # here was silently ignored, which is why this port logged ACTIVE while
+        # producing 0/8 divergence. Extract the tensor, merge, then WRITE IT BACK
+        # into the same container the caller will read.
+        feats = None
+        if hasattr(out, "last_hidden_state"):
+            feats = out.last_hidden_state
+        elif isinstance(out, tuple):
+            feats = out[0]
+        elif hasattr(out, "dim"):
+            feats = out
+        if feats is None or not hasattr(feats, "dim") or feats.dim() < 2:
             return out
         n = feats.shape[-2] if feats.dim() == 3 else feats.shape[0]
         c_num = min(contextual_num, n)
@@ -111,7 +122,14 @@ def apply_visionzip_contextual(model, contextual_num=1750):
                             "(%.1f%%) [contextual-only; dominant half needs CLS]",
                             n, c_num, 100.0 * c_num / n)
             self._vz_logged = True
-        return merged.unsqueeze(0) if feats.dim() == 3 else merged
+        merged = merged.unsqueeze(0) if feats.dim() == 3 else merged
+        # write back into whatever container the caller expects
+        if hasattr(out, "last_hidden_state"):
+            out.last_hidden_state = merged
+            return out
+        if isinstance(out, tuple):
+            return (merged,) + tuple(out[1:])
+        return merged
 
     vis.forward = types.MethodType(vz_forward, vis)
     return model

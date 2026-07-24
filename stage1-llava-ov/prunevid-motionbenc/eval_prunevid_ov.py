@@ -154,7 +154,7 @@ def apply_prunevid(model, cluster_ratio=0.5, temporal_segment_ratio=0.25,
         drop = _torch.zeros(seq_len, dtype=_torch.bool, device=vis.device)
         drop[vis] = True
         drop[keep] = False
-        state = {"drop": drop}
+        state = {"drop": drop, "done": False}
 
         if not getattr(self, "_pv_logged", False):
             import logging
@@ -164,33 +164,31 @@ def apply_prunevid(model, cluster_ratio=0.5, temporal_segment_ratio=0.25,
                             100.0 * keep.numel() / n_tok, n_seg, selected_layer)
             self._pv_logged = True
 
-        def _mask(module, a_, k_):
-            hs = k_.get("hidden_states")
-            if hs is None and len(a_) and hasattr(a_[0], "dim"):
-                hs = a_[0]
-            if hs is None or hs.dim() != 3:
-                return None
-            q_len, dt = hs.shape[1], hs.dtype
-            neg = _torch.finfo(dt).min
-            add = _torch.zeros((1, 1, 1, seq_len), dtype=dt, device=hs.device)
-            add[0, 0, 0, state["drop"]] = neg
-            am = k_.get("attention_mask")
-            kw = dict(k_)
-            if am is None:
-                if q_len == 1:
-                    am = _torch.zeros((1, 1, 1, seq_len), dtype=dt, device=hs.device)
-                else:
-                    m = _torch.full((q_len, seq_len), neg, dtype=dt, device=hs.device)
-                    am = _torch.triu(m, diagonal=seq_len - q_len + 1).unsqueeze(0).unsqueeze(0)
-            elif am.dim() != 4:
-                return None
-            kw["attention_mask"] = am + add
-            if len(a_) >= 2 and hasattr(a_[1], "dim"):
-                a_ = list(a_); a_[1] = kw["attention_mask"]; a_ = tuple(a_)
-            return (a_, kw)
+        # LLaVA-OV's patched Qwen2Model.forward calls EVERY decoder layer with
+        # attention_mask=None (lines 1145/1154 of DyCoke's modeling_qwen2.py) and
+        # prunes through PrunableDynamicCache.kv_cache instead. An additive-mask
+        # hook is therefore silently discarded — which is why this port printed
+        # ACTIVE while producing 0/8 divergence. Use the mechanism the build
+        # actually honours: set kv_cache to the kept indices once, and every later
+        # layer + decode step gathers only those tokens.
+        def _install(module, a_, k_, out):
+            if state.get("done"):
+                return out
+            cache = k_.get("past_key_value") or k_.get("past_key_values")
+            if cache is None:
+                for cand in list(a_):
+                    if hasattr(cand, "kv_cache"):
+                        cache = cand
+                        break
+            if cache is None or not hasattr(cache, "kv_cache"):
+                return out
+            keep_idx = _torch.arange(seq_len, device=vis.device)[~state["drop"]]
+            cache.kv_cache = keep_idx.tolist()
+            state["done"] = True
+            return out
 
-        handles = [l.register_forward_pre_hook(_mask, with_kwargs=True)
-                   for l in self.layers[selected_layer:]]
+        handles = [self.layers[selected_layer].self_attn
+                   .register_forward_hook(_install, with_kwargs=True)]
         try:
             return orig_forward(*args, **kwargs)
         finally:
