@@ -34,7 +34,7 @@ POST_PROMPT = "\nAnswer with the option's letter from the given choices directly
 # ---------------------------------------------------------------------------
 
 
-def _attn_last_row(module, inp, kv_len):
+def _attn_last_row(module, inp, kv_len, kwargs=None):
     """
     Recover the LAST query row of attention weights from a Qwen3-VL attention
     module, without eager attention.
@@ -51,7 +51,14 @@ def _attn_last_row(module, inp, kv_len):
     """
     import torch as _t
     import logging
-    hs = inp[0] if isinstance(inp, (tuple, list)) and len(inp) else None
+    # Qwen3-VL calls the attention module with hidden_states as a KWARG, so the
+    # positional args tuple is EMPTY (verified: inp_type=tuple len=0). Look in
+    # kwargs first, then fall back to positional.
+    hs = None
+    if kwargs:
+        hs = kwargs.get("hidden_states")
+    if hs is None and isinstance(inp, (tuple, list)) and len(inp):
+        hs = inp[0]
     if not getattr(module, "_attndiag", False):
         logging.warning("ATTNDIAG: inp_type=%s len=%s hs=%s dim=%s has_qproj=%s head_dim=%s",
                         type(inp).__name__, len(inp) if hasattr(inp,"__len__") else None,
@@ -143,14 +150,14 @@ def apply_holitom(model, retain_ratio: float = 0.15, temporal_t: float = 0.80,
 
         state = {"done": False, "add": None}
 
-        def _merge(module, inp, out):
+        def _merge(module, inp, kwargs_, out):
             if state["done"]:
                 return out
             attn = out[1] if isinstance(out, tuple) and len(out) > 1 else None
             # sdpa returns attn_weights=None. Recompute just the last query
             # row from q/k — the exact quantity the paper ranks by.
             recv = (attn.mean(dim=1)[0, -1] if attn is not None
-                    else _attn_last_row(module, inp, seq_len))
+                    else _attn_last_row(module, inp, seq_len, kwargs_))
             if recv is None:
                 if not getattr(self, "_holitom_noattn", False):
                     import logging
@@ -215,7 +222,7 @@ def apply_holitom(model, retain_ratio: float = 0.15, temporal_t: float = 0.80,
 
         kk = min(holitom_k, len(self.layers) - 1)
         handles = [self.layers[max(0, kk - 1)].self_attn
-                   .register_forward_hook(_merge, with_kwargs=False)]
+                   .register_forward_hook(_merge, with_kwargs=True)]
         for i in range(kk, len(self.layers)):
             handles.append(self.layers[i]
                            .register_forward_pre_hook(_mask, with_kwargs=True))
