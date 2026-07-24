@@ -64,8 +64,30 @@ export HUVLLM_ENVS="${HUVLLM_ENVS:-$HUVLLM_ROOT/conda/envs}"
 # HuggingFace cache.
 export HF_HOME="${HF_HOME:-$HUVLLM_ROOT/cache/huggingface}"
 
-# Method source repositories (the authors' original code, cloned + patched).
-# See patches/ for the diffs we applied.
+# ---------------------------------------------------------------------------
+# Method source repositories (the authors' original code, cloned + patched)
+# ---------------------------------------------------------------------------
+# PINNED COMMITS — these are the exact upstream revisions that produced the
+# published results. Clone, check out the SHA, then apply patches/apply_all.sh.
+# Pinning matters: if an upstream repo force-pushes or rewrites history, only
+# these SHAs let you reconstruct the code we actually ran.
+#
+#   git clone https://github.com/KD-TAO/DyCoke        && git -C DyCoke    checkout $SHA_DYCOKE
+#   git clone https://github.com/chenllliang/FastV    && git -C FastV     checkout $SHA_FASTV
+#   git clone https://github.com/cokeshao/HoliTom     && git -C HoliTom   checkout $SHA_HOLITOM
+#   git clone https://github.com/sunh-23/MDP3         && git -C MDP3      checkout $SHA_MDP3
+#   git clone https://github.com/dvlab-research/VisionZip && git -C VisionZip checkout $SHA_VISIONZIP
+#   git clone https://github.com/visual-ai/prunevid   && git -C PruneVid  checkout $SHA_PRUNEVID
+#
+export SHA_DYCOKE="${SHA_DYCOKE:-dd7463498203}"
+export SHA_FASTV="${SHA_FASTV:-f95102a10acf}"
+export SHA_HOLITOM="${SHA_HOLITOM:-e9b2972f6895}"
+export SHA_MDP3="${SHA_MDP3:-45616806d117}"
+export SHA_VISIONZIP="${SHA_VISIONZIP:-8f86b55c6f00}"
+export SHA_PRUNEVID="${SHA_PRUNEVID:-b12600c6176c}"
+# DyTo: our copy has NO git history, so it cannot be pinned by SHA. Upstream is
+# github.com/Yunkang-Sun/DyTo — vendored files under $SRC_DYTO.
+
 export SRC_DYCOKE="${SRC_DYCOKE:-$HUVLLM_CODE/DyCoke}"
 export SRC_HOLITOM="${SRC_HOLITOM:-$HUVLLM_CODE/HoliTom}"
 export SRC_MDP3="${SRC_MDP3:-$HUVLLM_CODE/MDP3}"
