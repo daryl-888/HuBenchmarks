@@ -33,6 +33,46 @@ POST_PROMPT = "\nAnswer with the option's letter from the given choices directly
 # Model loading — Qwen3-VL native HuggingFace
 # ---------------------------------------------------------------------------
 
+
+def _attn_last_row(module, inp, kv_len):
+    """
+    Recover the LAST query row of attention weights from a Qwen3-VL attention
+    module, without eager attention.
+
+    Under sdpa `attn_weights` is None, and loading the whole model eager breaks
+    generation (verified: 100% empty output). But FastV/DyCoke/HoliTom are DEFINED
+    by attention ranking, so substituting a different signal would not be the
+    method. Instead we recompute just the row we need:
+
+        softmax( q_last · Kᵀ / sqrt(d) )   averaged over heads
+
+    That is one (1 × kv_len) row — negligible cost — and is exactly the quantity
+    the papers rank by.
+    """
+    import torch as _t
+    hs = inp[0] if isinstance(inp, (tuple, list)) and len(inp) else None
+    if hs is None or not hasattr(hs, "dim") or hs.dim() != 3:
+        return None
+    try:
+        q = module.q_proj(hs)                      # (b, s, n_q*d)
+        k = module.k_proj(hs)                      # (b, s, n_kv*d)
+    except Exception:
+        return None
+    b, s, _ = q.shape
+    d = getattr(module, "head_dim", None)
+    if not d:
+        return None
+    nq, nkv = q.shape[-1] // d, k.shape[-1] // d
+    q = q.view(b, s, nq, d).transpose(1, 2)        # (b, nq, s, d)
+    k = k.view(b, s, nkv, d).transpose(1, 2)       # (b, nkv, s, d)
+    if nq != nkv:                                   # GQA: repeat kv heads
+        k = k.repeat_interleave(nq // nkv, dim=1)
+    ql = q[:, :, -1:, :].float()                   # last query only
+    scores = _t.matmul(ql, k.float().transpose(-1, -2)) / (d ** 0.5)
+    w = _t.softmax(scores, dim=-1)                 # (b, nq, 1, s)
+    return w.mean(dim=1)[0, -1][:kv_len]           # (kv_len,) head-averaged
+
+
 def apply_dycoke(model, dycoke_l: int = 3, dycoke_p: float = 0.7,
                  dycoke_k: float = 0.7):
     """
@@ -102,20 +142,23 @@ def apply_dycoke(model, dycoke_l: int = 3, dycoke_p: float = 0.7,
             if state["done"]:
                 return out
             attn = out[1] if isinstance(out, tuple) and len(out) > 1 else None
-            if attn is None:
+            # sdpa returns attn_weights=None. Recompute just the last query
+            # row from q/k — the exact quantity the paper ranks by.
+            recv = (attn.mean(dim=1)[0, -1] if attn is not None
+                    else _attn_last_row(module, inp, seq_len))
+            if recv is None:
                 if not getattr(self, "_dycoke_noattn", False):
                     import logging
                     logging.warning("DyCoke(Qwen3-VL): no attention weights at "
                                     "layer %d (need eager) — NOT PRUNING.", dycoke_l)
                     self._dycoke_noattn = True
                 return out
-            recv = attn.mean(dim=1)[0, -1]
             top = survivors[recv[survivors].topk(n_keep2).indices]
-            drop = _torch.zeros(seq_len, dtype=_torch.bool, device=attn.device)
+            drop = _torch.zeros(seq_len, dtype=_torch.bool, device=recv.device)
             drop[vis_idx] = True          # start by dropping all visual tokens
             drop[top] = False             # keep the stage-2 winners
             add = _torch.zeros((1, 1, 1, seq_len), dtype=_torch.float32,
-                               device=attn.device)
+                               device=recv.device)
             add[0, 0, 0, drop] = _torch.finfo(_torch.float32).min
             state["add"] = add
             state["done"] = True
