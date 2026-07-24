@@ -90,6 +90,20 @@ def load_model(model_path: str, rope_scaling_factor: int = 2):
         rope_scaling_factor=rope_scaling_factor,
         device_map=None,
     )
+
+    # The llava-v1.6-vicuna-7b config ships mm_patch_merge_type="spatial_unpad"
+    # and image_aspect_ratio="anyres". For IMAGES that is right, but it forces
+    # prepare_inputs_labels_for_multimodal down the branch that builds a LIST of
+    # per-patch features (llava_arch.py ~312, `image_features = new_image_features`),
+    # while DyTo's own video path does
+    #     T, N, D = image_features.shape          # llava_arch.py:226
+    # which requires a 3-D TENSOR. Those two paths are mutually incompatible, and
+    # the mismatch surfaces as the misleading
+    #     'list' object has no attribute 'shape'
+    # at llava_arch.py:325. DyTo's temporal aggregation (FINCH + ToMe) operates on
+    # uniform per-frame features, so the flat path is the correct one for video.
+    model.config.mm_patch_merge_type = "flat"
+    model.config.image_aspect_ratio = "square"
     return tokenizer, model.cuda(), image_processor
 
 @torch.inference_mode()
@@ -174,6 +188,8 @@ def main():
                     pred = run_inference(tokenizer, model, image_processor, pf, isz,
                         s["qa"][0]["question"], args.conv_template, args.temporal_aggregation)
                 except Exception as e:
+                    import traceback as _tb
+                    LOGGER.warning("Sample %d FULL TRACE:\n%s", i, _tb.format_exc())
                     LOGGER.warning("Sample %d: %s", i, e)
                     torch.cuda.empty_cache()
             sc = score_prediction(pred, s["qa"][0]["answer"])
