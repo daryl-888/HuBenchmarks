@@ -98,3 +98,45 @@ run it.
 hole with the blocker stated — never filled with a baseline wearing the method's
 name (the FastV-stub / PruneVID-OV failure this project already had to correct).
 A *partial* implementation is acceptable **only** when labelled as such.
+
+---
+
+## DyTo (LLaVA-NeXT Vicuna) — blocked on an upstream dependency, 2026-07-24
+
+DyTo is its own backbone track (not a Qwen3-VL port), but it is the last unresolved
+cell, so the diagnosis is recorded here. Four real bugs were fixed in sequence, each
+revealed only after the previous one cleared:
+
+| # | Symptom | Root cause | Status |
+|---|---|---|---|
+| 1 | `ImportError: cannot import name 'LlavaLlamaForCausalLM'` | `dyto/llava/model/__init__.py` wraps its imports in `try/except: pass`, swallowing a real `ModuleNotFoundError` from an **absolute** `from llava.constants import ...` | ✅ fixed (alias `dyto.llava` as `llava`) |
+| 2 | `KeyError: 'image_seq_v3'` per sample | that conv template does not exist; the Vicuna backbone needs `vicuna_v1` | ✅ fixed |
+| 3 | CUDA OOM at 100 frames | needs ~5 GiB more than the 44 GiB card provides | ✅ fixed (32 frames; FINCH selects ~25 regardless) |
+| 4 | `'list' object has no attribute 'shape'` at `llava_arch.py:325` | the weights ship `mm_patch_merge_type="spatial_unpad"` / `image_aspect_ratio="anyres"`, which builds a **list** of per-patch features, but DyTo's own `temporal_aggregation` does `T, N, D = image_features.shape` and needs a **3-D tensor**. The two paths are mutually incompatible for video. | ✅ fixed (force `flat`/`square`) |
+| 5 | `FINCH() got an unexpected keyword argument 'tw_finch'` | **BLOCKED** — see below | ❌ open |
+
+### The remaining blocker
+
+`dyto/llava/model/llava_arch.py:192` calls
+
+```python
+c, num_clust, _ = FINCH(image, verbose=False, tw_finch=tw_finch)
+```
+
+but **no released `finch-clust` accepts `tw_finch`** (checked 0.1.0–0.2.3), and the
+upstream research repo `ssarfraz/FINCH-Clustering` keeps **TW-FINCH as a separate
+implementation, not a parameter**. DyTo therefore depends on a *fork* that merged
+the two, which its README does not identify.
+
+**This is an upstream packaging gap, not a bug in our harness.** Fabricating a
+`tw_finch` shim would silently change the clustering the paper specifies — exactly
+the "variant reported as the method" failure this project refuses to make. Options,
+in order of honesty:
+
+1. Obtain the exact FINCH fork DyTo used (needs the authors' clarification), or
+2. Run DyTo with standard FINCH and label the row **"DyTo (FINCH, not TW-FINCH)"**
+   as a documented variant, or
+3. Record DyTo as **not reproducible from published artifacts**.
+
+Progress note: DyTo now loads, builds prompts, and reaches its FINCH stage — bugs
+1–4 are genuinely fixed. Only the dependency remains.
