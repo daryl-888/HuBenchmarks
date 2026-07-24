@@ -53,16 +53,22 @@ patched. The diffs we applied are in [`patches/`](../patches/). Clone:
 
 ## 5. Conda environments
 
+> **Exact pins are in [`config/envs/`](../config/envs/)** — `pip freeze` captured
+> from the environments that produced the published results. Install with
+> `pip install -r config/envs/<env>.txt` rather than reconstructing from the prose
+> below. The versions listed here were **verified against the live environments**
+> on 2026-07-24 (earlier drafts of this table were wrong).
+
 Methods need **different** environments — they pin conflicting `transformers`
 versions. Key constraints (full detail in each method page):
 
 | Env | transformers | Used by |
 |---|---|---|
-| `dycoke11` | 4.45 | DyCoke, FastV, AIM, FlashVID, STTM, VisionZip, VideoITG |
-| `holitom` | **4.45.2** (exact) | HoliTom |
-| `mdp3` | 4.45 + DPP deps | MDP3 |
+| `dycoke11` | **4.40.0** (torch 2.12.0+cu130) | DyCoke, FastV, AIM, FlashVID, STTM, VisionZip, VideoITG |
+| `holitom` | **4.45.2** (exact, torch 2.12.0+cu130) | HoliTom |
+| `mdp3` | 4.40 + DPP/vlmeval deps | MDP3 |
 | `prunevid` | — | PruneVID (PLLaVA) |
-| `dyto` | **4.38.2**, torch 2.2.0 | DyTo |
+| `dyto` | **4.40.0** (torch 2.12.0+cu130) | DyTo |
 | `qwen3vl` | **5.14.1**, torch 2.6.0+cu124 | **all Qwen3-VL** (only env with `Qwen3VLForConditionalGeneration`) |
 
 **Do not** `pip install -r requirements.txt` in `dycoke11` / the sttm env — those
