@@ -106,14 +106,23 @@ within noise (~16 questions). **On LLaVA-OV, efficiency methods ≈ the backbone
 > `do_sample_frames=True, fps=2` was re-sampling and ignoring `--num_frames`; set
 > `do_sample_frames=False`, verified `requested=32 given=32`.
 
-Baseline subcategories (% correct): Action Order **46.1** · Camera Motion **63.1** ·
-Location-related Motion **65.0** · Motion Recognition **67.3** · Motion-related Objects
-**79.0** · Repetition Count **33.8**. Qwen3-VL beats LLaVA-OV in **every** category, most
-dramatically on Camera Motion (+18) and Motion-related Objects (+8).
+### Baseline subcategories — Qwen3-VL vs LLaVA-OV
+
+| Backbone | Overall | Act.Order | Cam.Motion | Loc.Motion | Mot.Rec. | Mot.Obj. | Rep.Count |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Qwen3-VL-8B** | **62.52%** (2512) | 46.1 | 63.1 | 65.0 | 67.3 | 79.0 | 33.8 |
+| LLaVA-OV-7B | 52.66% (2116) | 40.5 | 45.2 | 55.5 | 57.0 | 71.2 | 23.8 |
+| **Δ (Qwen3-VL − OV)** | **+9.86** | +5.6 | **+17.9** | +9.5 | +10.3 | +7.8 | +10.0 |
+
+Qwen3-VL beats LLaVA-OV in **every** subcategory — largest gap on **Camera Motion (+17.9)**,
+smallest on Action Order (+5.6). Even the hardest category for both (Repetition Count) rises
+from 23.8% → 33.8%.
+
+### Method ports
 
 | Method | Overall | Status |
 |---|:---:|---|
-| **Baseline** | **62.52%** (2512) | ✅ Verified full run |
+| **Baseline** | **62.52%** (2512) | ✅ Verified full run (subcategories above) |
 | FastV | 🔄 | Real port written. First smoke ran as baseline (empty output + no ACTIVE log) — eager attention broke generation; switched to sdpa, re-verifying (7776370) |
 | DyCoke, HoliTom | 🔄 | Real ports written; smokes showed no ACTIVE log (same eager issue) — fix pending after FastV confirms |
 | FlashVID, AIM, MDP3, VideoITG | 📋 | Real ports written (FlashVID/AIM/MDP3/VideoITG need no eager attention). Smokes not yet submitted |
