@@ -1,0 +1,89 @@
+# Setup
+
+Everything needed to run the benchmark on your own machine or cluster.
+
+## 1. Paths
+
+Every script uses hardcoded paths from our cluster (UH Carya). Redirect them by
+editing **[`config/paths.sh`](../config/paths.sh)** (copy to `paths.local.sh`
+first) and `source`-ing it. It defines `$W_LLAVA_OV`, `$MOTIONBENCH_META`,
+`$HUVLLM_RESULTS`, etc.
+
+## 2. Dataset — MotionBench
+
+Layout expected under `$MOTIONBENCH`:
+
+```
+MotionBench/
+├── video_info.meta.jsonl      # 8,052 records; each has qa[0].question / answer / question_type
+├── self-collected/            # .mp4 files
+└── public-dataset/            # .mp4 files
+```
+
+8,052 total samples · 4,018 scoreable · 4,034 `NA` (unanswerable, skipped in scoring).
+
+## 3. Model weights
+
+Download these HuggingFace snapshots into `$HUVLLM_WEIGHTS/<dir>`:
+
+| Config var | HF repo | Backbone role |
+|---|---|---|
+| `$W_LLAVA_OV` | `lmms-lab/llava-onevision-qwen2-7b-ov` | Stage 1 backbone (Qwen2 LLM) |
+| `$W_QWEN3VL` | `Qwen/Qwen3-VL-8B-Instruct` | Stage 3 backbone (Qwen3 LLM) |
+| `$W_PLLAVA` | `ermu2001/pllava-7b` | PruneVID (PEFT/LoRA — load with `use_lora=True`) |
+| `$W_VICUNA` | `liuhaotian/llava-v1.6-vicuna-7b` | DyTo |
+| `$W_LLAVA15` | `liuhaotian/llava-v1.5-7b` | VisionZip |
+| `$W_LLAVA_VIDEO` | `lmms-lab/LLaVA-Video-7B-Qwen2` | STTM-LLaVAVid (other-backbones) |
+| `$W_VIDEOITG` | `nvidia/VideoITG-8B` | VideoITG grounding stage |
+
+## 4. Method source repositories
+
+Each method wraps its authors' original code, cloned into `$HUVLLM_CODE/` and
+patched. The diffs we applied are in [`patches/`](../patches/). Clone:
+
+| Var | Repo |
+|---|---|
+| `$SRC_DYCOKE` | github.com/KD-TAO/DyCoke |
+| `$SRC_FASTV` | github.com/pkunlp-icler/FastV |
+| `$SRC_HOLITOM` | github.com/cokeshao/HoliTom |
+| `$SRC_MDP3` | (ICCV 2025 MDP3 frame selector) |
+| `$SRC_VISIONZIP` | github.com/dvlab-research/VisionZip |
+| `$SRC_PRUNEVID` | github.com/Visual-AI/PruneVid |
+| `$SRC_DYTO` | github.com/Yunkang-Sun/DyTo (vendors its own `llava` as `dyto.llava`) |
+
+## 5. Conda environments
+
+Methods need **different** environments — they pin conflicting `transformers`
+versions. Key constraints (full detail in each method page):
+
+| Env | transformers | Used by |
+|---|---|---|
+| `dycoke11` | 4.45 | DyCoke, FastV, AIM, FlashVID, STTM, VisionZip, VideoITG |
+| `holitom` | **4.45.2** (exact) | HoliTom |
+| `mdp3` | 4.45 + DPP deps | MDP3 |
+| `prunevid` | — | PruneVID (PLLaVA) |
+| `dyto` | **4.38.2**, torch 2.2.0 | DyTo |
+| `qwen3vl` | **5.14.1**, torch 2.6.0+cu124 | **all Qwen3-VL** (only env with `Qwen3VLForConditionalGeneration`) |
+
+**Do not** `pip install -r requirements.txt` in `dycoke11` / the sttm env — those
+were cloned from a ByteDance internal dump with private packages.
+
+### The `PYTHONNOUSERSITE` trap
+On a shared cluster, `pip install` may land packages in `~/.local`, which every
+sbatch ignores (`PYTHONNOUSERSITE=1`) — so a job fails on a package you "installed".
+Always install into the env explicitly and verify:
+```bash
+SP=$HUVLLM_ENVS/<env>/lib/python3.10/site-packages
+pip install --no-cache-dir --target=$SP <pkg>
+PYTHONNOUSERSITE=1 $HUVLLM_ENVS/<env>/bin/python3 -c "import <pkg>; print(<pkg>.__file__)"
+# printed path must be under the ENV, not ~/.local
+```
+
+## 6. Two backbone-specific gotchas
+
+- **eager attention breaks LLaVA-OV generation** (100% empty output). Load with
+  `attn_implementation="sdpa"`. DyCoke's builder defaults to flash-attn, which
+  isn't installed — pass `sdpa` explicitly.
+- **Qwen3-VL re-samples frames.** `Qwen3VLVideoProcessor` has
+  `do_sample_frames=True, fps=2`, so it ignores your `--num_frames` unless you
+  pass `do_sample_frames=False` to the processor.

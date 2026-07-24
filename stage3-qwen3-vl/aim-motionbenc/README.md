@@ -1,4 +1,4 @@
-# aim — LLaVA-OV-7B
+# aim — Qwen3-VL-8B
 
 Full documentation: **[docs/methods/aim.md](../../docs/methods/aim.md)** — algorithm, parameters,
 results with per-category breakdown, and the exact reproduce command.

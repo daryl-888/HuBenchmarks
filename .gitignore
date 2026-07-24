@@ -1,13 +1,21 @@
-/PruneVid/
-/STTM/
+# Python
 __pycache__/
-*.mp4
+*.pyc
+*.pyo
 
-# Root-level results (should be in results/ only)
+# Media / large artifacts (not committed; see docs/SETUP.md for dataset)
+*.mp4
+*.safetensors
+*.bin
+
+# Run outputs (belong in $HUVLLM_RESULTS, not the repo)
 results_*.out
 results_*.json
+*.deprecated
 
-# Temp files
-git_status.txt
-git_status_temp.txt
-*.pyc
+# Local config override
+config/paths.local.sh
+
+# Temp / editor
+git_status*.txt
+.vscode/
