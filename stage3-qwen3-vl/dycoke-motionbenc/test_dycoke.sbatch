@@ -23,11 +23,8 @@ export TRANSFORMERS_OFFLINE=1
 cd /project/rhu/dpalfaro
 
 /project/rhu/dpalfaro/conda/envs/dycoke11/bin/python3 -m lmms_eval \
-     \
     --model llava_onevision \
     --model_args pretrained=/project/rhu/dpalfaro/weights/llava-ov-7b,conv_template=qwen_1_5,model_name=llava_qwen,dycoke=True,dycoke_l=3,dycoke_p=0.7,dycoke_k=0.3 \
-     \
-     \
     --limit 50 \
     --output_path /project/rhu/dpalfaro/results/dycoke_test_${SLURM_JOB_ID} \
     

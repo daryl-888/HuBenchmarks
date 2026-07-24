@@ -37,10 +37,7 @@ cd /project/rhu/dpalfaro
     -m lmms_eval \
     --model llava_onevision \
     --model_args pretrained=/project/rhu/dpalfaro/weights/llava-ov-7b,conv_template=qwen_2,model_name=llava_qwen,attn_implementation=eager \
-     \
-     \
     --limit 50 \
-     \
     _suffix aim_test \
     --output_path /project/rhu/dpalfaro/results/aim_test_${SLURM_JOB_ID} \
     

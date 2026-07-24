@@ -36,5 +36,4 @@ cd /project/rhu/dpalfaro
     --retention-ratio 0.15 \
     --alpha 0.7 \
     --temporal-threshold 0.8 \
-     \
     --max-new-tokens 16

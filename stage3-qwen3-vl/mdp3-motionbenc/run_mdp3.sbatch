@@ -74,7 +74,6 @@ cd /project/rhu/dpalfaro
     --video-roots  /project/rhu/MotionBench_Data/MotionBench \
     --model-path   /project/rhu/dpalfaro/weights/qwen3-vl-8b \
     --output-dir   /project/rhu/dpalfaro/results/mdp3_run1 \
-     \
     --pool-frames  32 \
     --select-frames 8 \
     --resume

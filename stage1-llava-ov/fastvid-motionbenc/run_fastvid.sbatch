@@ -25,10 +25,7 @@ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 cd /project/rhu/dpalfaro
 
 /project/rhu/dpalfaro/conda/envs/fastvid/bin/python3 /project/rhu/dpalfaro/code/stage1-llava-ov/fastvid-motionbenc/eval_fastvid.py \
-     \
     --model llava_onevision \
     --model_path /project/rhu/dpalfaro/weights/llava-ov-7b --conv_template qwen_2 --meta_path /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl --num_frames 32 \
-     \
-     \
     --output_dir /project/rhu/dpalfaro/results/fastvid_run1 \
     

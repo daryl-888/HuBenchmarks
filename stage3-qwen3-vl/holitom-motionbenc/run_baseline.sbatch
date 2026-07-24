@@ -23,10 +23,8 @@ export TRANSFORMERS_OFFLINE=1
 cd /project/rhu/dpalfaro
 
 /project/rhu/dpalfaro/conda/envs/dycoke11/bin/python3 -m lmms_eval \
-     \
     --model llava_onevision \
-    --model_path /project/rhu/dpalfaro/weights/qwen3-vl-8b --meta_path /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl --num_frames 32 \ --output_dir /project/rhu/dpalfaro/results/stage3_holitom_run1
-     \
-     \
+    --model_path /project/rhu/dpalfaro/weights/qwen3-vl-8b --meta_path /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl --num_frames 32 \
+    --output_dir /project/rhu/dpalfaro/results/stage3_holitom_run1
     --output_path /project/rhu/dpalfaro/results/baseline_run1 \
     
