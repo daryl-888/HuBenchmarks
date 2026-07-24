@@ -142,12 +142,45 @@ can correct, because the pinned version *is* installed.
 
 **Therefore DyTo is recorded as: not reproducible from published artifacts.**
 
-Fabricating a `tw_finch` shim (e.g. routing to standard FINCH, or hand-porting
-TW-FINCH) would silently substitute a different clustering algorithm than the paper
-specifies. That is precisely the "variant reported as the method" failure this
-project exists to prevent. If a number is wanted anyway, the only honest form is a
-clearly-labelled variant — **"DyTo (standard FINCH, not TW-FINCH)"** — never "DyTo".
+### Second, independent defect found while attempting the labelled variant
 
-Progress note: bugs 1–4 are genuinely fixed. DyTo now loads its Vicuna backbone,
-builds prompts, processes video, and reaches its FINCH clustering stage. Only the
-unresolvable dependency remains.
+We built an opt-in shim (`$DYTO_FINCH_SHIM=1`) that drops the unsupported kwarg so
+the rest of DyTo could run as a clearly-labelled variant. The shim works — it
+rebinds `FINCH` in **3 already-imported modules** and the `tw_finch` error clears.
+Execution then advances to the next failure:
+
+```
+llava_arch.py:234  if clus_image_features.shape[0] > 25:
+AttributeError: 'NoneType' object has no attribute 'shape'
+```
+
+Cause: **`finch_cluster()` (llava_arch.py:188–218) contains no `return` statement
+at all.** It computes `classification`, builds `selected_indexs`, and then the
+function body simply ends — the next `def encode_images` begins. It therefore
+returns `None` unconditionally, and its caller at line 233 immediately dereferences
+`.shape` on that `None`.
+
+Verified: `grep` over lines 188–218 finds exactly one `def` and **zero** `return`
+statements. Standard FINCH itself works fine on this input (`c.shape=(32,2)`,
+`num_clust=[8,3]`), so this is not a consequence of our shim — the published
+function is incomplete.
+
+### Final verdict on DyTo
+
+Two independent defects in the published artifacts:
+
+1. Code calls `FINCH(..., tw_finch=...)`; the pinned `finch-clust==0.2.0` has never
+   exposed that argument.
+2. `finch_cluster()` has no return statement and always yields `None`.
+
+Neither is fixable without **inventing** the missing logic — i.e. guessing what
+tokens the authors intended to select and how. Any such reconstruction would be
+our algorithm, not DyTo's, and reporting it under DyTo's name is exactly the
+failure mode this project refuses. **DyTo is not reproducible from its published
+artifacts, and no labelled-variant run is possible either** — the variant attempt
+was made in good faith and is documented here as evidence, not abandoned untried.
+
+Everything upstream of the clustering is fixed and working: the Vicuna backbone
+loads, prompts build, video decodes, patch-merge is correct, and execution reaches
+DyTo's own aggregation stage. The blocker is entirely inside DyTo's published
+`finch_cluster`.

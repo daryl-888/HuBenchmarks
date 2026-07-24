@@ -119,20 +119,29 @@ def _install_finch_shim(enable: bool):
 
     _finch_shim._dyto_shimmed = True
     _finch.FINCH = _finch_shim
-    # llava_arch did `from finch import FINCH`, so patch that binding too.
-    try:
-        import sys
-        m = sys.modules.get("dyto.llava.model.llava_arch")
-        if m is not None and hasattr(m, "FINCH"):
-            m.FINCH = _finch_shim
-    except Exception:
-        pass
+    # Modules that already did `from finch import FINCH` hold their OWN reference,
+    # so patching finch.FINCH alone is not enough — sweep every loaded module and
+    # rebind any existing FINCH attribute. (Patching only the guessed module name
+    # left the original binding in place and the error persisted.)
+    import sys as _sys
+    patched = 0
+    for _name, _mod in list(_sys.modules.items()):
+        if _mod is None:
+            continue
+        try:
+            if getattr(_mod, "FINCH", None) is orig:
+                setattr(_mod, "FINCH", _finch_shim)
+                patched += 1
+        except Exception:
+            continue
     import logging
     logging.warning(
         "DyTo VARIANT ACTIVE: FINCH tw_finch kwarg dropped (unsupported in "
         "finch-clust==0.2.0, the version DyTo itself pins). Clustering is "
         "STANDARD FINCH, not TW-FINCH. Report as 'DyTo (standard FINCH, not "
         "TW-FINCH)' — NOT as DyTo.")
+    import logging as _lg
+    _lg.warning("DyTo FINCH shim rebound in %d already-imported module(s)", patched)
     return True
 
 
@@ -191,6 +200,9 @@ def run_inference(tokenizer, model, image_processor, pil_frames, image_sizes,
             # ragged patches can't be stacked — fall back to the first-scale view
             image_tensor = image_tensor[0]
     image_tensor = image_tensor.to(dtype=torch.float16, device="cuda")
+    # Re-run the sweep here: llava_arch may only be imported during the first
+    # forward, after load_model() already ran. The shim is idempotent.
+    _install_finch_shim(os.environ.get("DYTO_FINCH_SHIM", "0") == "1")
     output_ids = model.generate(input_ids, images=image_tensor, image_sizes=image_sizes,
         do_sample=False, temperature=0, max_new_tokens=16, use_cache=True,
         temporal_aggregation=temporal_aggregation)
