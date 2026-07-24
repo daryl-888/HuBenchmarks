@@ -13,7 +13,7 @@ by a check that was actually run, not by assertion.
 > reported so readers do not over-claim a ranking — not because the benchmark was
 > trying and failing to find a winner.
 
-**Overall: A− / 8.5 out of 10** for its actual purpose (dataset characterization
+**Overall: B+ / 8 out of 10** for its actual purpose (dataset characterization
 with verified execution). Strong verification and honest reporting; the remaining
 gaps are coverage and cross-hardware reproducibility, both in progress.
 
@@ -44,7 +44,7 @@ computations rather than variants of one thing.
 NA-skip protocol that discards ~50% of items. Both are documented choices, but
 neither has been ablated.
 
-## 2. Honesty of reporting — **A (9/10)**
+## 2. Honesty of reporting — **A− (8.5/10)**
 
 This is the system's strongest dimension, mostly because it was forced to be.
 
@@ -151,12 +151,12 @@ weeks before the gate was built to catch them.
 | Dimension | Rating | One-line justification |
 |---|---|---|
 | Scoring accuracy | **A− (9)** | 10/10 numbers traceable to complete runs; all methods proven to execute |
-| Honesty of reporting | **A (9)** | Four silent failures surfaced, not buried; invalid numbers listed |
+| Honesty of reporting | **A− (8.5)** | Failures surfaced not buried, incl. a hole in our own gate; but two cells were briefly reported verified on a broken check |
 | Statistical validity | **A− (8.5)** | Correct paired tests; equivalence reported honestly with the ±1.54 pt resolution floor stated |
 | Reproducibility | **B (7.5)** | Dataset root now env-driven in all 40 scripts; cross-hardware determinism still untested |
 | Coverage | **C+ (6)** | ~half the 22-cell matrix has a verified full-run number |
 | Infrastructure | **B+ (8)** | Strong gate + deploy tooling; built late, after the damage |
-| **Overall** | **A− (8.5)** | Trustworthy, verified, honestly reported dataset characterization; gaps are coverage + cross-hardware repro |
+| **Overall** | **B+ (8)** | Trustworthy and self-correcting; a gate hole briefly let two unverified cells be reported (now retracted) |
 
 ### What this project can legitimately claim
 
@@ -186,3 +186,38 @@ weeks before the gate was built to catch them.
 3. **Coverage** — finish the Qwen3-VL full runs to fill the second half of the matrix.
 4. **Cross-hardware determinism** — one run on a different GPU generation would
    either confirm or retire the reproducibility claim.
+
+---
+
+## 7. Correction log (2026-07-24, late)
+
+**A hole was found in the verification gate itself.** `check_run.py
+--vs-baseline` returned early on a length mismatch:
+
+```python
+if len(base) != len(mine):
+    g.warn("length mismatch, cannot compare cleanly"); return   # <-- skipped
+```
+
+Since every smoke run uses `--limit 8` against an 8,052-row baseline, **the
+divergence check was silently skipped on every smoke test** — the single most
+important check, bypassed by the exact mechanism it exists to catch. Fixed to
+compare the overlapping prefix.
+
+**Consequences, found by re-verifying everything with the fixed gate:**
+
+| Claim | Status |
+|---|---|
+| 7 Qwen3-VL ports (fastv, dycoke, holitom, flashvid, aim, mdp3, videoitg) | ✅ **hold** — 1–4 / 8 divergence each |
+| VisionZip-contextual (Qwen3-VL) "verified" | ❌ **retracted** — 0/8 divergence, a no-op |
+| PruneVID-OV "PASS" | ❌ **retracted** — 0/8 divergence, still a no-op |
+
+Both retractions are now reflected in RESULTS.md and the master table.
+
+**What this says about the methodology:** the gate caught four silent failures
+earlier, and has now caught a silent failure *in itself*. That is the system
+working — but it also means **"passed the gate" was not a sufficient claim during
+the window when the gate was broken**, and two cells were briefly reported as
+verified when they were not. Honest rating impact: this is exactly the kind of
+error the honesty score should be reduced for, since it was published before being
+caught.

@@ -140,7 +140,7 @@ from 23.8% → 33.8%.
 | AIM | 🔄 full run | ✅ | `after_merge=1750 keep=1750` |
 | MDP3 | 🔄 full run | ✅ | pool 32 → select 8 |
 | VideoITG | 🔄 full run | ✅ | grounded frame selection |
-| VisionZip | 🟡 partial | — | contextual half portable (k-vectors recoverable from fused qkv); dominant half needs CLS, absent in Qwen3-VL |
+| VisionZip | ❌ no-op | — | contextual-only port written (k-vectors recoverable), but **0/8 divergence** — merge computed then discarded. Under repair. |
 | PruneVID | 🟡 blocked | — | VTP core IS separable, but the LLaVA-OV port is still inert — fix that first |
 | STTM | ❌ | — | ships a wholesale Qwen2Model_forward replacement; no separable merge fn |
 | DyTo | ❌ | — | mechanism lives in LLaVA's llava_arch.py; Vicuna-bound |
