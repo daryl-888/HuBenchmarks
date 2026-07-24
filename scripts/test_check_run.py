@@ -99,12 +99,30 @@ def main():
         rc, out = run_gate(broken, "--expect-method", "m", "--smoke")
         check("missing summary.json FAILS", rc != 0)
 
-        # --- KNOWN GAP (documented, not yet fixed): a missing baseline dir
-        #     only warns. Assert current behaviour so a future change is visible.
+        # --- an unusable --vs-baseline must FAIL, not warn --------------------
+        # If the caller asked for the divergence check, silently skipping it is
+        # the same class of hole as the length-mismatch bug.
         rc, out = run_gate(real, "--expect-method", "m", "--smoke",
                            "--vs-baseline", os.path.join(tmp, "does_not_exist"))
-        check("missing baseline currently only WARNS (known gap)",
-              "cannot read" in out, "(tracked in VALIDITY_ASSESSMENT)")
+        check("unusable --vs-baseline FAILS (not a warning)",
+              rc != 0 and "could NOT be performed" in out, f"(rc={rc})")
+
+        # --- a missing *_params block must FAIL when a method was named -------
+        noparams = make_run(os.path.join(tmp, "noparams"),
+                            ["A", "B", "C", "D"] * 2, total=8)
+        rc, out = run_gate(noparams, "--expect-method", "m", "--smoke")
+        check("missing *_params block FAILS", rc != 0 and "_params" in out,
+              f"(rc={rc})")
+
+        # --- a full run missing total_na_skipped must FAIL --------------------
+        import json as _j
+        nona = make_run(os.path.join(tmp, "nona"), ["A", "B"] * 4,
+                        params=P, total=8052)
+        sp = os.path.join(nona, "summary.json")
+        d = _j.load(open(sp)); d.pop("total_na_skipped", None); _j.dump(d, open(sp, "w"))
+        rc, out = run_gate(nona, "--expect-method", "m")
+        check("full run without total_na_skipped FAILS",
+              rc != 0 and "NA-skip protocol" in out, f"(rc={rc})")
 
         # --- truncated full run must fail -----------------------------------
         trunc = make_run(os.path.join(tmp, "trunc"), ["A", "B"] * 4,

@@ -119,7 +119,10 @@ def check_completeness(summary, rows, g):
 def check_na_accounting(summary, g):
     na = summary.get("total_na_skipped")
     if na is None:
-        g.warn("summary has no total_na_skipped field — cannot verify NA accounting")
+        # FAIL on a full run: without this we cannot verify the NA-skip protocol
+        # (~4,034 of 8,052) was applied, so the accuracy denominator is unverified.
+        g.fail("summary has no total_na_skipped field — the NA-skip protocol "
+               "cannot be verified, so the accuracy denominator is unconfirmed")
         return
     if abs(na - EXPECTED_NA) > NA_TOLERANCE:
         g.fail(f"NA skipped={na}, expected ~{EXPECTED_NA} "
@@ -185,8 +188,11 @@ def check_method_engaged(summary, expect_method, g):
                     if k.endswith("_params") and isinstance(v, dict)}
     if not param_blocks:
         if expect_method:
-            g.warn(f"no *_params block in summary — cannot confirm {expect_method} "
-                   f"actually engaged")
+            # FAIL: "cannot confirm it engaged" is not a pass. Every eval script
+            # must emit <method>_params with "enabled".
+            g.fail(f"no *_params block in summary — cannot confirm {expect_method} "
+                   f"actually engaged (the eval script must emit "
+                   f"\"{expect_method}_params\": {{\"enabled\": true}})")
         return
     for name, params in param_blocks.items():
         method = name[:-len("_params")]
@@ -210,7 +216,11 @@ def check_not_identical_to_baseline(rows, baseline_dir, g):
     """
     bpath = os.path.join(baseline_dir, "results.jsonl")
     if not rows or not os.path.exists(bpath):
-        g.warn(f"--vs-baseline: cannot read {bpath}, skipping comparison")
+        # FAIL, not warn: the caller explicitly asked for the divergence check.
+        # Silently skipping it is how a no-op slips through — exactly the class of
+        # hole that let PruneVID-OV and VisionZip-contextual look "verified".
+        g.fail(f"--vs-baseline: cannot read {bpath} — the divergence check could "
+               f"NOT be performed, so engagement is unverified")
         return
     base = []
     with open(bpath) as f:
