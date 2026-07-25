@@ -6,7 +6,7 @@
 #SBATCH -n 8
 #SBATCH --gpus=ada:1
 #SBATCH --mem=124G
-#SBATCH -t 0:40:00
+#SBATCH -t 0:12:00
 
 # PruneVID ported to Qwen3-VL — the last portable cell of the 22-cell matrix.
 # Must print "PruneVID(Qwen3-VL) ACTIVE: ..." AND diverge from the baseline.

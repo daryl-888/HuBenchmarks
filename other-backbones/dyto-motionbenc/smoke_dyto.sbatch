@@ -6,7 +6,7 @@
 #SBATCH -n 8
 #SBATCH --gpus=ada:1
 #SBATCH --mem=124G
-#SBATCH -t 0:40:00
+#SBATCH -t 0:12:00
 module purge
 module load Miniforge3/py3.10
 export PYTHONNOUSERSITE=1
