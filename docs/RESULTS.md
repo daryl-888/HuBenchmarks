@@ -1,7 +1,7 @@
 # Results
 
 All numbers on **MotionBench** (4,018 scoreable), 32 frames, greedy decoding.
-✅ = verified engaged (passed the divergence gate) · 🔄 = running/unverified ·
+✅ = verified engaged (passed the divergence gate) · 🟡 = predates the gate ·
 ❌ = not a result (no-op / crash / incompatible). See
 [METHODOLOGY.md](METHODOLOGY.md) for what "verified" means.
 
@@ -73,7 +73,7 @@ Subcategory breakdown (% correct within category):
 | HoliTom | 44.7 | 61.3 | 61.0 | 66.4 | 76.2 | 29.0 |
 | MDP3 | 44.9 | 64.7 | 62.8 | 64.0 | 77.4 | 23.0 |
 | FastV | 46.2 | 61.0 | 61.9 | 63.5 | 72.2 | 30.5 |
-| VisionZip | 43.2 | 57.4 | 61.9 | 64.2 | 74.3 | 29.5 |
+| VisionZip (contextual-only) | 43.2 | 57.4 | 61.9 | 64.2 | 74.3 | 29.5 |
 | FlashVID | 43.4 | 57.9 | 57.1 | 61.2 | 73.0 | 27.0 |
 | VideoITG | 45.3 | 53.5 | 59.3 | 60.2 | 75.4 | 22.2 |
 | AIM | 45.9 | 56.6 | 59.5 | 58.3 | 72.2 | 27.0 |
@@ -88,6 +88,15 @@ Subcategory breakdown (% correct within category):
 > extracts more from the full token set, so discarding tokens costs more. Method
 > rankings measured on one backbone do not transfer to another.
 
+> ### ⚠️ VisionZip here is a labelled partial, not the published method
+> Published VisionZip has **two halves**: *dominant* tokens selected by CLS-attention,
+> and *contextual* tokens merged by key-vector similarity. Qwen3-VL's vision tower has
+> **no CLS token**, so only the contextual half is implementable. The 58.81% above is
+> that half alone and **must not be quoted as "VisionZip"** — it is a documented
+> partial, reported because the contextual mechanism is faithfully reproduced, not
+> because the method is. The LLaVA-OV row (40.09%) *is* the complete method.
+> See [PORT_FEASIBILITY.md](../stage3-qwen3-vl/PORT_FEASIBILITY.md).
+
 > **Getting these 7 to engage took untangling a 5-bug chain** where each bug hid the
 > next — `attention_mask` is `None` under sdpa, bf16 overflow from an fp32 mask,
 > `hidden_states` passed as a kwarg, an undefined variable, and a transformers-5.x
@@ -100,7 +109,7 @@ Subcategory breakdown (% correct within category):
 | Method | Backbone | Overall | Status |
 |---|---|:---:|---|
 | [PruneVID](methods/prunevid.md) | PLLaVA-7B | **44.13%** | ✅ (its published backbone) |
-| PruneVID (LLaVA-OV port) | LLaVA-OV-7B | 🔄 pending | ✅ **now engages** — 4/8 divergence after switching to `PrunableDynamicCache.kv_cache`; was inert |
+| PruneVID (LLaVA-OV port) | LLaVA-OV-7B | **38.20%** | ✅ gated — 4536/8052 divergence after switching to `PrunableDynamicCache.kv_cache`; was inert. A **real −14.46 loss** (χ²=220.3) at 50% retention, not a broken run |
 | [VisionZip](methods/visionzip.md) | LLaVA-1.5-7B | **39.97%** | 🟡 |
 | STTM-LLaVAVid | LLaVA-Video-7B | **53.33%** | 🟡 |
 | [DyTo](methods/dyto.md) | Vicuna-7B | ❌ | **Not reproducible from published artifacts** — two defects in released code ([evidence](UPSTREAM_DEFECTS.md#1-blocking-dyto-is-not-reproducible-from-published-artifacts)) |

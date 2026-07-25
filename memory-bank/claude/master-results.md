@@ -171,6 +171,9 @@ Backbone baseline = **62.52%**.
 | 8 | **AIM** ✅ | ICCV | 2025 | **55.97%** (2249) | 2861 | 45.9 | 56.6 | 59.5 | 58.3 | 72.2 | 27.0 |
 
 *Differ = predictions ≠ the plain backbone, out of 8,052 (0 would mean the method never ran).*
+*VisionZip is the **contextual-only partial** — Qwen3-VL has no CLS token, so the dominant
+half is not implementable. Never quote row 5 as plain "VisionZip"; the complete method is
+the LLaVA-OV row (40.09%).*
 
 **Significance vs baseline** (McNemar on paired predictions; χ² ≥ 3.84 ⇒ p<0.05):
 
