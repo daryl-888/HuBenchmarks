@@ -15,7 +15,7 @@ experiment, not inferred from a stack trace alone.
 
 ---
 
-## 1. Blocking: DyTo is not reproducible from published artifacts
+## 1. DyTo: two defects in released code — both now resolved
 
 DyTo (ICCV 2025, LLaVA-NeXT Vicuna-7B) contains **two independent defects**, either
 of which alone prevents it from running.
@@ -62,22 +62,45 @@ Verified independently: `grep` over lines 188–218 finds one `def` and no `retu
 Standard FINCH runs fine on this input (`c.shape=(32,2)`, `num_clust=[8,3]`), so
 this is **not** an artefact of our shim — the released function is incomplete.
 
-### 1.3 Why we did not "fix" it
+### 1.3 How each was resolved (2026-07-25)
 
-Completing `finch_cluster()` means inventing the missing logic: guessing which
-tokens the authors intended to select and how to assemble them. That reconstruction
-would be *our* algorithm published under DyTo's name — the precise failure mode this
-project exists to prevent (see [METHODOLOGY.md](METHODOLOGY.md)). Even a
-labelled-variant run is impossible, because the variant hits defect 1.2.
+The two defects are **not** equally recoverable, and the distinction matters.
 
-**Status: not reproducible from published artifacts.** Everything upstream of the
-clustering is fixed and working — the Vicuna backbone loads, prompts build, video
-decodes, patch-merging is correct, and execution reaches DyTo's own aggregation
-stage. The blocker is entirely inside DyTo's released `finch_cluster`.
+**Defect 1.2 (missing return) — RECOVERED by transcription.** This corrects our
+earlier verdict. The same file contains a sibling function (lines 140–186) that
+performs the identical selection with KMeans instead of FINCH. Normalizing both
+(strip comments/whitespace), they are **identical over the entire shared region —
+13 of 14 lines, the sole difference being a stray space before a colon**. The
+KMeans version ends with an 8-line tail that `finch_cluster` lacks. Two further
+facts pin it down: `new_embeddings` is declared in `finch_cluster` and never used,
+and the caller does `clus_image_features.shape[0]` then `T,N,D = ...shape`, so a
+stacked 3-D tensor is the only shape that fits. The author truncated a paste. We
+transcribe the tail **verbatim** — recovered code, not reconstructed logic.
+See `patches/dyto/finch_cluster_return.patch`.
 
-*(Four earlier DyTo bugs were ours or environmental and are fixed: a swallowed
-import error, a non-existent conv template, a 100-frame OOM, and an anyres/tensor
-mismatch. See [PORT_FEASIBILITY.md](../stage3-qwen3-vl/PORT_FEASIBILITY.md).)*
+**Defect 1.1 (`tw_finch` absent from the pinned dependency) — RECONSTRUCTED, and
+labelled as such.** Nothing in the repo lets us recover this by transcription. But
+TW-FINCH is a published algorithm (Sarfraz et al., CVPR 2021) with a precise
+one-line definition: weight the feature distance by temporal proximity,
+`d_tw(i,j) = d_feat(i,j) · |i−j|`, before choosing first neighbours. FINCH exposes
+`initial_rank` as a public parameter and skips its own distance computation when it
+is supplied, so the weighting applies at exactly the right point without modifying
+the library.
+
+Validated numerically before use: mean |i − first-neighbour| is **1.00** under our
+TW weighting (neighbours are temporally adjacent, as the algorithm intends) versus
+**6.72** for standard FINCH, and the two produce different partitions.
+
+**This is our implementation of a published algorithm, not the authors' code.**
+Any number from it is reported as **"DyTo (reconstructed TW-FINCH)"** and never as
+"DyTo". `summary.json` carries `finch_variant`, `paper_faithful: false`, and
+`reconstruction_notes`, so the caveat travels with the data rather than living only
+in prose.
+
+**Status: runnable as a labelled variant.** A smoke run completes with zero
+tracebacks and real letter predictions. What is *not* available is DyTo-as-published
+— that remains impossible, because the authors never released the FINCH
+modification their code calls.
 
 ---
 

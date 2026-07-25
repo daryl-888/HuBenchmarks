@@ -66,13 +66,37 @@ Qwen3-VL port using `visual_pos_masks` + recomputed k.
 would be wrong to build a Qwen3-VL port on a mechanism we have not yet made work
 once. Fix LLaVA-OV first, then this becomes a normal port.
 
-### ❌ STTM — genuinely not portable
+### 🟡 STTM — portable after all (verdict CORRECTED 2026-07-25)
 
-`replace_qwen2_with_quadtree_attn` does not expose a reusable merge function: the
-package ships a **wholesale `Qwen2Model_forward` replacement** (~180 lines) plus
-class-attribute assignment onto `transformers.models.qwen2.modeling_qwen2`. There
-is no separable quadtree routine to lift. Porting = rewriting Qwen3's decoder
-forward around a quadtree — a research contribution, not a port.
+**The earlier "not portable" verdict was wrong.** It was reached by reading only
+`token_merging_monkey_patch/quadtree_attn_monkey_patch.py` (the LLaVA/Qwen2 one)
+and concluding the merge was welded into a 180-line forward replacement. Two facts
+were missed:
+
+1. **The authors already ship a Qwen2-**VL** port** —
+   `token_merging_qwen2vl_monkey_patch/quadtree_attn_monkey_patch.py`. Qwen2-VL is
+   far closer to Qwen3-VL than the LLaVA/Qwen2 path, so this is the template.
+2. **The merge IS a separable function.** Both patches delegate to
+   `get_quadtree_features()` in `token_merging_utils/quadtree_interface.py`, which
+   contains **zero** references to llava / transformers / Qwen (verified by grep).
+   It is pure tensor math: features in, merged features + coordinates out.
+
+What the forward actually does around that call is bookkeeping, ~25 lines:
+slice sys/visual/inst spans, `rearrange` the visual tokens to `(T C H W)`, call
+`get_quadtree_features`, concatenate the merged tokens back, and re-derive
+`position_ids` / `position_embeddings` / `cache_position` for the new (shorter)
+sequence.
+
+**Contract to satisfy on Qwen3-VL:** a `(T, C, H, W)` visual grid plus scalar
+`T`, `H`, `W`. All are available — `visual_pos_masks` gives exact visual token
+positions, and `video_grid_thw` (43 occurrences in `modeling_qwen3_vl`) with
+`spatial_merge_size` (20) gives the grid dimensions.
+
+**One genuine difference from the other seven ports:** every gate-verified
+Qwen3-VL port so far *masks* tokens (sequence length unchanged). STTM physically
+*shortens* the sequence, so position_ids and cache_position must be rebuilt — the
+Qwen2-VL patch shows exactly how, but Qwen3-VL's mRoPE and `deepstack_visual_embeds`
+mean it is not a copy-paste. This is real work, but it is porting, not inventing.
 
 ### ❌ DyTo — genuinely not portable
 
@@ -92,7 +116,8 @@ run it.
 | ✅ Ported + verified | FastV, DyCoke, HoliTom, FlashVID, AIM, MDP3, VideoITG (7) |
 | 🟡 Partially portable, needs a labelled variant | VisionZip (contextual half) |
 | 🟡 Blocked on an upstream fix, not on architecture | PruneVID (fix LLaVA-OV port first) |
-| ❌ Not portable | STTM, DyTo (2) |
+| 🟡 Portable, not yet built | STTM (verdict corrected 2026-07-25) |
+| ❌ Not portable | DyTo (bound to its Vicuna backbone) |
 
 **Principle unchanged:** a cell that cannot be done authentically is recorded as a
 hole with the blocker stated — never filled with a baseline wearing the method's
