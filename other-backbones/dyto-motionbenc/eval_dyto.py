@@ -113,8 +113,49 @@ def _install_finch_shim(enable: bool):
     if getattr(orig, "_dyto_shimmed", False):
         return True
 
+    def _tw_initial_rank(data):
+        """
+        TW-FINCH first-neighbour computation.
+
+        TW-FINCH (Sarfraz et al., CVPR 2021, 'Temporally-Weighted Hierarchical
+        Clustering for Unsupervised Action Segmentation') differs from FINCH in
+        exactly one place: the pairwise distance used to pick each sample's first
+        neighbour is divided by a temporal-proximity weight, so frames far apart in
+        time are unlikely to become first neighbours. For sequence positions i, j:
+
+            d_tw(i,j) = d_feat(i,j) * |i - j|            (temporal weighting)
+
+        FINCH exposes `initial_rank` as a public parameter and, when it is
+        supplied, skips its own distance computation entirely (clust_rank():
+        `if initial_rank is not None: orig_dist = np.empty((1,1))`). So the
+        temporal weighting can be applied faithfully at the one point it belongs
+        without touching the library.
+        """
+        import numpy as _np
+        from sklearn import metrics as _metrics
+        n = data.shape[0]
+        d = _metrics.pairwise.pairwise_distances(data, data, metric="cosine")
+        idx = _np.arange(n)
+        # |i - j|, with the diagonal held out of the argmin
+        tw = _np.abs(idx[:, None] - idx[None, :]).astype(_np.float64)
+        _np.fill_diagonal(tw, 1.0)
+        d = d * tw
+        _np.fill_diagonal(d, 1e12)
+        return _np.argmin(d, axis=1)
+
     def _finch_shim(*args, **kwargs):
-        kwargs.pop("tw_finch", None)          # unsupported in every release
+        # `tw_finch` is not a parameter of any released finch-clust. When DyTo asks
+        # for it we implement the published TW-FINCH weighting ourselves, via
+        # FINCH's own `initial_rank` hook, rather than silently degrading to
+        # standard FINCH (which is a different algorithm and gave a worse result).
+        tw = kwargs.pop("tw_finch", False)
+        if tw and kwargs.get("initial_rank") is None:
+            data = args[0] if args else kwargs.get("data")
+            try:
+                kwargs["initial_rank"] = _tw_initial_rank(data)
+            except Exception as e:            # fall back rather than crash the run
+                import logging as _l
+                _l.warning("TW-FINCH initial_rank failed (%s); using standard FINCH", e)
         return orig(*args, **kwargs)
 
     _finch_shim._dyto_shimmed = True
@@ -136,10 +177,12 @@ def _install_finch_shim(enable: bool):
             continue
     import logging
     logging.warning(
-        "DyTo VARIANT ACTIVE: FINCH tw_finch kwarg dropped (unsupported in "
-        "finch-clust==0.2.0, the version DyTo itself pins). Clustering is "
-        "STANDARD FINCH, not TW-FINCH. Report as 'DyTo (standard FINCH, not "
-        "TW-FINCH)' — NOT as DyTo.")
+        "DyTo VARIANT ACTIVE: TW-FINCH implemented locally via FINCH's "
+        "initial_rank hook (d_feat * |i-j|), because `tw_finch` is not a "
+        "parameter of finch-clust==0.2.0 — the version DyTo itself pins. The "
+        "weighting follows the published TW-FINCH definition, but it is OUR "
+        "implementation, not the authors' released code. Report as "
+        "'DyTo (reconstructed TW-FINCH)' — NOT as DyTo.")
     import logging as _lg
     _lg.warning("DyTo FINCH shim rebound in %d already-imported module(s)", patched)
     return True
@@ -273,7 +316,22 @@ def main():
         "total_samples":len(samples),"model":args.model_path,
         "dyto_params":{
             "enabled": True,"num_frames":args.num_frames,"temporal_aggregation":args.temporal_aggregation,
-            "rope_scaling":args.rope_scaling,"conv_template":args.conv_template}},
+            "rope_scaling":args.rope_scaling,"conv_template":args.conv_template,
+            # The caveat travels with the data, not just the prose: two pieces of
+            # this run are NOT the authors' released code. See UPSTREAM_DEFECTS.md.
+            "finch_variant": ("reconstructed-TW-FINCH"
+                              if os.environ.get("DYTO_FINCH_SHIM","0") == "1"
+                              else "released-code-only"),
+            "paper_faithful": False,
+            "reconstruction_notes": [
+                "finch_cluster() return: TRANSCRIBED verbatim from the sibling "
+                "KMeans function in the same file (13/14 normalized lines "
+                "identical) — recovered, not invented",
+                "TW-FINCH weighting: OUR implementation of the published "
+                "d_feat*|i-j| rule via FINCH's initial_rank hook; `tw_finch` is "
+                "absent from the pinned finch-clust==0.2.0",
+            ],
+            "report_as": "DyTo (reconstructed TW-FINCH)"}},
         open(os.path.join(args.output_dir,"summary.json"),"w"),indent=2)
 
 if __name__ == "__main__": main()
