@@ -10,12 +10,7 @@
       "WebFetch(domain:paperswithcode.com)",
       "WebFetch(domain:motion-bench.github.io)",
       "Bash(find /tmp/MotionBench -type f \\\\\\( -name \"*.md\" -o -name \"README*\" \\\\\\) | head -10)",
-      "Read(//tmp/MotionBench/**)",
-      "Bash(python3 -)",
-      "Bash(python3 -c \"import ast;ast.parse\\(open\\('stage3-qwen3-vl/holitom-motionbenc/eval_holitom_qwen3vl.py'\\).read\\(\\)\\);print\\('OK'\\)\")",
-      "Bash(sed -i 's/default=\"image_seq_v3\"/default=\"vicuna_v1\"/' other-backbones/dyto-motionbenc/eval_dyto.py)",
-      "Bash(timeout 120 ./scripts/deploy.sh --push other-backbones/dyto-motionbenc)",
-      "Bash(timeout 40 ssh -o BatchMode=yes -l dpalfaro carya.rcdc.uh.edu \"cd /project/rhu/dpalfaro && sbatch code/other-backbones/dyto-motionbenc/smoke_dyto.sbatch 2>&1|grep -oE '[0-9]+$'\")"
+      "Read(//tmp/MotionBench/**)"
     ]
   }
 }
