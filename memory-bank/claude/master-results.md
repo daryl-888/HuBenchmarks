@@ -245,3 +245,33 @@ Motion Recognition 1,478 · Motion-related Objects 690 · Repetition Count 400 �
 
 **Verification** — `python3 scripts/check_run.py <run> --expect-method <m> [--smoke] [--vs-baseline <ref>]`.
 0 differing predictions vs the backbone ⇒ silent no-op ⇒ the method did not run.
+
+### Stage 3 — Qwen3-VL-8B, all 8 methods gated (2026-07-25)
+
+Baseline **62.52%**. Every method loses accuracy; 7 of 8 significantly (McNemar, χ²>3.84).
+All runs: 8052/8052 samples, 32 frames, 8 empty predictions, zero tracebacks, ACTIVE log + nonzero divergence.
+
+| Method | Acc | Correct | Δ vs base | Divergence | W/L | χ² | Signif | Params |
+|---|---|---|---|---|---|---|---|---|
+| **DyCoke** | 61.85% | 2485/4018 | -0.67 | 1048/8052 | 83/110 | 3.5 | ns | l=3, p=0.7, k=0.3 |
+| **HoliTom** | 60.33% | 2424/4018 | -2.19 | 1657/8052 | 131/219 | 21.6 | **sig** | retain 15%, k=18 |
+| **MDP3** | 59.66% | 2397/4018 | -2.86 | 1626/8052 | 159/274 | 30.0 | **sig** | pool 32 → 8 frames |
+| **VisionZip** | 58.81% | 2363/4018 | -3.71 | 2035/8052 | 191/340 | 41.3 | **sig** | contextual-only (partial) |
+| **FastV** | 59.01% | 2371/4018 | -3.51 | 2029/8052 | 149/290 | 44.6 | **sig** | layer_k=2, keep 15% |
+| **FlashVID** | 56.65% | 2276/4018 | -5.87 | 2625/8052 | 178/414 | 93.3 | **sig** | alpha=0.7, keep 15% |
+| **AIM** | 55.97% | 2249/4018 | -6.55 | 2861/8052 | 194/457 | 105.4 | **sig** | 4 merge steps, keep 15% |
+| **VideoITG** | 56.35% | 2264/4018 | −6.17 | — | 206/454 | 92.4 | **sig** | grounded frame selection |
+
+Subcategories (Action Order / Camera Motion / Location / Motion Recog / Motion Objects / Repetition):
+
+| Method | AO | CM | LM | MR | MO | RC |
+|---|---|---|---|---|---|---|
+| **DyCoke** | 45.1 | 62.6 | 63.9 | 66.4 | 78.4 | 34.5 |
+| **HoliTom** | 44.7 | 61.3 | 61.0 | 66.4 | 76.2 | 29.0 |
+| **MDP3** | 44.9 | 64.7 | 62.8 | 64.0 | 77.4 | 23.0 |
+| **VisionZip** | 43.2 | 57.4 | 61.9 | 64.2 | 74.3 | 29.5 |
+| **FastV** | 46.2 | 61.0 | 61.9 | 63.5 | 72.2 | 30.5 |
+| **FlashVID** | 43.4 | 57.9 | 57.1 | 61.2 | 73.0 | 27.0 |
+| **AIM** | 45.9 | 56.6 | 59.5 | 58.3 | 72.2 | 27.0 |
+| **VideoITG** | 45.3 | 53.5 | 59.3 | 60.2 | 75.4 | 22.2 |
+
