@@ -98,6 +98,31 @@ Qwen3-VL port so far *masks* tokens (sequence length unchanged). STTM physically
 Qwen2-VL patch shows exactly how, but Qwen3-VL's mRoPE and `deepstack_visual_embeds`
 mean it is not a copy-paste. This is real work, but it is porting, not inventing.
 
+**Grid arithmetic, measured (not assumed).** The quadtree needs a regular
+`[T, C, H, W]` layout, so the token count must factor cleanly:
+
+* Qwen3-VL emits **11,664 visual tokens** at `--num_frames 32` (confirmed in the
+  ACTIVE logs of all six token-level ports).
+* `11664 / 32 = 364.5` — **not an integer**. The naive "32 frames = 32 grid rows"
+  assumption is wrong.
+* `vision_config.temporal_patch_size = 2`, so 32 frames become **T = 16** temporal
+  positions of `11664/16 = 729 = 27×27` tokens. `patch_size=16`,
+  `spatial_merge_size=2`.
+* **27 is odd**, and the quadtree halves sides per level. Not a blocker: the
+  authors' `avgpool_to_even_side_feature` already handles odd sides explicitly
+  (`math.ceil(h/2)` with separate odd-height / odd-width branches).
+
+So the grid is `T=16, H=W=27`, and STTM's builder accepts it as-is.
+
+**Remaining work, in order:** (1) recover `T,H,W` from `video_grid_thw` at runtime
+rather than hardcoding; (2) slice sys/visual/inst spans via `visual_pos_masks`;
+(3) `rearrange` to `[T, C, H, W]` and call `get_quadtree_features`; (4) splice the
+merged tokens back and rebuild `position_ids` / `position_embeddings` /
+`cache_position`; (5) handle `deepstack_visual_embeds`, which the Qwen2-VL patch
+has no equivalent for — this is the one genuinely novel piece and the most likely
+source of a silent no-op, so it must be gate-checked for divergence, not just for
+an ACTIVE log.
+
 ### ❌ DyTo — genuinely not portable
 
 The mechanism is selected inside **`dyto/llava/model/llava_arch.py:231`**
