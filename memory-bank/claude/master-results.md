@@ -1,9 +1,10 @@
 # Master Results — HuBenchmarks / MotionBench
 
-**Updated** 2026-07-24 (VideoITG/Qwen3-VL gated; 8 full runs in flight) · **Benchmark** MotionBench (8,052 samples · 4,018 scoreable · 4,034 NA)
+**Updated** 2026-07-25 (**all 8 Qwen3-VL methods gated**; Stage 3 complete) · **Benchmark** MotionBench (8,052 samples · 4,018 scoreable · 4,034 NA)
 **Standard config** 32 frames · retention 0.15 where the method exposes one · `do_sample=False` · `max_new_tokens=16` · letter-match scoring · NA skipped
 
 **Goal** — 11 methods × 2 backbones (LLaVA-OV-7B, Qwen3-VL-8B) = **22 cells**, each a paper-exact implementation verified to actually engage.
+**Status** — 10/11 gated on LLaVA-OV · 8/8 portable methods gated on Qwen3-VL · 3 not portable (STTM, DyTo, PruneVID) with the blocker stated.
 
 > ## 🏆 Headline findings
 >
@@ -11,13 +12,15 @@
 > LLaVA-OV-7B **52.66%** — a **+9.86** gap (χ²=127.5, highly significant). No
 > efficiency method on either backbone comes close to that.
 >
-> **2. Method effects do NOT transfer across backbones.** VideoITG is
-> *indistinguishable* from the backbone on LLaVA-OV (+0.20, not significant) but
-> loses **−6.17 significantly** on Qwen3-VL (χ²=92.4). Frame selection that is
-> harmless on a weaker backbone actively harms a stronger one — the first evidence
-> that a ranking measured on one backbone should not be assumed on another.
+> **2. Method effects do NOT transfer across backbones.** On LLaVA-OV **no**
+> method's change is significant — the methods are effectively free. On Qwen3-VL
+> **all 8 lose accuracy and 7 lose significantly**, at the same 32 frames and 15%
+> retention. VideoITG is the sharpest case: +0.20 (ns) on LLaVA-OV, **−6.17**
+> (χ²=92.4) on Qwen3-VL. Reduction that is harmless on a weaker backbone actively
+> harms a stronger one — a ranking measured on one backbone must not be assumed on
+> another.
 >
-> **3. On LLaVA-OV, no method significantly beats the backbone.** All nine sit
+> **3. On LLaVA-OV, no method significantly beats the backbone.** (The other half of finding 2.) All nine sit
 > within the ±1.54 pt resolution floor; only FastV and VisionZip differ
 > significantly, and both are *worse* at the standardized 15% budget.
 
@@ -40,7 +43,7 @@
 
 ---
 
-## 2. Verification status — LLaVA-OV-7B (10/11 methods verified)
+## 2. Verification status — LLaVA-OV-7B (10/11 verified; DyTo blocked upstream)
 
 | Method | Engages? | Evidence / fix required to get there |
 |---|:---:|---|
@@ -54,7 +57,7 @@
 | **VisionZip** | ✅ | `output_ids[:, input_ids.shape[1]:]` discarded the whole response → 100% empty. Slice removed |
 | **FlashVID** | ✅ | 3 bugs: `--frame-counts` not `--num_frames`; motionbench variant loaded `LlavaLlamaForCausalLM` at retention 0.10; flash_attn → sdpa |
 | **VideoITG** | ✅ | Two-stage grounding; now emits `videoitg_params`. Wave 2 gated at 52.86% |
-| **DyTo** | 🔄 | Import FIXED (was `try/except: pass` swallowing an absolute-import error → aliased `dyto.llava` as `llava`). Then hit a 2nd bug: conv template `image_seq_v3` doesn't exist → `vicuna_v1`. Re-verifying (7776371) |
+| **DyTo** | ❌ | **Not reproducible from published artifacts.** Four of our own bugs fixed (swallowed import, wrong conv template, 100-frame OOM, anyres/tensor mismatch); then two *upstream* defects blocked it — `FINCH(tw_finch=...)` absent from its own pinned `finch-clust==0.2.0`, and `finch_cluster()` has zero `return` statements ([evidence](../../docs/UPSTREAM_DEFECTS.md)) |
 
 ---
 
@@ -149,33 +152,53 @@ Qwen3-VL beats LLaVA-OV in **every** subcategory — largest gap on **Camera Mot
 smallest on Action Order (+5.6). Even the hardest category for both (Repetition Count) rises
 from 23.8% → 33.8%.
 
-### 4a. Method ports — results
+### 4a. Results — accuracy, venue, subcategories ✅ ALL 8 GATED (2026-07-25)
 
-Baseline = **62.52%** (2512/4018). "Differ" = predictions ≠ baseline, out of 8,052.
+All 8,052 samples · 32 frames verified · 8 empty predictions each (known bad-NFS
+videos) · 0 tracebacks · ACTIVE log **and** nonzero divergence on every row.
+Backbone baseline = **62.52%**.
 
-| Method | Venue | Year | Overall | Δ vs base | Act.Order | Cam.Motion | Loc.Motion | Mot.Rec. | Mot.Obj. | Rep.Count |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| *Baseline* | — | — | *62.52%* (2512) | — | *46.1* | *63.1* | *65.0* | *67.3* | *79.0* | *33.8* |
-| **VideoITG** ✅ | — | 2025 | **56.35%** (2264) | **−6.17** ⚠️ | 45.3 | 53.5 | 59.3 | 60.2 | 75.4 | 22.2 |
-| FastV | arXiv | 2024 | 🔄 running | — | | | | | | |
-| DyCoke | arXiv | 2024 | 🔄 running | — | | | | | | |
-| HoliTom | — | 2025 | 🔄 running | — | | | | | | |
-| FlashVID | ICLR (Oral) | 2026 | 🔄 running | — | | | | | | |
-| AIM | ICCV | 2025 | 🔄 running | — | | | | | | |
-| MDP3 | ICCV | 2025 | 🔄 running | — | | | | | | |
-| VisionZip (contextual-only) | — | 2024 | 🔄 running | — | | | | | | |
+| # | Method | Venue | Year | Overall | Differ | Act.Order | Cam.Motion | Loc.Motion | Mot.Rec. | Mot.Obj. | Rep.Count |
+|:-:|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| — | *Backbone baseline* | — | — | *62.52%* (2512) | *0 (ref)* | *46.1* | *63.1* | *65.0* | *67.3* | *79.0* | *33.8* |
+| 1 | **DyCoke** ✅ | arXiv 2411.14401 | 2024 | **61.85%** (2485) | 1048 | 45.1 | 62.6 | 63.9 | 66.4 | 78.4 | 34.5 |
+| 2 | **HoliTom** ✅ | — | 2025 | **60.33%** (2424) | 1657 | 44.7 | 61.3 | 61.0 | 66.4 | 76.2 | 29.0 |
+| 3 | **MDP3** ✅ | ICCV | 2025 | **59.66%** (2397) | 1626 | 44.9 | 64.7 | 62.8 | 64.0 | 77.4 | 23.0 |
+| 4 | **FastV** ✅ | arXiv 2403.06764 | 2024 | **59.01%** (2371) | 2029 | 46.2 | 61.0 | 61.9 | 63.5 | 72.2 | 30.5 |
+| 5 | **VisionZip** (contextual-only) ✅ | — | 2024 | **58.81%** (2363) | 2035 | 43.2 | 57.4 | 61.9 | 64.2 | 74.3 | 29.5 |
+| 6 | **FlashVID** ✅ | ICLR (Oral) | 2026 | **56.65%** (2276) | 2625 | 43.4 | 57.9 | 57.1 | 61.2 | 73.0 | 27.0 |
+| 7 | **VideoITG** ✅ | — | 2025 | **56.35%** (2264) | 2522 | 45.3 | 53.5 | 59.3 | 60.2 | 75.4 | 22.2 |
+| 8 | **AIM** ✅ | ICCV | 2025 | **55.97%** (2249) | 2861 | 45.9 | 56.6 | 59.5 | 58.3 | 72.2 | 27.0 |
 
-> ### ⚠️ First cross-backbone finding
-> **VideoITG's −6.17 IS statistically significant** (McNemar: win 206 / lose 454,
-> **χ² = 92.4**, threshold 3.84). Contrast with LLaVA-OV, where the *same method*
-> scored 52.86% vs a 52.66% baseline — a +0.20 difference that is **not**
-> significant.
+*Differ = predictions ≠ the plain backbone, out of 8,052 (0 would mean the method never ran).*
+
+**Significance vs baseline** (McNemar on paired predictions; χ² ≥ 3.84 ⇒ p<0.05):
+
+| Method | Δ vs base | Win / Lose | χ² | Significant? |
+|---|:---:|:---:|:---:|:---:|
+| **DyCoke** | −0.67 | 83 / 110 | 3.5 | no — the only method indistinguishable from the backbone |
+| **HoliTom** | −2.19 | 131 / 219 | 21.6 | **yes** |
+| **MDP3** | −2.86 | 159 / 274 | 30.0 | **yes** |
+| **FastV** | −3.51 | 149 / 290 | 44.6 | **yes** |
+| **VisionZip** | −3.71 | 191 / 340 | 41.3 | **yes** |
+| **FlashVID** | −5.87 | 178 / 414 | 93.3 | **yes** |
+| **VideoITG** | −6.17 | 206 / 454 | 92.4 | **yes** |
+| **AIM** | −6.55 | 194 / 457 | 105.4 | **yes** |
+
+> ### ⚠️ Every method loses, and loss tracks aggressiveness
+> **7 of 8 lose significantly.** Only DyCoke is statistically indistinguishable
+> from the backbone — and it is also the most conservative, retaining **49%** of
+> tokens where the others cut to 15%. AIM and FlashVID prune hardest and lose most
+> (−6.55, −5.87). Repetition Count is the weakest category everywhere (23–34%).
 >
-> **Frame selection is harmless on the weaker backbone and actively harmful on the
-> stronger one.** Qwen3-VL extracts more from the full frame set, so discarding
-> frames costs more. This is the kind of result the two-backbone design exists to
-> surface, and it is the first evidence that method rankings do **not** transfer
-> across backbones.
+> **This inverts the Stage-1 picture.** On LLaVA-OV *no* method's change was
+> significant — the methods were effectively free. On Qwen3-VL, the same methods at
+> the same 32 frames and 15% retention impose real, measurable costs. Frame and
+> token reduction that is harmless on a weaker backbone actively harms a stronger
+> one: Qwen3-VL extracts more from the full token set, so discarding it costs more.
+>
+> **Method rankings do not transfer across backbones.** This now rests on 8 gated
+> cells rather than the single VideoITG data point that first suggested it.
 
 ### 4b. Method ports — parameters, engagement, notes
 
@@ -183,10 +206,10 @@ Baseline = **62.52%** (2512/4018). "Differ" = predictions ≠ baseline, out of 8
 |---|---|---|---|
 | **VideoITG** | 512 sampled, 32 selected, 2 fps | grounding loaded for 8052 samples | Stage-1 grounding indices reused verbatim from the LLaVA-OV run — they are model-agnostic |
 | **FastV** | `k=2, r=0.85` (keep 15%) | `visual=11664 keep=1750 (dropped 9914)` | Attention **recomputed from q/k**: sdpa returns `attn_weights=None` and loading eager breaks generation |
-| **DyCoke** | `l=3, p=0.7, k=0.7` | `stage1=8165 stage2=5716 (net 49.0%)` | Two-stage; net retention is higher than the 15% standard because `p`·`k` is the paper's own setting |
-| **HoliTom** | `RETAIN=0.15, T=0.80, k=18, r=0.5` | `outer=1750 inner=875 (net 7.5%)` | Most aggressive net reduction of the set |
+| **DyCoke** | `l=3, p=0.7, k=0.7` | `stage1=8165 stage2=5716 (net 49.0%)` | Two-stage; net retention is higher than the 15% standard because `p`·`k` is the paper's own setting. **The only non-significant loss** — consistent with it pruning least |
+| **HoliTom** | `RETAIN=0.15, T=0.80, k=18, r=0.5` | `outer=1750 inner=875 (net 7.5%)` | Most aggressive net reduction of the set, yet loses less than AIM/FlashVID |
 | **FlashVID** | `retention=0.15, α=0.7, T=0.8` | `keep=1750 (15.0%) segments=11156` | Embedding-only → runs under sdpa, no attention needed |
-| **AIM** | 4 merge steps + PageRank | `after_merge=1750 keep=1750 steps=4` | Embedding-only → sdpa |
+| **AIM** | 4 merge steps + PageRank | `after_merge=1750 keep=1750 steps=4` | Embedding-only → sdpa. **Largest loss of the set** (−6.55) |
 | **MDP3** | `pool=32, select=8` | `pool=32 -> selected=8 frames` | Selector loaded **by file path** — `vlmeval` imports `AutoModelForVision2Seq`, removed in transformers 5.x which Qwen3-VL requires |
 | **VisionZip** (contextual-only) | `contextual=1750` (15%) | `merger out 11664 -> 1750 (15.0%)` | **Partial by design.** Dominant half needs a CLS token Qwen3-VL lacks. Hooked on `vis.merger`; token count preserved for `masked_scatter`. Report only as "VisionZip (contextual-only)" |
 
@@ -194,13 +217,13 @@ Baseline = **62.52%** (2512/4018). "Differ" = predictions ≠ baseline, out of 8
 
 | Method | Verdict |
 |---|---|
-| **PruneVID** | 🟡 VTP core *is* separable, but priority was fixing its inert LLaVA-OV port first (now working, full run in flight) |
+| **PruneVID** | 🟡 VTP core *is* separable. Its LLaVA-OV port is now fixed and gated (38.20%, 4536/8052 divergence), so a Qwen3-VL port is unblocked — not yet built |
 | **STTM** | ❌ Ships a wholesale `Qwen2Model_forward` replacement; no separable merge routine to lift |
 | **DyTo** | ❌ Not reproducible from published artifacts — two defects in released code ([evidence](../../docs/UPSTREAM_DEFECTS.md)) |
 
 Getting these ports to engage required untangling a 5-bug chain; two printed
 `ACTIVE` while producing byte-identical output, and only the divergence gate caught
-it. See [PORT_FEASIBILITY.md](../../stage3-qwen3-vl/PORT_FEASIBILITY.md) and
+it — which is why every row above reports a Differ count. See [PORT_FEASIBILITY.md](../../stage3-qwen3-vl/PORT_FEASIBILITY.md) and
 [METHODOLOGY.md](../../docs/METHODOLOGY.md).
 
 ---
@@ -245,33 +268,3 @@ Motion Recognition 1,478 · Motion-related Objects 690 · Repetition Count 400 �
 
 **Verification** — `python3 scripts/check_run.py <run> --expect-method <m> [--smoke] [--vs-baseline <ref>]`.
 0 differing predictions vs the backbone ⇒ silent no-op ⇒ the method did not run.
-
-### Stage 3 — Qwen3-VL-8B, all 8 methods gated (2026-07-25)
-
-Baseline **62.52%**. Every method loses accuracy; 7 of 8 significantly (McNemar, χ²>3.84).
-All runs: 8052/8052 samples, 32 frames, 8 empty predictions, zero tracebacks, ACTIVE log + nonzero divergence.
-
-| Method | Acc | Correct | Δ vs base | Divergence | W/L | χ² | Signif | Params |
-|---|---|---|---|---|---|---|---|---|
-| **DyCoke** | 61.85% | 2485/4018 | -0.67 | 1048/8052 | 83/110 | 3.5 | ns | l=3, p=0.7, k=0.3 |
-| **HoliTom** | 60.33% | 2424/4018 | -2.19 | 1657/8052 | 131/219 | 21.6 | **sig** | retain 15%, k=18 |
-| **MDP3** | 59.66% | 2397/4018 | -2.86 | 1626/8052 | 159/274 | 30.0 | **sig** | pool 32 → 8 frames |
-| **VisionZip** | 58.81% | 2363/4018 | -3.71 | 2035/8052 | 191/340 | 41.3 | **sig** | contextual-only (partial) |
-| **FastV** | 59.01% | 2371/4018 | -3.51 | 2029/8052 | 149/290 | 44.6 | **sig** | layer_k=2, keep 15% |
-| **FlashVID** | 56.65% | 2276/4018 | -5.87 | 2625/8052 | 178/414 | 93.3 | **sig** | alpha=0.7, keep 15% |
-| **AIM** | 55.97% | 2249/4018 | -6.55 | 2861/8052 | 194/457 | 105.4 | **sig** | 4 merge steps, keep 15% |
-| **VideoITG** | 56.35% | 2264/4018 | −6.17 | — | 206/454 | 92.4 | **sig** | grounded frame selection |
-
-Subcategories (Action Order / Camera Motion / Location / Motion Recog / Motion Objects / Repetition):
-
-| Method | AO | CM | LM | MR | MO | RC |
-|---|---|---|---|---|---|---|
-| **DyCoke** | 45.1 | 62.6 | 63.9 | 66.4 | 78.4 | 34.5 |
-| **HoliTom** | 44.7 | 61.3 | 61.0 | 66.4 | 76.2 | 29.0 |
-| **MDP3** | 44.9 | 64.7 | 62.8 | 64.0 | 77.4 | 23.0 |
-| **VisionZip** | 43.2 | 57.4 | 61.9 | 64.2 | 74.3 | 29.5 |
-| **FastV** | 46.2 | 61.0 | 61.9 | 63.5 | 72.2 | 30.5 |
-| **FlashVID** | 43.4 | 57.9 | 57.1 | 61.2 | 73.0 | 27.0 |
-| **AIM** | 45.9 | 56.6 | 59.5 | 58.3 | 72.2 | 27.0 |
-| **VideoITG** | 45.3 | 53.5 | 59.3 | 60.2 | 75.4 | 22.2 |
-

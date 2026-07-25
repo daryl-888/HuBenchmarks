@@ -27,10 +27,18 @@ knob. Decoding is greedy (`do_sample=False`), answers are letter-matched.
 
 ## Headline result
 
-**The backbone dominates the method.** Qwen3-VL-8B baseline scores **62.52%** vs
+**1. The backbone dominates the method.** Qwen3-VL-8B baseline scores **62.52%** vs
 LLaVA-OV-7B's **52.66%** — a ~10-point gap that no efficiency method on either
-backbone comes close to. On LLaVA-OV, every method lands within ~0.8 points of the
-backbone (i.e. within noise). See [RESULTS.md](RESULTS.md).
+backbone comes close to.
+
+**2. Method effects do not transfer across backbones.** On LLaVA-OV every method
+lands within ~0.8 points of the backbone — none significantly different, i.e. the
+methods are effectively free. On **Qwen3-VL, at the same 32 frames and 15%
+retention, all 8 lose accuracy and 7 lose significantly** (−0.67 to −6.55). A
+stronger backbone extracts more from the full token set, so discarding tokens costs
+more. A ranking measured on one backbone must not be assumed on another.
+
+See [RESULTS.md](RESULTS.md).
 
 ## Quick start
 

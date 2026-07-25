@@ -45,23 +45,48 @@ predictions differ from baseline), not a bug.
 
 ## Qwen3-VL-8B methods
 
-All 7 ports are **smoke-verified**: each prints its own `ACTIVE` log AND its
-predictions diverge from the Qwen3-VL baseline. Full 8,052-sample runs are in
-flight (~10h each — Qwen3-VL carries 11,664 visual tokens per sample).
+**All 8 methods are fully gated** (2026-07-25). Each ran 8,052/8,052 samples at 32
+frames (~9–10h each — Qwen3-VL carries 11,664 visual tokens per sample), printed its
+own `ACTIVE` log, and diverged from the baseline. Zero tracebacks; the uniform 8
+empty predictions per run are the known bad-NFS videos, not a method defect.
 
-| Method | Overall | Smoke gate | Notes |
-|---|:---:|:---:|---|
-| **Baseline** | **62.52%** | ✅ | reference for every divergence check |
-| FastV | 🔄 pending | ✅ verified | `ACTIVE: visual=11664 keep=1750` |
-| DyCoke | 🔄 pending | ✅ verified | `stage1_keep=8165 stage2_keep=5716 (net 49%)` |
-| HoliTom | 🔄 pending | ✅ verified | `outer=1750 inner=875 (net 7.5%)` |
-| FlashVID | 🔄 pending | ✅ verified | `keep=1750 (15.0%)` |
-| AIM | 🔄 pending | ✅ verified | `after_merge=1750 keep=1750` |
-| MDP3 | 🔄 pending | ✅ verified | frame selection, pool 32 → 8 |
-| VideoITG | **56.35%** ✅ | ✅ | **−6.17 vs baseline (χ²=92.4, significant)** — frame selection *hurts* the stronger backbone |
-| VisionZip (contextual-only) | 🔄 full run pending | ✅ verified | 5/8 divergence; `merger out 11664 -> 1750 (15%)`. **Partial by design** — dominant half needs a CLS token Qwen3-VL lacks |
-| PruneVID | 🟡 blocked | — | VTP core *is* separable, but its LLaVA-OV port is still inert — fix that first |
-| STTM, DyTo | ❌ | — | genuinely not portable ([why](../stage3-qwen3-vl/PORT_FEASIBILITY.md)) |
+| # | Method | Overall | Δ vs base | Differ | χ² | Significant? |
+|:-:|---|:---:|:---:|:---:|:---:|:---:|
+| — | **Baseline** | **62.52%** | — | 0 (ref) | — | — |
+| 1 | DyCoke ✅ | **61.85%** | −0.67 | 1048 | 3.5 | **no** |
+| 2 | HoliTom ✅ | **60.33%** | −2.19 | 1657 | 21.6 | yes |
+| 3 | MDP3 ✅ | **59.66%** | −2.86 | 1626 | 30.0 | yes |
+| 4 | FastV ✅ | **59.01%** | −3.51 | 2029 | 44.6 | yes |
+| 5 | VisionZip (contextual-only) ✅ | **58.81%** | −3.71 | 2035 | 41.3 | yes |
+| 6 | FlashVID ✅ | **56.65%** | −5.87 | 2625 | 93.3 | yes |
+| 7 | VideoITG ✅ | **56.35%** | −6.17 | 2522 | 92.4 | yes |
+| 8 | AIM ✅ | **55.97%** | −6.55 | 2861 | 105.4 | yes |
+| — | PruneVID | 🟡 not built | — | — | — | VTP core is separable; its LLaVA-OV port is now fixed, so this is unblocked |
+| — | STTM, DyTo | ❌ | — | — | — | genuinely not portable ([why](../stage3-qwen3-vl/PORT_FEASIBILITY.md)) |
+
+Subcategory breakdown (% correct within category):
+
+| Method | Act.Order | Cam.Motion | Loc.Motion | Mot.Rec. | Mot.Obj. | Rep.Count |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|
+| *Baseline* | *46.1* | *63.1* | *65.0* | *67.3* | *79.0* | *33.8* |
+| DyCoke | 45.1 | 62.6 | 63.9 | 66.4 | 78.4 | 34.5 |
+| HoliTom | 44.7 | 61.3 | 61.0 | 66.4 | 76.2 | 29.0 |
+| MDP3 | 44.9 | 64.7 | 62.8 | 64.0 | 77.4 | 23.0 |
+| FastV | 46.2 | 61.0 | 61.9 | 63.5 | 72.2 | 30.5 |
+| VisionZip | 43.2 | 57.4 | 61.9 | 64.2 | 74.3 | 29.5 |
+| FlashVID | 43.4 | 57.9 | 57.1 | 61.2 | 73.0 | 27.0 |
+| VideoITG | 45.3 | 53.5 | 59.3 | 60.2 | 75.4 | 22.2 |
+| AIM | 45.9 | 56.6 | 59.5 | 58.3 | 72.2 | 27.0 |
+
+> ### Every method loses, and loss tracks how hard it prunes
+> **7 of 8 lose significantly.** Only DyCoke is indistinguishable from the backbone —
+> and it retains **49%** of tokens where the rest cut to 15%. AIM and FlashVID prune
+> hardest and lose most. Repetition Count is the weakest category throughout (23–34%).
+>
+> **This is the opposite of Stage 1.** On LLaVA-OV no method's change was
+> significant; on Qwen3-VL, at identical settings, all 8 lose. A stronger backbone
+> extracts more from the full token set, so discarding tokens costs more. Method
+> rankings measured on one backbone do not transfer to another.
 
 > **Getting these 7 to engage took untangling a 5-bug chain** where each bug hid the
 > next — `attention_mask` is `None` under sdpa, bf16 overflow from an fp32 mask,
