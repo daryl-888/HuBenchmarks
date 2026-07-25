@@ -82,3 +82,20 @@ The root cause chain is worth recording, because each bug hid the next:
 **Lesson generalized:** an "ACTIVE"-style log proves the *hook ran*, not that the
 *method affected the output*. Only prediction-level divergence proves the latter.
 Both signals are now required before a number is recorded.
+
+
+## Known limitation: the accuracy-band check can false-alarm
+
+`check_run.py` FAILs runs outside [0.40, 0.95]. That band exists to catch dropped
+weights and empty output, and it has caught real cases. But a method that genuinely
+degrades below 40% trips it too.
+
+**PruneVID on LLaVA-OV (2026-07-24) is the first such case:** 38.20%, which the gate
+flagged. Inspection shows it is a *real* result — all four answer letters used, 8
+empty predictions out of 8,052, and 4,536 predictions differing from the backbone
+(χ²=220.3 vs baseline). The method engaged and genuinely costs 14.5 points at 50%
+token retention.
+
+**Rule:** an accuracy-floor FAIL is not by itself grounds to discard a run. Check
+the other signals — prediction diversity, empty rate, and divergence. Discard only
+when those also indicate breakage. The floor is a prompt to look, not a verdict.

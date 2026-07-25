@@ -92,6 +92,7 @@ Action Order 519 · Camera Motion 385 · Location-related Motion 546 · Motion R
 | 7 | **STTM** ✅ | — | 2025 | **51.72%** (2078) | 4859 | 39.9 | 48.1 | 53.8 | 53.5 | 70.6 | 28.8 |
 | 8 | **VisionZip** ✅ | — | 2024 | **40.09%** (1611) | 4506 | 33.7 | 33.0 | 37.2 | 41.1 | 57.4 | 25.8 |
 | 9 | **FastV** ✅ | arXiv 2403.06764 | 2024 | **36.78%** (1478) | 4605 | 32.8 | 31.9 | 34.1 | 35.7 | 53.8 | 25.2 |
+| 10 | **PruneVID** (OV port) ✅ | — | 2024 | **38.20%** (1535) | 4536 | 32.0 | 34.8 | 35.5 | 38.4 | 52.9 | 27.2 |
 
 *Numbering is presentation order only — see the significance warning above.*
 *Differ = predictions ≠ the plain backbone, out of 8,052 (0 would mean the method never ran).*
@@ -109,7 +110,7 @@ Action Order 519 · Camera Motion 385 · Location-related Motion 546 · Motion R
 | **STTM** | Quadtree spatio-temporal merging patched into Qwen2 attention | `sa_start_layer_idx=2, sa_tree_thresh=0.85` | Efficiency comes from LLM layers; vision tower runs normally |
 | **VisionZip** | Dominant tokens (CLS-attention) + contextual tokens (key-vector similarity merge) | `dominant=54, contextual=10` | **Was 0% across 3 runs** — `output_ids[:, input_ids.shape[1]:]` discarded every response (LLaVA-1.5 returns only new tokens). Fixed → 40.09% |
 | **FastV** | Attention-rerank: rank image tokens at layer K by received attention, keep top fraction | `k=2, r=0.85` (keeps 15%) | Was a **no-op stub** (`enabled:false`) reporting the bare backbone. Rebuilt paper-exact. Paper default is `r=0.5`; **our 15% is far more aggressive**, which explains the −15.9 drop |
-| **PruneVID** | Video Token Pruning: DPC-KNN clustering → temporal segments → cluster-centroid merge | `cluster_ratio=0.5, temporal_segment_ratio=0.25, layer=10` | Runs on **PLLaVA-7B** (its published backbone) = 44.13%. The LLaVA-OV port was inert until switched to `PrunableDynamicCache.kv_cache`; full run in flight |
+| **PruneVID** | Video Token Pruning: DPC-KNN clustering → temporal segments → cluster-centroid merge | `cluster_ratio=0.5, temporal_segment_ratio=0.25, layer=10` | On **PLLaVA-7B** (published backbone) = 44.13%. **LLaVA-OV port = 38.20%** — was an inert no-op until switched to `PrunableDynamicCache.kv_cache`; now engages (4536/8052 differ) and loses **−14.46 vs backbone, χ²=220.3 (significant)** at 50% retention. Trips the gate's 0.40 accuracy floor, but that is a **false alarm**: all 4 letters used, only 8 empty preds — a real degradation, not a broken run |
 | **DyTo** | FINCH clustering (~25 of 100 frames) + ToMe dynamic merge | `temporal_aggregation=spatial_tome_finch_dynamic_all_frms, rope_scaling=2` | ❌ **Not reproducible from published artifacts** — two defects in released code ([evidence](../../docs/UPSTREAM_DEFECTS.md)) |
 
 ### ❌ Invalid entries — do not report
