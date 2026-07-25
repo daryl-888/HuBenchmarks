@@ -3,9 +3,9 @@
 #SBATCH -o /project/rhu/dpalfaro/results/s3_sttm_smoke_%j.out
 #SBATCH -e /project/rhu/dpalfaro/results/s3_sttm_smoke_%j.err
 #SBATCH -N 1
-#SBATCH -n 8
+#SBATCH -n 4
 #SBATCH --gpus=ada:1
-#SBATCH --mem=124G
+#SBATCH --mem=32G
 #SBATCH -t 0:12:00
 
 # STTM ported to Qwen3-VL.

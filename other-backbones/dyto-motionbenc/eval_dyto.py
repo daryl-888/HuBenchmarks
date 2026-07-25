@@ -108,9 +108,9 @@ def _install_finch_shim(enable: bool):
     `paper_faithful: false` and `reconstruction_notes`, so the caveat travels with
     the data, not just the prose.
 
-    `$DYTO_TW_OFF=1` forces the plain-FINCH path — an A/B control used to prove the
-    temporal weighting actually changes predictions rather than merely running
-    without error.
+    `$DYTO_TW_OFF=1` forces the plain-FINCH path — an A/B control. Result at n=8:
+    TW-FINCH and standard FINCH gave IDENTICAL predictions (0/8 differ), so the
+    clustering choice is not observable in the output at that sample size.
     """
     if not enable:
         return False
@@ -154,7 +154,13 @@ def _install_finch_shim(enable: bool):
         # `tw_finch` is not a parameter of any released finch-clust. When DyTo asks
         # for it we implement the published TW-FINCH weighting ourselves, via
         # FINCH's own `initial_rank` hook, rather than silently degrading to
-        # standard FINCH (which is a different algorithm and gave a worse result).
+        # standard FINCH (a different algorithm).
+        #
+        # MEASURED (8-sample A/B, jobs 7786505 vs 7786513): TW-FINCH and standard
+        # FINCH produced IDENTICAL predictions, 0/8 differ. So on this backbone the
+        # clustering choice does not reach the output at n=8 -- DyTo's downstream
+        # ToMe merge and the 25-frame cap absorb the difference. Do not claim the
+        # temporal weighting changes results without a larger paired comparison.
         tw = kwargs.pop("tw_finch", False)
         if os.environ.get("DYTO_TW_OFF", "0") == "1":
             tw = False          # A/B control: standard FINCH, for comparison only

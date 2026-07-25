@@ -141,13 +141,19 @@ def apply_sttm(model, tree_thresh: float = 0.85, temporal_thresh: float = -1.0,
             return orig_forward(*args, **kwargs)
 
         # The visual span must be contiguous for a slice-and-splice rebuild.
-        start, end = int(vis_idx[0]), int(vis_idx[-1]) + 1
-        if end - start != n_vis:
-            if not getattr(self, "_sttm_warned", False):
-                import logging
-                logging.warning("STTM: visual span not contiguous — passing through")
-                self._sttm_warned = True
-            return orig_forward(*args, **kwargs)
+        # Qwen3-VL interleaves TIMESTAMP TEXT TOKENS between frames: measured
+        # n_vis=11664 spread over an 11784-wide span with 15 gaps at a perfectly
+        # regular 737 stride = 16 planes of 729 visual tokens separated by 8
+        # timestamp tokens each. The span is therefore NOT one block, and a
+        # single slice-and-splice silently produced a no-op (0/8 divergence).
+        # Splice per contiguous run instead, keeping the separators in place.
+        runs = []
+        b = 0
+        d = (vis_idx[1:] - vis_idx[:-1] != 1).nonzero().flatten()
+        for g in d.tolist():
+            runs.append((int(vis_idx[b]), int(vis_idx[g]) + 1))
+            b = g + 1
+        runs.append((int(vis_idx[b]), int(vis_idx[-1]) + 1))
 
         grid = _grid_from(model, n_vis)
         if grid is None:
@@ -159,7 +165,7 @@ def apply_sttm(model, tree_thresh: float = 0.85, temporal_thresh: float = -1.0,
             return orig_forward(*args, **kwargs)
         T, H, W = grid
 
-        visual = inputs_embeds[0, start:end]                    # (n_vis, C)
+        visual = inputs_embeds[0, vis_idx]                      # (n_vis, C)
         try:
             video = _einops.rearrange(visual.float(), "(T H W) C -> T C H W",
                                       T=T, H=H, W=W)
@@ -173,8 +179,6 @@ def apply_sttm(model, tree_thresh: float = 0.85, temporal_thresh: float = -1.0,
 
         n_keep = feats.shape[0]
         if n_keep <= 0 or n_keep >= n_vis:
-            # n_keep == n_vis means nothing merged: that is a no-op, and it must
-            # be visible in the log rather than reported as a successful run.
             if not getattr(self, "_sttm_warned", False):
                 import logging
                 logging.warning("STTM: merged %d/%d tokens — NO REDUCTION, "
@@ -183,56 +187,71 @@ def apply_sttm(model, tree_thresh: float = 0.85, temporal_thresh: float = -1.0,
                 self._sttm_warned = True
             return orig_forward(*args, **kwargs)
 
-        # Row selector into the ORIGINAL visual span, same convention as the
-        # authors' Qwen2-VL patch: flat index = t*H*W + y*W + x.
+        # Row selector into the ORIGINAL visual span (same convention as the
+        # authors' Qwen2-VL patch): flat index = t*H*W + y*W + x. `sel` indexes
+        # the CONCATENATED visual tokens, i.e. positions within vis_idx.
         sel = (tlbr[:, 0].long() * H * W + tlbr[:, 1].long() * W
-               + tlbr[:, 2].long()).clamp_(0, n_vis - 1)
+               + tlbr[:, 2].long()).clamp_(0, n_vis - 1).sort().values
 
-        merged = feats.to(inputs_embeds.dtype).unsqueeze(0)     # (1, K, C)
-        new_embeds = _torch.cat([inputs_embeds[:, :start],
-                                 merged,
-                                 inputs_embeds[:, end:]], dim=1)
+        # Which merged rows fall in which original plane -> rebuild the sequence
+        # run by run, so the interleaved timestamp tokens stay where they are.
+        keep_abs = vis_idx[sel]                                  # absolute positions
+        pieces, mask_pieces, pos_pieces = [], [], []
+        pos = kwargs.get("position_ids", None)
+        pos_ok = (pos is not None and hasattr(pos, "dim")
+                  and pos.shape[-1] == seq_len)
+        cursor = 0
+        for (rs, re_) in runs:
+            if rs > cursor:                                      # text before run
+                pieces.append(inputs_embeds[:, cursor:rs])
+                mask_pieces.append(_torch.zeros(rs - cursor, dtype=_torch.bool,
+                                                device=vis_mask.device))
+                if pos_ok:
+                    pos_pieces.append(pos[..., cursor:rs])
+            inrun = ((keep_abs >= rs) & (keep_abs < re_)).nonzero().flatten()
+            if inrun.numel():
+                idx_abs = keep_abs[inrun]
+                pieces.append(inputs_embeds[:, idx_abs])
+                mask_pieces.append(_torch.ones(idx_abs.numel(), dtype=_torch.bool,
+                                               device=vis_mask.device))
+                if pos_ok:
+                    pos_pieces.append(pos[..., idx_abs])
+            cursor = re_
+        if cursor < seq_len:                                     # trailing text
+            pieces.append(inputs_embeds[:, cursor:])
+            mask_pieces.append(_torch.zeros(seq_len - cursor, dtype=_torch.bool,
+                                            device=vis_mask.device))
+            if pos_ok:
+                pos_pieces.append(pos[..., cursor:])
+
+        new_embeds = _torch.cat(pieces, dim=1)
         new_len = new_embeds.shape[1]
-
-        # visual_pos_masks must shrink to the new sequence length.
-        new_mask = _torch.zeros((1, new_len), dtype=vis_mask.dtype,
-                                device=vis_mask.device)
-        new_mask[0, start:start + n_keep] = True
+        new_mask = _torch.cat(mask_pieces).unsqueeze(0)
+        new_pos = _torch.cat(pos_pieces, dim=-1) if pos_ok else pos
 
         # deepstack: hidden_states[visual_pos_masks] += visual_embeds is an exact
-        # shape contract — select the SAME rows, in the same order.
+        # shape contract — select the SAME rows, in the same order as new_mask.
         new_deepstack = None
         if deepstack is not None:
             new_deepstack = []
-            for d in deepstack:
-                if d is None:
-                    new_deepstack.append(d); continue
-                if d.dim() == 3 and d.shape[0] == 1 and d.shape[1] == n_vis:
-                    new_deepstack.append(d[:, sel, :])
-                elif d.dim() == 2 and d.shape[0] == n_vis:
-                    new_deepstack.append(d[sel, :])
-                else:                       # unexpected layout: leave untouched
-                    new_deepstack.append(d)
-
-        # position_ids: keep sys + inst spans, select the merged visual rows.
-        pos = kwargs.get("position_ids", None)
-        new_pos = pos
-        if pos is not None and pos.dim() == 3 and pos.shape[-1] == seq_len:
-            vis_pos = pos[..., start:end][..., sel]
-            new_pos = _torch.cat([pos[..., :start], vis_pos, pos[..., end:]],
-                                 dim=-1)
-        elif pos is not None and pos.dim() == 2 and pos.shape[-1] == seq_len:
-            vis_pos = pos[:, start:end][:, sel]
-            new_pos = _torch.cat([pos[:, :start], vis_pos, pos[:, end:]], dim=-1)
+            for dse in deepstack:
+                if dse is None:
+                    new_deepstack.append(dse); continue
+                if dse.dim() == 3 and dse.shape[0] == 1 and dse.shape[1] == n_vis:
+                    new_deepstack.append(dse[:, sel, :])
+                elif dse.dim() == 2 and dse.shape[0] == n_vis:
+                    new_deepstack.append(dse[sel, :])
+                else:
+                    new_deepstack.append(dse)
 
         if not getattr(self, "_sttm_logged", False):
             import logging
             logging.warning("STTM(Qwen3-VL) ACTIVE: visual=%d merged=%d (%.1f%%) "
-                            "grid=%dx%dx%d thresh=%.2f temporal=%.2f layer=%d "
-                            "seq %d->%d deepstack=%s",
+                            "grid=%dx%dx%d runs=%d thresh=%.2f layer=%d "
+                            "seq %d->%d mask_true=%d deepstack=%s",
                             n_vis, n_keep, 100.0 * n_keep / n_vis, T, H, W,
-                            tree_thresh, temporal_thresh, start_layer,
-                            seq_len, new_len,
+                            len(runs), tree_thresh, start_layer,
+                            seq_len, new_len, int(new_mask.sum()),
                             0 if deepstack is None else len(deepstack))
             self._sttm_logged = True
 
