@@ -148,7 +148,7 @@ from 23.8% → 33.8%.
 | FlashVID | ICLR (Oral) | 2026 | 🔄 full run | ✅ | retention=0.15, α=0.7 | `keep=1750 (15.0%)`. Embedding-only → no eager attention needed |
 | AIM | ICCV | 2025 | 🔄 full run | ✅ | 4 merge steps + PageRank | `after_merge=1750 keep=1750` |
 | MDP3 | ICCV | 2025 | 🔄 full run | ✅ | pool=32, select=8 | Selector loaded by file path — `vlmeval` imports a symbol removed in transformers 5.x |
-| VideoITG | — | 2025 | 🔄 full run | ✅ | 512 sampled, 32 selected | Stage-1 grounding indices reused verbatim |
+| VideoITG | — | 2025 | **56.35%** (2264) ✅ | ✅ | 512 sampled, 32 selected | **−6.17 vs baseline, χ²=92.4 → SIGNIFICANT loss.** Subcats 45.3/53.5/59.3/60.2/75.4/22.2. Stage-1 grounding indices reused verbatim |
 | VisionZip (contextual-only) | 🔄 full run pending | ✅ | 5/8 divergence, 11664->1750 (15%). Hook on `vis.merger`; token count preserved for masked_scatter. Partial by design (no CLS) |
 | PruneVID | 🟡 blocked | — | VTP core IS separable, but the LLaVA-OV port is still inert — fix that first |
 | STTM | ❌ | — | ships a wholesale Qwen2Model_forward replacement; no separable merge fn |
