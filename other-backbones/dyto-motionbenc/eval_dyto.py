@@ -94,16 +94,23 @@ def _install_finch_shim(enable: bool):
     `ssarfraz/FINCH-Clustering` keeps TW-FINCH as a SEPARATE implementation, not a
     parameter. DyTo's published artifacts are therefore internally inconsistent.
 
-    This shim swallows the unsupported kwarg so the rest of DyTo (ToMe merging,
-    dynamic budget, the LLaVA-NeXT pipeline) can run. The clustering that results
-    is **standard FINCH, not the temporal-weighted TW-FINCH the paper specifies**,
-    so any number produced is a VARIANT:
+    Rather than silently dropping the kwarg (which would give plain FINCH — a
+    DIFFERENT algorithm), this shim implements the published TW-FINCH weighting
+    itself, through FINCH's own `initial_rank` hook. See `_tw_initial_rank` below
+    for the rule and why that hook is the correct injection point.
 
-        "DyTo (standard FINCH, not TW-FINCH)"
+    That still makes any number a VARIANT, because the implementation is ours and
+    not the authors':
 
-    It must never be reported as "DyTo". The summary records
-    `finch_variant: "standard-FINCH-not-TW-FINCH"` and `paper_faithful: false` so
-    the caveat travels with the data, not just the prose.
+        "DyTo (reconstructed TW-FINCH)"
+
+    It must never be reported as "DyTo". The summary records `finch_variant`,
+    `paper_faithful: false` and `reconstruction_notes`, so the caveat travels with
+    the data, not just the prose.
+
+    `$DYTO_TW_OFF=1` forces the plain-FINCH path — an A/B control used to prove the
+    temporal weighting actually changes predictions rather than merely running
+    without error.
     """
     if not enable:
         return False
@@ -149,6 +156,8 @@ def _install_finch_shim(enable: bool):
         # FINCH's own `initial_rank` hook, rather than silently degrading to
         # standard FINCH (which is a different algorithm and gave a worse result).
         tw = kwargs.pop("tw_finch", False)
+        if os.environ.get("DYTO_TW_OFF", "0") == "1":
+            tw = False          # A/B control: standard FINCH, for comparison only
         if tw and kwargs.get("initial_rank") is None:
             data = args[0] if args else kwargs.get("data")
             try:

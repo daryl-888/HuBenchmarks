@@ -13,6 +13,9 @@ export PYTHONNOUSERSITE=1
 unset HF_HUB_OFFLINE; unset HF_DATASETS_OFFLINE
 export PYTHONPATH=/project/rhu/dpalfaro/dyto_pkgs:/project/rhu/dpalfaro/DYTO:${PYTHONPATH:-}
 export DYTO_FINCH_SHIM=1   # LABELLED VARIANT: reconstructed TW-FINCH (not authors' code)
+# A/B control: DYTO_TW_OFF=1 falls back to standard FINCH, to prove the temporal
+# weighting actually changes predictions rather than merely running without error.
+export DYTO_TW_OFF=${DYTO_TW_OFF:-0}
 export DYTO_ROOT=/project/rhu/dpalfaro/DYTO
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
 export TRANSFORMERS_OFFLINE=1
