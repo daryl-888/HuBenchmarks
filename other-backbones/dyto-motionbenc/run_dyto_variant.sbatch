@@ -6,7 +6,7 @@
 #SBATCH -n 4
 #SBATCH --gpus=ada:1
 #SBATCH --mem=48G
-#SBATCH -t 24:00:00
+#SBATCH -t 12:00:00
 
 # DyTo full run on its own backbone (LLaVA-NeXT Vicuna-7B).
 #
