@@ -4,7 +4,7 @@
 **Standard config** 32 frames · retention 0.15 where the method exposes one · `do_sample=False` · `max_new_tokens=16` · letter-match scoring · NA skipped
 
 **Goal** — 11 methods × 2 backbones (LLaVA-OV-7B, Qwen3-VL-8B) = **22 cells**, each a paper-exact implementation verified to actually engage.
-**Status** — 10/11 gated on LLaVA-OV · 10/11 gated on Qwen3-VL, **all 10 portable methods gated, PruneVID + STTM included** (2026-07-25) · DyTo runs on its own Vicuna backbone as a labelled variant. **All 11 methods now have a working implementation on both backbones.**
+**Status** — 10/11 gated on LLaVA-OV · 10/11 gated on Qwen3-VL, **all 10 portable methods gated, PruneVID + STTM included** (2026-07-25) · DyTo runs on its own Vicuna backbone as a labelled variant. **All 11 methods now have a working implementation on both backbones**; DyTo's full run is in flight (job 7833211, submitted 2026-07-25).
 
 > ## 🏆 Headline findings
 >
@@ -43,7 +43,7 @@
 
 ---
 
-## 2. Verification status — LLaVA-OV-7B (10/11 verified; DyTo blocked upstream)
+## 2. Verification status — LLaVA-OV-7B (10/11 verified; DyTo runs as a labelled variant)
 
 | Method | Engages? | Evidence / fix required to get there |
 |---|:---:|---|
@@ -255,12 +255,37 @@ it — which is why every row above reports a Differ count. See [PORT_FEASIBILIT
 | PruneVID | PLLaVA-7B | **44.13%** ✅ | Wave 2 gated (`enabled: True`). **Not run on LLaVA-OV**: its VTP is bound to PLLaVA — the OV port produced 0/8052 divergence (inert). PLLaVA-7B is its published backbone. |
 | VisionZip | LLaVA-1.5-7B | **39.97%** 🟡 | Only usable VisionZip figure; the 0.00% runs are ❌ |
 | STTM-LLaVAVid | LLaVA-Video-7B | **53.33%** 🟡 | `sttm_llavavid_t80_full` |
-| DyTo | LLaVA-NeXT Vicuna-7B | ❌ 5.25% | Emitted captions, not letters. Below random. Not a result |
+| DyTo (reconstructed TW-FINCH) | LLaVA-NeXT Vicuna-7B | 🔄 full run in flight (7833211) | Smoke clean: 0 tracebacks, real letters `B C A C D B B A`, 0 empty. **Never report as plain "DyTo"** — see §5a. The earlier ❌ 5.25% run (captions, not letters) is superseded and must not be cited |
 | iMove, TrajViT | — | — | ❌ No public code / weights |
 
 *Stage 2 (LLaVA-Video-7B) was descoped 2026-07-23; those jobs were cancelled.*
 
 ---
+
+### 5a. DyTo — what "reconstructed TW-FINCH" means, and why it is not "DyTo"
+
+DyTo's published artifacts contain two defects. They are **not** equally
+recoverable, and the distinction decides how the number may be reported.
+
+| Defect | Resolution | Status |
+|---|---|---|
+| `finch_cluster()` has **zero return statements** — returns `None`, caller dereferences `.shape` | The same file holds a sibling KMeans function, **character-identical over the whole shared region** (13/14 normalized lines; only difference a stray space before a colon). Its 8-line tail is missing here, `new_embeddings` is declared and never used, and the caller needs a stacked 3-D tensor. Tail **transcribed verbatim**. | ✅ **Recovered** — their code, not ours |
+| `FINCH(..., tw_finch=...)` — `tw_finch` is absent from every release of the pinned `finch-clust==0.2.0` | Nothing in the repo permits transcription. TW-FINCH is published (Sarfraz et al., CVPR 2021) with a one-line rule: weight distance by temporal proximity, `d·\|i−j\|`. Applied through FINCH's own `initial_rank` hook. Validated: mean temporal jump = **1.00** vs **6.72** for standard FINCH. | ⚠️ **Reconstructed** — OUR implementation |
+
+Because of the second row, any number is reported as **"DyTo (reconstructed
+TW-FINCH)"** and never as "DyTo". `summary.json` carries `finch_variant`,
+`paper_faithful: false` and `reconstruction_notes`, so the caveat travels with the
+data rather than living only in prose.
+
+**Measured A/B — a null result.** Standard FINCH (`$DYTO_TW_OFF=1`, job 7786513)
+vs reconstructed TW-FINCH (job 7786505): **0/8 predictions differ**. The clustering
+choice is not observable in the output at n=8 — DyTo's downstream ToMe merge and
+its ~25-frame cap absorb it. Two consequences: the reconstruction is *unlikely to
+be the load-bearing part* of whatever DyTo scores, and no claim that the temporal
+weighting changes results is supportable without a larger paired comparison.
+
+**Config note:** 32 frames, not the paper's 100 — 100 OOMs on a 44 GiB card, and
+FINCH selects ~25 representative frames regardless.
 
 ## 6. Known duplicate rows (to dedupe)
 
