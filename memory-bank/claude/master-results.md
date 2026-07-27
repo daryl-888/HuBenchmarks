@@ -1,10 +1,10 @@
 # Master Results — HuBenchmarks / MotionBench
 
-**Updated** 2026-07-25 (**all 8 Qwen3-VL methods gated**; Stage 3 complete) · **Benchmark** MotionBench (8,052 samples · 4,018 scoreable · 4,034 NA)
+**Updated** 2026-07-25 (**all 10 portable Qwen3-VL methods gated**; Stage 3 complete) · **Benchmark** MotionBench (8,052 samples · 4,018 scoreable · 4,034 NA)
 **Standard config** 32 frames · retention 0.15 where the method exposes one · `do_sample=False` · `max_new_tokens=16` · letter-match scoring · NA skipped
 
 **Goal** — 11 methods × 2 backbones (LLaVA-OV-7B, Qwen3-VL-8B) = **22 cells**, each a paper-exact implementation verified to actually engage.
-**Status** — 10/11 gated on LLaVA-OV · 8/8 portable methods gated on Qwen3-VL · 3 not portable (STTM, DyTo, PruneVID) with the blocker stated.
+**Status** — 10/11 gated on LLaVA-OV · 10/11 gated on Qwen3-VL, **all 10 portable methods gated, PruneVID + STTM included** (2026-07-25) · DyTo runs on its own Vicuna backbone as a labelled variant. **All 11 methods now have a working implementation on both backbones.**
 
 > ## 🏆 Headline findings
 >
@@ -14,7 +14,7 @@
 >
 > **2. Method effects do NOT transfer across backbones.** On LLaVA-OV **no**
 > method's change is significant — the methods are effectively free. On Qwen3-VL
-> **all 8 lose accuracy and 7 lose significantly**, at the same 32 frames and 15%
+> **all 10 lose accuracy and 8 lose significantly**, at the same 32 frames and 15%
 > retention. VideoITG is the sharpest case: +0.20 (ns) on LLaVA-OV, **−6.17**
 > (χ²=92.4) on Qwen3-VL. Reduction that is harmless on a weaker backbone actively
 > harms a stronger one — a ranking measured on one backbone must not be assumed on
@@ -57,7 +57,7 @@
 | **VisionZip** | ✅ | `output_ids[:, input_ids.shape[1]:]` discarded the whole response → 100% empty. Slice removed |
 | **FlashVID** | ✅ | 3 bugs: `--frame-counts` not `--num_frames`; motionbench variant loaded `LlavaLlamaForCausalLM` at retention 0.10; flash_attn → sdpa |
 | **VideoITG** | ✅ | Two-stage grounding; now emits `videoitg_params`. Wave 2 gated at 52.86% |
-| **DyTo** | ❌ | **Not reproducible from published artifacts.** Four of our own bugs fixed (swallowed import, wrong conv template, 100-frame OOM, anyres/tensor mismatch); then two *upstream* defects blocked it — `FINCH(tw_finch=...)` absent from its own pinned `finch-clust==0.2.0`, and `finch_cluster()` has zero `return` statements ([evidence](../../docs/UPSTREAM_DEFECTS.md)) |
+| **DyTo** | 🟡 | **Runs as a labelled variant** (2026-07-25). Four of our bugs fixed, then two *upstream* defects: `finch_cluster()`'s missing `return` was **recovered by verbatim transcription** from the sibling KMeans function (13/14 normalized lines identical); `FINCH(tw_finch=...)` needed a **reconstruction** of the published TW-FINCH rule via `initial_rank`. Smoke: 0 tracebacks, real letters. Report only as **"DyTo (reconstructed TW-FINCH)"** ([evidence](../../docs/UPSTREAM_DEFECTS.md)) |
 
 ---
 
@@ -114,7 +114,7 @@ Action Order 519 · Camera Motion 385 · Location-related Motion 546 · Motion R
 | **VisionZip** | Dominant tokens (CLS-attention) + contextual tokens (key-vector similarity merge) | `dominant=54, contextual=10` | **Was 0% across 3 runs** — `output_ids[:, input_ids.shape[1]:]` discarded every response (LLaVA-1.5 returns only new tokens). Fixed → 40.09% |
 | **FastV** | Attention-rerank: rank image tokens at layer K by received attention, keep top fraction | `k=2, r=0.85` (keeps 15%) | Was a **no-op stub** (`enabled:false`) reporting the bare backbone. Rebuilt paper-exact. Paper default is `r=0.5`; **our 15% is far more aggressive**, which explains the −15.9 drop |
 | **PruneVID** | Video Token Pruning: DPC-KNN clustering → temporal segments → cluster-centroid merge | `cluster_ratio=0.5, temporal_segment_ratio=0.25, layer=10` | On **PLLaVA-7B** (published backbone) = 44.13%. **LLaVA-OV port = 38.20%** — was an inert no-op until switched to `PrunableDynamicCache.kv_cache`; now engages (4536/8052 differ) and loses **−14.46 vs backbone, χ²=220.3 (significant)** at 50% retention. Trips the gate's 0.40 accuracy floor, but that is a **false alarm**: all 4 letters used, only 8 empty preds — a real degradation, not a broken run |
-| **DyTo** | FINCH clustering (~25 of 100 frames) + ToMe dynamic merge | `temporal_aggregation=spatial_tome_finch_dynamic_all_frms, rope_scaling=2` | ❌ **Not reproducible from published artifacts** — two defects in released code ([evidence](../../docs/UPSTREAM_DEFECTS.md)) |
+| **DyTo** | FINCH clustering (~25 of 100 frames) + ToMe dynamic merge | `temporal_aggregation=spatial_tome_finch_dynamic_all_frms, rope_scaling=2` | 🟡 Runs as **"DyTo (reconstructed TW-FINCH)"**. **A/B measured:** TW-FINCH vs standard FINCH = **0/8 differ** (jobs 7786505 vs 7786513) — the clustering choice is not observable in the output at n=8; DyTo's ToMe merge and 25-frame cap absorb it. Do not claim the weighting changes results without a larger paired test ([evidence](../../docs/UPSTREAM_DEFECTS.md)) |
 
 ### ❌ Invalid entries — do not report
 
@@ -152,7 +152,7 @@ Qwen3-VL beats LLaVA-OV in **every** subcategory — largest gap on **Camera Mot
 smallest on Action Order (+5.6). Even the hardest category for both (Repetition Count) rises
 from 23.8% → 33.8%.
 
-### 4a. Results — accuracy, venue, subcategories ✅ ALL 8 GATED (2026-07-25)
+### 4a. Results — accuracy, venue, subcategories ✅ ALL 10 GATED (2026-07-25)
 
 All 8,052 samples · 32 frames verified · 8 empty predictions each (known bad-NFS
 videos) · 0 tracebacks · ACTIVE log **and** nonzero divergence on every row.
@@ -161,14 +161,16 @@ Backbone baseline = **62.52%**.
 | # | Method | Venue | Year | Overall | Differ | Act.Order | Cam.Motion | Loc.Motion | Mot.Rec. | Mot.Obj. | Rep.Count |
 |:-:|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 | — | *Backbone baseline* | — | — | *62.52%* (2512) | *0 (ref)* | *46.1* | *63.1* | *65.0* | *67.3* | *79.0* | *33.8* |
-| 1 | **DyCoke** ✅ | arXiv 2411.14401 | 2024 | **61.85%** (2485) | 1048 | 45.1 | 62.6 | 63.9 | 66.4 | 78.4 | 34.5 |
-| 2 | **HoliTom** ✅ | — | 2025 | **60.33%** (2424) | 1657 | 44.7 | 61.3 | 61.0 | 66.4 | 76.2 | 29.0 |
-| 3 | **MDP3** ✅ | ICCV | 2025 | **59.66%** (2397) | 1626 | 44.9 | 64.7 | 62.8 | 64.0 | 77.4 | 23.0 |
-| 4 | **FastV** ✅ | arXiv 2403.06764 | 2024 | **59.01%** (2371) | 2029 | 46.2 | 61.0 | 61.9 | 63.5 | 72.2 | 30.5 |
-| 5 | **VisionZip** (contextual-only) ✅ | — | 2024 | **58.81%** (2363) | 2035 | 43.2 | 57.4 | 61.9 | 64.2 | 74.3 | 29.5 |
-| 6 | **FlashVID** ✅ | ICLR (Oral) | 2026 | **56.65%** (2276) | 2625 | 43.4 | 57.9 | 57.1 | 61.2 | 73.0 | 27.0 |
-| 7 | **VideoITG** ✅ | — | 2025 | **56.35%** (2264) | 2522 | 45.3 | 53.5 | 59.3 | 60.2 | 75.4 | 22.2 |
-| 8 | **AIM** ✅ | ICCV | 2025 | **55.97%** (2249) | 2861 | 45.9 | 56.6 | 59.5 | 58.3 | 72.2 | 27.0 |
+| 1 | **PruneVID** ✅ | — | 2024 | **62.17%** (2498) | 1074 | 46.1 | 62.9 | 64.1 | 67.1 | 79.1 | 32.5 |
+| 2 | **DyCoke** ✅ | arXiv 2411.14401 | 2024 | **61.85%** (2485) | 1048 | 45.1 | 62.6 | 63.9 | 66.4 | 78.4 | 34.5 |
+| 3 | **HoliTom** ✅ | — | 2025 | **60.33%** (2424) | 1657 | 44.7 | 61.3 | 61.0 | 66.4 | 76.2 | 29.0 |
+| 4 | **MDP3** ✅ | ICCV | 2025 | **59.66%** (2397) | 1626 | 44.9 | 64.7 | 62.8 | 64.0 | 77.4 | 23.0 |
+| 5 | **FastV** ✅ | arXiv 2403.06764 | 2024 | **59.01%** (2371) | 2029 | 46.2 | 61.0 | 61.9 | 63.5 | 72.2 | 30.5 |
+| 6 | **VisionZip** (contextual-only) ✅ | — | 2024 | **58.81%** (2363) | 2035 | 43.2 | 57.4 | 61.9 | 64.2 | 74.3 | 29.5 |
+| 7 | **STTM** ✅ | — | 2025 | **57.07%** (2293) | 2095 | 44.3 | 60.0 | 61.0 | 60.6 | 73.8 | 23.8 |
+| 8 | **FlashVID** ✅ | ICLR (Oral) | 2026 | **56.65%** (2276) | 2625 | 43.4 | 57.9 | 57.1 | 61.2 | 73.0 | 27.0 |
+| 9 | **VideoITG** ✅ | — | 2025 | **56.35%** (2264) | 2522 | 45.3 | 53.5 | 59.3 | 60.2 | 75.4 | 22.2 |
+| 10 | **AIM** ✅ | ICCV | 2025 | **55.97%** (2249) | 2861 | 45.9 | 56.6 | 59.5 | 58.3 | 72.2 | 27.0 |
 
 *Differ = predictions ≠ the plain backbone, out of 8,052 (0 would mean the method never ran).*
 *VisionZip is the **contextual-only partial** — Qwen3-VL has no CLS token, so the dominant
@@ -179,19 +181,22 @@ the LLaVA-OV row (40.09%).*
 
 | Method | Δ vs base | Win / Lose | χ² | Significant? |
 |---|:---:|:---:|:---:|:---:|
-| **DyCoke** | −0.67 | 83 / 110 | 3.5 | no — the only method indistinguishable from the backbone |
+| **PruneVID** | −0.35 | 56 / 70 | 1.3 | **no — smallest loss of all 10** |
+| **DyCoke** | −0.67 | 83 / 110 | 3.5 | **no** |
 | **HoliTom** | −2.19 | 131 / 219 | 21.6 | **yes** |
 | **MDP3** | −2.86 | 159 / 274 | 30.0 | **yes** |
 | **FastV** | −3.51 | 149 / 290 | 44.6 | **yes** |
 | **VisionZip** | −3.71 | 191 / 340 | 41.3 | **yes** |
+| **STTM** | −5.45 | 170 / 389 | 85.0 | **yes** |
 | **FlashVID** | −5.87 | 178 / 414 | 93.3 | **yes** |
 | **VideoITG** | −6.17 | 206 / 454 | 92.4 | **yes** |
 | **AIM** | −6.55 | 194 / 457 | 105.4 | **yes** |
 
 > ### ⚠️ Every method loses, and loss tracks aggressiveness
-> **7 of 8 lose significantly.** Only DyCoke is statistically indistinguishable
-> from the backbone — and it is also the most conservative, retaining **49%** of
-> tokens where the others cut to 15%. AIM and FlashVID prune hardest and lose most
+> **8 of 10 lose significantly.** Only **PruneVID (−0.35, χ²=1.3)** and
+> **DyCoke (−0.67, χ²=3.5)** are statistically indistinguishable from the backbone —
+> and both are the most conservative, retaining **50%** and **49%** of tokens
+> respectively where the others cut to 15%. AIM and FlashVID prune hardest and lose most
 > (−6.55, −5.87). Repetition Count is the weakest category everywhere (23–34%).
 >
 > **This inverts the Stage-1 picture.** On LLaVA-OV *no* method's change was
@@ -216,13 +221,25 @@ the LLaVA-OV row (40.09%).*
 | **MDP3** | `pool=32, select=8` | `pool=32 -> selected=8 frames` | Selector loaded **by file path** — `vlmeval` imports `AutoModelForVision2Seq`, removed in transformers 5.x which Qwen3-VL requires |
 | **VisionZip** (contextual-only) | `contextual=1750` (15%) | `merger out 11664 -> 1750 (15.0%)` | **Partial by design.** Dominant half needs a CLS token Qwen3-VL lacks. Hooked on `vis.merger`; token count preserved for `masked_scatter`. Report only as "VisionZip (contextual-only)" |
 
-### 4c. Not portable
+### 4c. Ports completed 2026-07-25 — both now GATED on the full 8,052
 
-| Method | Verdict |
-|---|---|
-| **PruneVID** | 🟡 VTP core *is* separable. Its LLaVA-OV port is now fixed and gated (38.20%, 4536/8052 divergence), so a Qwen3-VL port is unblocked — not yet built |
-| **STTM** | ❌ Ships a wholesale `Qwen2Model_forward` replacement; no separable merge routine to lift |
-| **DyTo** | ❌ Not reproducible from published artifacts — two defects in released code ([evidence](../../docs/UPSTREAM_DEFECTS.md)) |
+Both passed the full gate with **zero warnings**: 8052/8052 samples, NA accounting
+sane, accuracy in band, params present, non-degenerate predictions, and nonzero
+divergence. PruneVID **62.17%** (1074 differ), STTM **57.07%** (2095 differ).
+
+| Method | Smoke gate | ACTIVE signature | Notes |
+|---|:---:|---|---|
+| **PruneVID** | ✅ 3/8 differ | `visual=11664 kept=5832 (50.0%) segments=9` | Authors' own `cluster_dpc_knn`; `visual_pos_masks` for exact positions (no `start=14` offset); additive-mask path, since LLaVA-OV's `kv_cache` mechanism does not exist here |
+| **STTM** | ✅ 3/8 differ | `visual=11664 merged=1050 (9.0%) grid=16x27x27 runs=16 seq 11853→1239 deepstack=3` | Authors' own `get_quadtree_features`. **The only port that SHORTENS the sequence** rather than masking, so `position_ids` / `visual_pos_masks` / `deepstack_visual_embeds` are all rebuilt |
+
+> #### ⚠️ STTM's first attempt was a silent no-op — the gate caught it
+> It printed nothing and produced **0/8 divergence**, because I assumed the visual
+> span was contiguous. Diagnostic measurement showed otherwise: **11,664 visual
+> tokens spread over an 11,784-wide span with 15 gaps at a perfectly regular 737
+> stride** — Qwen3-VL interleaves **timestamp text tokens between frames**, giving
+> 16 planes of 729 tokens separated by 8-token blocks. The rebuild now splices per
+> contiguous run. This is the third time a port printed plausible output while
+> doing nothing, and the third time only the divergence check caught it.
 
 Getting these ports to engage required untangling a 5-bug chain; two printed
 `ACTIVE` while producing byte-identical output, and only the divergence gate caught

@@ -45,7 +45,7 @@ predictions differ from baseline), not a bug.
 
 ## Qwen3-VL-8B methods
 
-**All 8 methods are fully gated** (2026-07-25). Each ran 8,052/8,052 samples at 32
+**All 10 portable methods are fully gated** (2026-07-25). Each ran 8,052/8,052 samples at 32
 frames (~9–10h each — Qwen3-VL carries 11,664 visual tokens per sample), printed its
 own `ACTIVE` log, and diverged from the baseline. Zero tracebacks; the uniform 8
 empty predictions per run are the known bad-NFS videos, not a method defect.
@@ -53,38 +53,42 @@ empty predictions per run are the known bad-NFS videos, not a method defect.
 | # | Method | Overall | Δ vs base | Differ | χ² | Significant? |
 |:-:|---|:---:|:---:|:---:|:---:|:---:|
 | — | **Baseline** | **62.52%** | — | 0 (ref) | — | — |
-| 1 | DyCoke ✅ | **61.85%** | −0.67 | 1048 | 3.5 | **no** |
-| 2 | HoliTom ✅ | **60.33%** | −2.19 | 1657 | 21.6 | yes |
-| 3 | MDP3 ✅ | **59.66%** | −2.86 | 1626 | 30.0 | yes |
-| 4 | FastV ✅ | **59.01%** | −3.51 | 2029 | 44.6 | yes |
-| 5 | VisionZip (contextual-only) ✅ | **58.81%** | −3.71 | 2035 | 41.3 | yes |
-| 6 | FlashVID ✅ | **56.65%** | −5.87 | 2625 | 93.3 | yes |
-| 7 | VideoITG ✅ | **56.35%** | −6.17 | 2522 | 92.4 | yes |
-| 8 | AIM ✅ | **55.97%** | −6.55 | 2861 | 105.4 | yes |
-| — | PruneVID | 🟡 not built | — | — | — | VTP core is separable; its LLaVA-OV port is now fixed, so this is unblocked |
-| — | STTM, DyTo | ❌ | — | — | — | genuinely not portable ([why](../stage3-qwen3-vl/PORT_FEASIBILITY.md)) |
+| 1 | PruneVID ✅ | **62.17%** | −0.35 | 1074 | 1.3 | **no** |
+| 2 | DyCoke ✅ | **61.85%** | −0.67 | 1048 | 3.5 | **no** |
+| 3 | HoliTom ✅ | **60.33%** | −2.19 | 1657 | 21.6 | yes |
+| 4 | MDP3 ✅ | **59.66%** | −2.86 | 1626 | 30.0 | yes |
+| 5 | FastV ✅ | **59.01%** | −3.51 | 2029 | 44.6 | yes |
+| 6 | VisionZip (contextual-only) ✅ | **58.81%** | −3.71 | 2035 | 41.3 | yes |
+| 7 | STTM ✅ | **57.07%** | −5.45 | 2095 | 85.0 | yes |
+| 8 | FlashVID ✅ | **56.65%** | −5.87 | 2625 | 93.3 | yes |
+| 9 | VideoITG ✅ | **56.35%** | −6.17 | 2522 | 92.4 | yes |
+| 10 | AIM ✅ | **55.97%** | −6.55 | 2861 | 105.4 | yes |
+| — | DyTo | 🟡 n/a | — | — | — | bound to its Vicuna backbone; runs there as a labelled variant ([why](../stage3-qwen3-vl/PORT_FEASIBILITY.md)) |
 
 Subcategory breakdown (% correct within category):
 
 | Method | Act.Order | Cam.Motion | Loc.Motion | Mot.Rec. | Mot.Obj. | Rep.Count |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|
 | *Baseline* | *46.1* | *63.1* | *65.0* | *67.3* | *79.0* | *33.8* |
+| PruneVID | 46.1 | 62.9 | 64.1 | 67.1 | 79.1 | 32.5 |
 | DyCoke | 45.1 | 62.6 | 63.9 | 66.4 | 78.4 | 34.5 |
 | HoliTom | 44.7 | 61.3 | 61.0 | 66.4 | 76.2 | 29.0 |
 | MDP3 | 44.9 | 64.7 | 62.8 | 64.0 | 77.4 | 23.0 |
 | FastV | 46.2 | 61.0 | 61.9 | 63.5 | 72.2 | 30.5 |
 | VisionZip (contextual-only) | 43.2 | 57.4 | 61.9 | 64.2 | 74.3 | 29.5 |
+| STTM | 44.3 | 60.0 | 61.0 | 60.6 | 73.8 | 23.8 |
 | FlashVID | 43.4 | 57.9 | 57.1 | 61.2 | 73.0 | 27.0 |
 | VideoITG | 45.3 | 53.5 | 59.3 | 60.2 | 75.4 | 22.2 |
 | AIM | 45.9 | 56.6 | 59.5 | 58.3 | 72.2 | 27.0 |
 
 > ### Every method loses, and loss tracks how hard it prunes
-> **7 of 8 lose significantly.** Only DyCoke is indistinguishable from the backbone —
-> and it retains **49%** of tokens where the rest cut to 15%. AIM and FlashVID prune
+> **8 of 10 lose significantly.** Only **PruneVID (−0.35)** and **DyCoke (−0.67)**
+> are indistinguishable from the backbone — and they are the two most conservative,
+> retaining **50%** and **49%** of tokens where the rest cut to 15%. AIM and FlashVID prune
 > hardest and lose most. Repetition Count is the weakest category throughout (23–34%).
 >
 > **This is the opposite of Stage 1.** On LLaVA-OV no method's change was
-> significant; on Qwen3-VL, at identical settings, all 8 lose. A stronger backbone
+> significant; on Qwen3-VL, at identical settings, all 10 lose. A stronger backbone
 > extracts more from the full token set, so discarding tokens costs more. Method
 > rankings measured on one backbone do not transfer to another.
 
@@ -97,12 +101,20 @@ Subcategory breakdown (% correct within category):
 > because the method is. The LLaVA-OV row (40.09%) *is* the complete method.
 > See [PORT_FEASIBILITY.md](../stage3-qwen3-vl/PORT_FEASIBILITY.md).
 
-> **Getting these 7 to engage took untangling a 5-bug chain** where each bug hid the
-> next — `attention_mask` is `None` under sdpa, bf16 overflow from an fp32 mask,
+> **Getting these ports to engage took untangling a 5-bug chain** where each bug hid
+> the next — `attention_mask` is `None` under sdpa, bf16 overflow from an fp32 mask,
 > `hidden_states` passed as a kwarg, an undefined variable, and a transformers-5.x
-> import conflict. Two ports printed `ACTIVE` while producing byte-identical output
-> to the baseline; only the divergence gate caught it. See
+> import conflict. **Three** ports printed `ACTIVE` (or nothing) while producing
+> byte-identical output; only the divergence gate caught them. See
 > [METHODOLOGY.md](METHODOLOGY.md#hardening-divergence-checking-is-mandatory-2026-07-24).
+>
+> The most recent was **STTM**, and its cause is worth recording: Qwen3-VL
+> **interleaves timestamp text tokens between frames**, so the visual span is not
+> contiguous — 11,664 tokens spread over an 11,784-wide span with 15 gaps at a
+> regular 737 stride (16 planes of 729, separated by 8-token blocks). A
+> slice-and-splice that assumed one block silently did nothing. STTM is also the
+> only port that *shortens* the sequence rather than masking it, so `position_ids`,
+> `visual_pos_masks` and `deepstack_visual_embeds` all had to be rebuilt.
 
 ## Other backbones (each method's native model)
 
@@ -112,7 +124,7 @@ Subcategory breakdown (% correct within category):
 | PruneVID (LLaVA-OV port) | LLaVA-OV-7B | **38.20%** | ✅ gated — 4536/8052 divergence after switching to `PrunableDynamicCache.kv_cache`; was inert. A **real −14.46 loss** (χ²=220.3) at 50% retention, not a broken run |
 | [VisionZip](methods/visionzip.md) | LLaVA-1.5-7B | **39.97%** | 🟡 |
 | STTM-LLaVAVid | LLaVA-Video-7B | **53.33%** | 🟡 |
-| [DyTo](methods/dyto.md) | Vicuna-7B | ❌ | **Not reproducible from published artifacts** — two defects in released code ([evidence](UPSTREAM_DEFECTS.md#1-blocking-dyto-is-not-reproducible-from-published-artifacts)) |
+| [DyTo](methods/dyto.md) | Vicuna-7B | 🟡 runs | **"DyTo (reconstructed TW-FINCH)"** — the missing `finch_cluster` return was recovered verbatim from a sibling function; `tw_finch` needed a labelled reconstruction. Smoke clean. A/B: TW vs standard FINCH **0/8 differ** ([evidence](UPSTREAM_DEFECTS.md)) |
 | iMove, TrajViT | — | — | ❌ no public code |
 
 ## Known-invalid numbers (do not cite)
