@@ -143,9 +143,31 @@ our code.
 **Two gaps remain:**
 1. **DyTo cannot be pinned** — our copy has no `.git`, so it is vendored as plain
    files. Everything else is reproducible by SHA + patch.
-2. **Cross-GPU determinism is untested.** Runs reproduced bit-identically across
-   nodes (`compute-9-3` vs `compute-9-6`), but those are the same Ada generation.
-   Replicators on other hardware should expect *close*, not identical, numbers.
+2. **Cross-GPU determinism is untested — deliberately, not by omission.** Runs
+   reproduced bit-identically across nodes (`compute-9-3` vs `compute-9-6`), but
+   those are the same Ada generation. Replicators on other hardware should expect
+   *close*, not identical, numbers.
+
+   We scoped a V100 (compute 7.0) vs Ada (8.9) comparison and **decided not to run
+   it**. The reasoning, recorded so the gap reads as a judgement rather than an
+   oversight:
+
+   * **It does not affect any conclusion.** The gate's validity rests on
+     *same-hardware* determinism — identical inputs give identical predictions,
+     which is what makes 0-divergence a sound no-op signal. That is already
+     established. Cross-GPU agreement would add robustness, not validity.
+   * **The likely result is uninformative.** Expected divergence under greedy
+     decoding is well under 1%, yielding a sentence in a document and no change to
+     any number, ranking, or significance test.
+   * **It would have been confounded.** V100's compute 7.0 has limited bf16
+     support, so a nonzero divergence could be a *dtype* artifact rather than an
+     architecture one — spending GPU hours to produce an ambiguous caveat.
+   * **The cost is real.** Even a subset (baseline + one masking method + STTM) is
+     several GPU-hours on a saturated partition, competing with runs that do
+     change conclusions.
+
+   If this project were ever published as a reproducibility claim, this is the
+   first thing to add. For benchmarking on one cluster, it is not worth the spend.
 
 ## 5. Coverage — **C+ (6/10)**
 
