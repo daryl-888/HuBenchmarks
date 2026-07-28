@@ -11,14 +11,24 @@ HoliTom, PruneVID. Methods without one (DyCoke, AIM, MDP3, VideoITG, STTM,
 VisionZip) are listed once, under the sweep tables, so the tables are not padded
 with rows that cannot vary.
 
-Run ON CARYA (needs $HUVLLM_RESULTS):
+Two ways to run:
+    scripts/fetch_results.sh                          # pull results locally
+    python3 scripts/build_retention_tables.py --local > docs/RETENTION_TABLES.md
+
+    # or directly on Carya, against $HUVLLM_RESULTS
     python3 build_retention_tables.py > retention_tables.md
 """
 import json
 import os
 import sys
 
-RES = os.environ.get("HUVLLM_RESULTS", "/project/rhu/dpalfaro/results")
+# --local renders from results-cache/ (populated by scripts/fetch_results.sh),
+# so tables can be built on a laptop with no cluster access.
+if "--local" in sys.argv:
+    RES = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                       "..", "results-cache")
+else:
+    RES = os.environ.get("HUVLLM_RESULTS", "/project/rhu/dpalfaro/results")
 CATS = ["Action Order", "Camera Motion", "Location-related Motion",
         "Motion Recognition", "Motion-related Objects", "Repetition Count"]
 
@@ -129,6 +139,40 @@ def main():
     print("\n---\n\n## Qwen3-VL-8B (baseline 62.52%)")
     for r in (0.10, 0.15, 0.25):
         table(f"Retention {r:.2f}", STAGE3[r], BASE3, BASE3_ACC)
+
+    # --- the trend view: one row per method, retention across the columns ----
+    print("\n---\n\n## Cross-retention summary — does loss track pruning?\n")
+    print("The sweep's actual question. Each cell is accuracy (Δ vs that "
+          "backbone's baseline); **bold** = statistically significant loss "
+          "(McNemar χ² ≥ 3.84).\n")
+    for label, mp, bdir, bacc in (("LLaVA-OV-7B", STAGE1, BASE1, BASE1_ACC),
+                                  ("Qwen3-VL-8B", STAGE3, BASE3, BASE3_ACC)):
+        print(f"\n**{label}** (baseline {bacc:.2f}%)\n")
+        print("| Method | r=0.10 | r=0.15 | r=0.25 | trend |")
+        print("|---|:---:|:---:|:---:|---|")
+        for m in ("FastV", "FlashVID", "HoliTom", "PruneVID"):
+            cells, accs = [], []
+            for r in (0.10, 0.15, 0.25):
+                st = stats(mp[r][m], bdir)
+                if st is None:
+                    cells.append("🔄"); accs.append(None); continue
+                d = st["acc"] - bacc
+                sig = st["chi"] is not None and st["chi"] >= 3.84
+                txt = f"{st['acc']:.2f}% ({d:+.2f})"
+                cells.append(f"**{txt}**" if sig else txt)
+                accs.append(st["acc"])
+            known = [a for a in accs if a is not None]
+            if len(known) < 2:
+                trend = "—"
+            elif accs[0] is not None and accs[-1] is not None:
+                gain = accs[-1] - accs[0]
+                trend = (f"+{gain:.2f} from 0.10→0.25 "
+                         + ("(more tokens help)" if gain > 0.5 else
+                            "(flat — retention barely matters)" if abs(gain) <= 0.5
+                            else "(**inverted** — more tokens hurt)"))
+            else:
+                trend = "partial"
+            print(f"| **{m}** | {cells[0]} | {cells[1]} | {cells[2]} | {trend} |")
 
     print("\n---\n\n## Methods with no retention knob\n")
     print("These do not expose a retention parameter on this axis, so they "

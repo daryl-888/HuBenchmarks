@@ -103,3 +103,40 @@ samples (`correct: null`), which are unanswerable and excluded from scoring.
 this shows whether the answers are *plausible*. Both silent failures this project
 hit — VisionZip returning empty strings and DyTo emitting captions instead of
 letters — would have been obvious in one glance at this output.
+
+## Retrieving and rendering results
+
+Two commands. Neither needs you to be on Carya, and both are safe to re-run
+while jobs are still landing.
+
+```bash
+scripts/fetch_results.sh                    # pull summary.json + results.jsonl
+python3 scripts/build_retention_tables.py --local > docs/RETENTION_TABLES.md
+```
+
+`fetch_results.sh` copies only the two small JSON files per run (never videos or
+weights) into `results-cache/`, which is gitignored. Runs that are queued or
+in flight are skipped and reported as `· not finished`, so partial state renders
+fine — finished cells fill in, pending ones show 🔄.
+
+```bash
+scripts/fetch_results.sh --status   # what's done, what's still queued
+scripts/fetch_results.sh --sweep    # only the retention-sweep runs
+```
+
+`build_retention_tables.py` emits, in order:
+
+| Section | Contents |
+|---|---|
+| 6 sweep tables | LLaVA-OV × {0.10, 0.15, 0.25}, then Qwen3-VL × the same. Each row: accuracy, Δ vs baseline, divergence, W/L, χ², significance, all six subcategories |
+| Cross-retention summary | one row per method, retention across the columns, with a trend verdict — the sweep's actual question |
+| No-knob table | the six methods with no retention parameter, and why |
+| Other backbones | each method on its own native model (PruneVID/PLLaVA, DyTo/Vicuna, …) |
+
+Drop `--local` to run it directly on Carya against `$HUVLLM_RESULTS`.
+
+**Only four methods have a retention knob** — FastV, FlashVID, HoliTom,
+PruneVID. FastV's `--fastv_r` is the *drop* fraction, so retention 0.10 maps to
+`--fastv_r 0.9`. The others (DyCoke, AIM, MDP3, VideoITG, STTM, VisionZip) fix
+their budget internally or select frames rather than tokens, so they appear once
+rather than being padded into every table.

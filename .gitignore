@@ -19,3 +19,4 @@ config/paths.local.sh
 # Temp / editor
 git_status*.txt
 .vscode/
+results-cache/
