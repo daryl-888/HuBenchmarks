@@ -255,7 +255,7 @@ it — which is why every row above reports a Differ count. See [PORT_FEASIBILIT
 | PruneVID | PLLaVA-7B | **44.13%** ✅ | Wave 2 gated (`enabled: True`). **Not run on LLaVA-OV**: its VTP is bound to PLLaVA — the OV port produced 0/8052 divergence (inert). PLLaVA-7B is its published backbone. |
 | VisionZip | LLaVA-1.5-7B | **39.97%** 🟡 | Only usable VisionZip figure; the 0.00% runs are ❌ |
 | STTM-LLaVAVid | LLaVA-Video-7B | **53.33%** 🟡 | `sttm_llavavid_t80_full` |
-| DyTo (reconstructed TW-FINCH) | LLaVA-NeXT Vicuna-7B | 🔄 full run in flight (7833211) | Smoke clean: 0 tracebacks, real letters `B C A C D B B A`, 0 empty. **Never report as plain "DyTo"** — see §5a. The earlier ❌ 5.25% run (captions, not letters) is superseded and must not be cited |
+| **DyTo (reconstructed TW-FINCH)** | LLaVA-NeXT Vicuna-7B | **42.06%** (1690/4018) ⚠️ | Full 8052/8052 run, 4:37:54 on an L40S (compute 8.9 — ada, same as every other cell). Gate PASS on completeness, NA accounting, accuracy band, params, and prediction realism (all 4 letters used; 2 empty). **NOT divergence-checked — no Vicuna baseline exists** (see §5a). **Never report as plain "DyTo".** The earlier ❌ 5.25% run (captions, not letters) is superseded and must not be cited |
 | iMove, TrajViT | — | — | ❌ No public code / weights |
 
 *Stage 2 (LLaVA-Video-7B) was descoped 2026-07-23; those jobs were cancelled.*
@@ -286,6 +286,31 @@ weighting changes results is supportable without a larger paired comparison.
 
 **Config note:** 32 frames, not the paper's 100 — 100 OOMs on a 44 GiB card, and
 FINCH selects ~25 representative frames regardless.
+
+**Result (2026-07-27): 42.06%** (1690/4018), full 8052/8052, 4:37:54, NVIDIA L40S
+(compute 8.9). `summary.json` carries `finch_variant: reconstructed-TW-FINCH`,
+`paper_faithful: false`, `report_as: DyTo (reconstructed TW-FINCH)`.
+
+Subcategories — Action Order 32.4 · Camera Motion 33.0 · Location 42.1 ·
+Motion Recognition 43.0 · Motion-related Objects 61.7 · Repetition Count 26.0.
+
+> #### ⚠️ This is the one gated number with NO divergence check
+> Every other cell is verified by two signals: an ACTIVE log **and** predictions
+> that differ from the plain backbone. DyTo has only the first. **No
+> LLaVA-NeXT-Vicuna baseline was ever run**, so there is nothing to diverge
+> *from*, and `check_run.py` was invoked without `--vs-baseline`.
+>
+> What that does and does not license:
+> * The run is **complete and internally healthy** — 8052/8052, NA accounting
+>   sane, all four answer letters used (A 2253 / C 2134 / D 1919 / B 1744), 2
+>   empty predictions.
+> * The variant **provably executed** — the shim logged ACTIVE, and the run only
+>   completes at all because of the recovered `finch_cluster` return.
+> * But we **cannot state a Δ vs backbone, and cannot run McNemar.** 42.06% is an
+>   absolute number, not a measured effect of the method.
+>
+> To close this, run vanilla LLaVA-NeXT-Vicuna-7B on the same 8,052 samples at 32
+> frames. That is the only missing piece; it is not blocked by anything.
 
 ## 6. Known duplicate rows (to dedupe)
 
