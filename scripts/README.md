@@ -75,3 +75,31 @@ flat path. If a job ignores your edits, check which path its sbatch actually
 references — you may be editing the stage copy while the job runs the flat copy.
 Long-term fix: repoint all sbatch files at the stage paths and delete the flat
 dirs on Carya.
+
+## show_examples.py — qualitative spot-check
+
+Every recorded number is an aggregate. This prints the samples underneath one:
+the video path, the question with its options, the ground truth, and what the
+model actually answered. Default is **3 incorrect + 2 correct**.
+
+```bash
+# 3 wrong + 2 right (deterministic — seed=0 picks the same samples every time)
+python3 scripts/show_examples.py $HUVLLM_RESULTS/ob_dyto_run
+
+# focus a weak category, only failures
+python3 scripts/show_examples.py $HUVLLM_RESULTS/w3_sttm_run \
+    --category "Repetition Count" --wrong 5 --right 0
+
+# machine-readable
+python3 scripts/show_examples.py $HUVLLM_RESULTS/w3_aim_run --json
+```
+
+The run's `results.jsonl` stores only `video_path` / `ground_truth` /
+`prediction` / `correct`, so this joins against MotionBench's
+`video_info.meta.jsonl` on `video_path` to recover the question text. It skips NA
+samples (`correct: null`), which are unanswerable and excluded from scoring.
+
+**Why it earns its place:** `check_run.py` proves a run is *structurally* sound;
+this shows whether the answers are *plausible*. Both silent failures this project
+hit — VisionZip returning empty strings and DyTo emitting captions instead of
+letters — would have been obvious in one glance at this output.
