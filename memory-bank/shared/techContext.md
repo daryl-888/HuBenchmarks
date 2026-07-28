@@ -5,7 +5,11 @@
 - **HPC cluster**: UH Carya (SLURM scheduler, Ada GPUs)
 - **Python**: 3.10–3.11 across conda envs
 - **PyTorch**: Multiple versions — 2.2.0 (DyTo), 2.3.1 (MDP3/AIM via --target), 2.6.0 (broken in mdp3 env)
-- **Backbone LLMs**: LLaVA-NeXT Vicuna-7B (DyTo), LLaVA-OV-7B (MDP3/AIM), LLaVA-OV-Qwen2 (AIM), PLLaVA-7B (PruneVid), Qwen2-based variants
+- **Backbone LLMs**: LLaVA-OV-7B (Stage 1, `LlavaQwenForCausalLM` — Qwen2
+  internally; there is no separate "LLaVA-OV-Qwen2" model, that was a
+  misconception and the duplicate weights were deleted), Qwen3-VL-8B (Stage 3,
+  transformers 5.14.1), LLaVA-NeXT Vicuna-7B (DyTo), PLLaVA-7B (PruneVid),
+  LLaVA-1.5-7B (VisionZip)
 - **lmms_eval**: Modified fork for video evaluation
 - **datasets/pyarrow**: huggingface datasets (envs use either 2.16.1+pyarrow24 or 4.8.5+pyarrow24)
 
