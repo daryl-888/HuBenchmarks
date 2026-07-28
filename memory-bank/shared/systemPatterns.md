@@ -2,13 +2,20 @@
 
 ## Architecture
 
-Models are organized by backbone into three top-level directories:
+Models are organized by backbone generation (restructured 2026-07-23):
 
 ```
-llava-ov-7b/              # LLaVA-OV-7B (Qwen 1.5) — 5 original + 3 ported
-llava-ov-7b-qwen2/        # LLaVA-OV-7B-Qwen2 (Qwen2) — 3 original + 5 ported
-other-backbones/          # Non-LLaVA-OV models (STTM, DyTo, PruneVid, VisionZip, etc.)
+stage1-llava-ov/          # LLaVA-OV-7B  (mid-2024)   — 10 methods
+stage3-qwen3-vl/          # Qwen3-VL-8B  (late-2025)  — 10 methods + baseline
+other-backbones/          # each method's own native model (DyTo/Vicuna,
+                          #   PruneVid/PLLaVA, VisionZip/LLaVA-1.5)
+archive/                  # descoped Stage 2, legacy sbatch, superseded notes
 ```
+
+**The `llava-ov-7b` vs `llava-ov-7b-qwen2` split was a misconception** — both
+names referred to the *same weights* (`LlavaQwenForCausalLM`, Qwen2 internally).
+`qwen_1_5` vs `qwen_2` control prompt formatting only. The duplicate weights
+directory was deleted; do not reintroduce the distinction.
 
 Each model is a self-contained subdirectory:
 
@@ -22,7 +29,7 @@ Each model is a self-contained subdirectory:
     motionbench.yaml      # lmms_eval task definition
     utils.py              # doc_to_visual, doc_to_text, process_results, aggregate
   strict/                 # strict evaluation variants
-  PORTED.md               # present if ported from other backbone (needs verification run)
+  smoke_<model>*.sbatch   # 8-sample gate check before any full run
 ```
 
 ## Key Design Patterns
@@ -49,9 +56,13 @@ NFS stale handles cause D-state kernel hangs that can't be caught by try/except.
 
 ### 4. Stale sbatch sync protocol
 Git push does NOT update Carya. Required sync steps:
-1. Edit locally → commit + push to `claude/bold-knuth-YlJYI`
-2. `ssh dpalfaro@carya... "cat > file << 'EOF'"` (heredoc) OR `scp`
+1. Edit locally → commit
+2. `./scripts/deploy.sh --push <subtree>` (rsync; **`--push` is required — the
+   default is a dry run** and prints "DRY RUN complete" if you forget)
 3. Verify: `ssh ... "grep <key_pattern> /path/to/file"`
+
+`scripts/` is not in the deploy subtrees; copy those with `scp` to
+`/project/rhu/dpalfaro/code/HuVLLM_scripts/`.
 
 ### 5. Debugging by peeling layers
 Each fix reveals the next error. Pattern:
@@ -60,6 +71,27 @@ Each fix reveals the next error. Pattern:
 3. Sync fix to Carya
 4. Resubmit → check for NEW error (different from previous)
 5. Repeat until job completes successfully
+
+### 6. Two-signal verification — the rule everything else rests on
+
+A method is only "verified" when **both** hold:
+
+1. it logs `<METHOD> ACTIVE: ...` with real numbers (the mechanism ran), and
+2. its predictions **differ from the plain backbone** (it changed the output).
+
+Signal 1 alone is worthless. Three separate ports printed ACTIVE (or completed
+cleanly) while producing byte-identical output to the backbone — FastV/LLaVA-OV,
+PruneVID/LLaVA-OV, STTM/Qwen3-VL — and only the divergence check caught them.
+Every full run is smoke-gated at 8 samples with `--vs-baseline` first.
+
+Corollary: **matching accuracy is never evidence.** `flashvid_run4` tied DyCoke's
+score exactly while differing on 1,240/8,052 predictions.
+
+### 7. Numbers carry their caveats in the data, not just the prose
+
+Where a result is a partial or a reconstruction, `summary.json` records it
+(`finch_variant`, `paper_faithful: false`, `report_as: ...`). A caveat that lives
+only in a markdown file gets separated from the number it qualifies.
 
 ## Component Relationships
 

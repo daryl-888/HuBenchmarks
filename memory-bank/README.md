@@ -2,6 +2,17 @@
 
 This is the shared knowledge base for the HuBenchMarks project. Both agents (Claude and DeepSeek) read from these files; each agent writes only to their own directory.
 
+## Read these two first
+
+| File | Use it for |
+|---|---|
+| **`claude/master-results.md`** | **Authoritative numbers.** Every accuracy, subcategory and significance test. If anything else disagrees, this wins |
+| `claude/activeContext.md` | Orientation: current status, the one open job, hard-won facts, and the failure modes to watch for |
+
+`claude/progress.md` is a condensed scoreboard. Dated planning documents and
+point-in-time health checks live in `archive/memory-bank-snapshots/` — they are
+superseded and should not be read for current status.
+
 ## Structure
 
 ```

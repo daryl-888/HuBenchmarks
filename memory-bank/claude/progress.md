@@ -1,98 +1,68 @@
-# Progress — HuBenchmarks (2026-07-23 13:56 CDT)
+# Progress — HuBenchmarks (2026-07-28)
 
-## Current Running / Queued
+Numbers here are a summary. **[master-results.md](master-results.md) is
+authoritative**; if they disagree, that file wins.
 
-| Job ID | Model | Stage | Status | Time |
-|:------:|-------|:-----:|:------:|:----:|
-| 7768241 | MDP3 | Stage 1 (OV1.5 rerun) | ⚡ RUNNING | ~3h |
-| 7768829 | VisionZip | Stage 1 | ⚡ RUNNING | ~2.5h |
-| 7769192 | stage2_aim | Stage 2 | ⚡ RUNNING | ~20m |
-| 7769194 | stage2_fastv | Stage 2 | ⚡ RUNNING | ~20m |
-| 7769212 | **DyTo** (vicuna) | Other-backbone | ⏳ PENDING | — |
-| 7769193 | stage2_dycoke | Stage 2 | ⏳ PENDING | — |
-| 7769195 | stage2_flashvid | Stage 2 | ⏳ PENDING | — |
-| 7769196 | stage2_holitom | Stage 2 | ⏳ PENDING | — |
-| 7769197 | stage2_mdp3 | Stage 2 | ⏳ PENDING | — |
-| 7769198 | stage2_videoitg | Stage 2 | ⏳ PENDING | — |
-| 7769201 | VisionZip v3 | Stage 1 | ⏳ PENDING | — |
-| 7769209 | stage2_sttm | Stage 2 | ⏳ PENDING | — |
+## Status: matrix complete, one reference run outstanding
 
-## Scoreboard — Stage 1 (LLaVA-OV-7B, 12/13 complete)
+| Track | Gated | Baseline |
+|---|:---:|:---:|
+| LLaVA-OV-7B (Stage 1) | 10/11 | 52.66% |
+| Qwen3-VL-8B (Stage 3) | **10/10 portable** | 62.52% |
+| DyTo (own Vicuna backbone) | 1 (no divergence check) | — |
 
-| # | Model | Accuracy | Status |
-|---|-------|:--------:|--------|
-| 1= | **DyCoke** | **53.36%** | ✅ |
-| 1= | **FlashVID** (0.25) | **53.36%** | ✅ |
-| 3 | **FlashVID** (0.15) | **53.29%** | ✅ |
-| 4 | **HoliTom** | **53.14%** | ✅ |
-| 5 | **MDP3** | **53.06%** | ✅ |
-| 6 | **VideoITG** | **52.86%** | ✅ |
-| 7 | **AIM** | **52.84%** | ✅ |
-| 8= | **PruneVID** | **52.66%** | ✅ |
-| — | ~~FastV~~ → **Backbone baseline** (stub, `enabled:false`) | **52.66%** | ⚠️ NOT a method |
-| 10 | **STTM-v2** | **51.87%** | ✅ |
-| 11 | **FlashVID** (qwen15 templ) | **51.22%** | ✅ |
-| 12 | **VideoITG** (simplified) | **34.89%** | ✅ |
-| 13 | **VisionZip** | — | 🔄 v3=7769201, v1=7768829 |
+**Outstanding:** job 7882502, vanilla Vicuna baseline. Closes DyTo's missing
+`--vs-baseline` reference. Nothing else depends on it.
 
-## Stage 2 Scoreboard (LLaVA-Video-7B) — ALL PENDING
+## Stage 1 — LLaVA-OV-7B (baseline 52.66%)
 
-| Method | Status | Job ID |
-|--------|:------:|:------:|
-| AIM | ⚡ RUNNING | 7769192 |
-| FastV | ⚡ RUNNING | 7769194 |
-| DyCoke | ⏳ PENDING | 7769193 |
-| FlashVID | ⏳ PENDING | 7769195 |
-| HoliTom | ⏳ PENDING | 7769196 |
-| MDP3 | ⏳ PENDING | 7769197 |
-| VideoITG | ⏳ PENDING | 7769198 |
-| STTM | ⏳ PENDING | 7769209 |
+| Method | Acc | Differ |
+|---|:---:|:---:|
+| DyCoke | 53.36% | 1031 |
+| FlashVID | 53.31% | 1610 |
+| HoliTom | 53.14% | 1838 |
+| MDP3 | 53.06% | 1452 |
+| AIM | 52.86% | 1406 |
+| VideoITG | 52.86% | 1193 |
+| STTM | 51.72% | 4859 |
+| VisionZip | 40.09% | 4506 |
+| PruneVID (OV port) | 38.20% | 4536 |
+| FastV | 36.78% | 4605 |
 
-*Not applicable to Stage 2: FastVID (model bug), PruneVID (PLLaVA), VisionZip (LLaVA-1.5), DyTo (Vicuna)*
+**No method significantly beats the backbone.** Only FastV and VisionZip differ
+significantly and both are *worse* — both were run at the standardized 15%
+retention, far more aggressive than their paper defaults.
 
-## Other-backbone Scoreboard
+## Stage 3 — Qwen3-VL-8B (baseline 62.52%)
 
-| Method | Backbone | Accuracy | Job ID |
-|--------|----------|:--------:|:------:|
-| DyTo | LLaVA-NeXT Vicuna-7B | — | 🔄 7769212 (patched builder) |
-| PruneVID | PLLaVA-7B | **52.66%** | ✅ Has own sbatch |
-| iMove | LLaVA-NeXT | — | ❌ No public code |
-| TrajViT | LLaVA-NeXT | — | ❌ No public code |
+| Method | Acc | Δ | χ² | Sig? |
+|---|:---:|:---:|:---:|:---:|
+| PruneVID | 62.17% | −0.35 | 1.3 | no |
+| DyCoke | 61.85% | −0.67 | 3.5 | no |
+| HoliTom | 60.33% | −2.19 | 21.6 | yes |
+| MDP3 | 59.66% | −2.86 | 30.0 | yes |
+| FastV | 59.01% | −3.51 | 44.6 | yes |
+| VisionZip (contextual-only) | 58.81% | −3.71 | 41.3 | yes |
+| STTM | 57.07% | −5.45 | 85.0 | yes |
+| FlashVID | 56.65% | −5.87 | 93.3 | yes |
+| VideoITG | 56.35% | −6.17 | 92.4 | yes |
+| AIM | 55.97% | −6.55 | 105.4 | yes |
 
-## Critical Correction (2026-07-23)
+**All 10 lose; 8 significantly.** The two non-significant losses are the two most
+conservative methods (50% and 49% retention vs 15% for the rest).
 
-The project previously tracked "Qwen1.5 backbone" and "Qwen2 backbone" as separate columns. This was a **misconception** discovered today:
+## Other backbones
 
-- `lmms-lab/llava-ov-7b` **already uses Qwen2 internally** — architecture is `LlavaQwenForCausalLM`, hidden_size=3584, training path includes `Qwen2-7B-Instruct`
-- The duplicate `llava-ov-7b-qwen2` weight directory was a byte-for-byte copy. Deleted on Carya with README explanation.
-- The `qwen_1_5` vs `qwen_2` conv templates only control **prompt formatting**, not model weights
-- All "identical across backbones" findings (DyCoke, HoliTom, MDP3) are therefore expected — same model, different prompt format
-- Results listed under both columns are the **same 12 methods**, not 24. The table has been consolidated.
+| Method | Backbone | Acc | Note |
+|---|---|:---:|---|
+| PruneVID | PLLaVA-7B | 44.13% | its published backbone |
+| DyTo (reconstructed TW-FINCH) | Vicuna-7B | 42.06% | ⚠️ no divergence check — see activeContext |
+| VisionZip | LLaVA-1.5-7B | 39.97% | 🟡 predates the gate |
+| STTM-LLaVAVid | LLaVA-Video-7B | 53.33% | 🟡 predates the gate |
+| iMove, TrajViT | — | — | no public code / weights |
 
-## Still Broken / No OV Code
+## Not runnable / descoped
 
-| Model | Reason | Next Steps |
-|-------|--------|------------|
-| DyTo | Vicuna-only backend, no OV code | Builder patched (LlavaLlamaForCausalLM import). ⏳ 7769212 |
-| iMove | No public code | Not applicable |
-| TrajViT | No public code | Not applicable |
-| FastVID | `'NoneType' object is not callable` | Deep debug needed |
-
-## Failed Job Fix History
-
-| Attempt | Method | Error | Fix |
-|:-------:|--------|-------|-----|
-| v1 (7753562) | FastV | `ModuleNotFoundError: no module 'llava'` | Added PYTHONPATH to HoliTom/Llava-NeXT |
-| v2 (7762093) | FastV | Same error | Actually fixed PYTHONPATH to `code/HoliTom/...` |
-| v3 (7762100) | FastV | Same error | fastv conda env itself has broken torch (`register_fake` missing) |
-| v4 (7762103) | FastV | — | Switched to dycoke11 conda env (known working) |
-| v1 (7762094/95) | VisionZip | `ModuleNotFoundError: no module 'visionzip'` | Pointed to `visionzip_pkgs` — dir didn't exist |
-| v2 (7762101/02) | VisionZip | 0.0% accuracy (all empty predictions) | AIM transformers shadowing + wrong eval script path |
-| v3 (7768829/9039) | VisionZip | — | Fixed: visionzip env + DyCoke builder + correct eval path |
-| v3b (7769201) | VisionZip | v2 had flash_attn issue | Using full eval_visionzip.py with sdpa attn_implementation |
-| v1 (7762126/27) | HoliTom | `transformers.modeling_rope_utils` not found | Already have valid results — no resubmit needed |
-| v1 (7762129) | MDP3 OV1.5 | `--num_frames` not accepted | Removed invalid arg; resubmitted as 7768241 |
-| v1-3 (multiple) | DyTo | `NameError: LlavaLlamaForCausalLM` | Added explicit import in DYTO/llava/model/builder.py. Resubmitted 7769212 |
-
-## Carya Allocation
-~78.9% remaining (414,274/525,000 hours)
+* **Stage 2 (LLaVA-Video-7B)** — descoped 2026-07-23.
+* **DyTo on Qwen3-VL** — bound to LLaVA's multimodal pipeline; runs on Vicuna.
+* **iMove / TrajViT** — retrieval-only or no released weights.
