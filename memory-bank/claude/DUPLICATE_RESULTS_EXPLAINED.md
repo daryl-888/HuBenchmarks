@@ -53,6 +53,26 @@ settles it.
 
 ---
 
+## Bonus finding: qwen_1_5 vs qwen_2 templates produce identical results (2026-07-23, commit 994fb4b)
+
+The project used to track "qwen_1_5" and "qwen_2" as separate backbone columns, but they are just **conversation templates** for the same underlying model (`llava-ov-7b`, `LlavaQwenForCausalLM`). A template comparison was run to verify:
+
+| Model | qwen_1_5 | qwen_2 | Delta | Notes |
+|---|---|---|---|---|
+| DyCoke | 53.36% | 53.36% | 0.00 | Identical |
+| HoliTom | 53.14% | 53.14% | 0.00 | Identical |
+| MDP3 | 53.06% | 53.06% | 0.00 | Identical |
+| FastV (baseline) | 52.66% | 52.66% | 0.00 | Identical |
+| FlashVID (0.15) | 51.22% | 53.29% | -2.07 | ⚠️ Different |
+
+**Finding:** For all methods that ran the **same eval script** with only the conv template changed, results were **identical (0.00 Delta)**. The template formatting is cosmetic and doesn't shift the model's argmax under greedy decoding.
+
+**Why FlashVID was the only outlier:** FlashVID's two runs used **completely different eval harnesses**, not just different templates:
+- The "qwen_1_5" run (51.22%) used `eval_flashvid_motionbench.py` — a 1163-line standalone script with its own `build_prompt()` that prepends a multi-sentence instruction and reformats the options
+- The "qwen_2" run (53.29%) used `eval_flashvid.py` — the standard 115-line wrapper using LLaVA's `conv_templates["qwen_2"]`
+
+The -2.07 gap was from different prompt structures, **not** from the template change itself. The "qwen_1_5" label on FlashVID's row was misleading.
+
 ## The rule this establishes
 
 Identical accuracy means nothing on its own. Always compare predictions:
