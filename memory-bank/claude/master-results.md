@@ -4,7 +4,7 @@
 **Standard config** 32 frames · retention 0.15 where the method exposes one · `do_sample=False` · `max_new_tokens=16` · letter-match scoring · NA skipped
 
 **Goal** — 11 methods × 2 backbones (LLaVA-OV-7B, Qwen3-VL-8B) = **22 cells**, each a paper-exact implementation verified to actually engage.
-**Status** — 10/11 gated on LLaVA-OV · 10/11 gated on Qwen3-VL, **all 10 portable methods gated, PruneVID + STTM included** (2026-07-25) · DyTo runs on its own Vicuna backbone as a labelled variant. **All 11 methods now have a working implementation on both backbones**; DyTo's full run is in flight (job 7833211, submitted 2026-07-25).
+**Status** — 10/11 gated on LLaVA-OV · 10/11 gated on Qwen3-VL, **all 10 portable methods gated, PruneVID + STTM included** (2026-07-25) · DyTo gated on its own Vicuna backbone at **42.06%** (2026-07-27), reported as "DyTo (reconstructed TW-FINCH)" — divergence check pending a Vicuna baseline (job 7882502, queued). **All 11 methods now have a working, gated implementation on both backbones.**
 
 > ## 🏆 Headline findings
 >
@@ -57,7 +57,7 @@
 | **VisionZip** | ✅ | `output_ids[:, input_ids.shape[1]:]` discarded the whole response → 100% empty. Slice removed |
 | **FlashVID** | ✅ | 3 bugs: `--frame-counts` not `--num_frames`; motionbench variant loaded `LlavaLlamaForCausalLM` at retention 0.10; flash_attn → sdpa |
 | **VideoITG** | ✅ | Two-stage grounding; now emits `videoitg_params`. Wave 2 gated at 52.86% |
-| **DyTo** | 🟡 | **Runs as a labelled variant** (2026-07-25). Four of our bugs fixed, then two *upstream* defects: `finch_cluster()`'s missing `return` was **recovered by verbatim transcription** from the sibling KMeans function (13/14 normalized lines identical); `FINCH(tw_finch=...)` needed a **reconstruction** of the published TW-FINCH rule via `initial_rank`. Smoke: 0 tracebacks, real letters. Report only as **"DyTo (reconstructed TW-FINCH)"** ([evidence](../../docs/UPSTREAM_DEFECTS.md)) |
+| **DyTo** | 🟡 | **Gated at 42.06%** (2026-07-27), full 8052/8052. Four of our bugs fixed, then two *upstream* defects: `finch_cluster()`'s missing `return` was **recovered by verbatim transcription** from the sibling KMeans function (13/14 normalized lines identical); `FINCH(tw_finch=...)` needed a **reconstruction** of the published TW-FINCH rule via `initial_rank`. No tracebacks, real letters, all 4 used. Report only as **"DyTo (reconstructed TW-FINCH)"**; divergence/Δ pending a Vicuna baseline ([evidence](../../docs/UPSTREAM_DEFECTS.md)) |
 
 ---
 
