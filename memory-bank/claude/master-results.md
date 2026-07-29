@@ -309,8 +309,26 @@ Motion Recognition 43.0 · Motion-related Objects 61.7 · Repetition Count 26.0.
 > * But we **cannot state a Δ vs backbone, and cannot run McNemar.** 42.06% is an
 >   absolute number, not a measured effect of the method.
 >
-> To close this, run vanilla LLaVA-NeXT-Vicuna-7B on the same 8,052 samples at 32
-> frames. That is the only missing piece; it is not blocked by anything.
+> **First attempt at closing this FAILED, and the failure is informative.**
+> Job 7882502 ran vanilla Vicuna at 32 frames with `--temporal-aggregation
+> concat` — 32 × 576 = **18,432 visual tokens into a 4,096 context**, a 4.5×
+> overflow. It scored **4.48%** with **5,888/8,052 empty** predictions and
+> garbage (`'obo'`, `'0000000000000000'`) in the rest. **That number is invalid
+> and must never be cited**, and the +37.58 "gain" it implies for DyTo is an
+> artifact of a broken control, not a finding.
+>
+> The overflow is not merely a config slip — it is *why DyTo exists*. This
+> backbone cannot ingest 32 frames uncompressed, so a **frame-matched baseline is
+> impossible by construction**. The meaningful control is **token-matched**:
+>
+> | | frames | visual tokens |
+> |---|:---:|:---:|
+> | DyTo | 32 → FINCH ~25 → ToMe | ~3,680 |
+> | baseline | 6 (no compression) | 3,456 |
+>
+> Job **7904589** runs that. The question it answers is the one DyTo's paper
+> implicitly poses: at a fixed token budget, is compressing 32 frames better than
+> simply using fewer frames?
 
 ## 6. Known duplicate rows (to dedupe)
 
