@@ -8,7 +8,7 @@
 #SBATCH --mem=48G
 #SBATCH -t 14:00:00
 
-# Retention sweep: flashvid @ retention 0.25 on LLaVA-OV-7B.
+# Retention sweep: flashvid @ retention 0.1 on LLaVA-OV-7B.
 # Only the retention knob varies; 32 frames and every other parameter are held
 # fixed, so differences across r=0.10/0.15/0.25 are attributable to retention.
 #
@@ -33,7 +33,7 @@ OUT=/project/rhu/dpalfaro/results/s1_flashvid_r25_run
     --meta_path  /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
     --output_dir ${OUT} \
     --num_frames 32 --conv_template qwen_2 \
-    --flashvid --retention_ratio 0.25 --alpha 0.7 --temporal_threshold 0.8
+    --retention_ratio 0.25 --alpha 0.7 --temporal_threshold 0.8
 
 echo "=== GATE ==="
 python3 /project/rhu/dpalfaro/code/HuVLLM_scripts/check_run.py "${OUT}" \

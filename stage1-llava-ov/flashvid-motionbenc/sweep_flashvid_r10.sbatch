@@ -33,7 +33,7 @@ OUT=/project/rhu/dpalfaro/results/s1_flashvid_r10_run
     --meta_path  /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
     --output_dir ${OUT} \
     --num_frames 32 --conv_template qwen_2 \
-    --flashvid --retention_ratio 0.1 --alpha 0.7 --temporal_threshold 0.8
+    --retention_ratio 0.10 --alpha 0.7 --temporal_threshold 0.8
 
 echo "=== GATE ==="
 python3 /project/rhu/dpalfaro/code/HuVLLM_scripts/check_run.py "${OUT}" \
