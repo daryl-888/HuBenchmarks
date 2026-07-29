@@ -122,7 +122,7 @@ Subcategory breakdown (% correct within category):
 |---|---|:---:|---|
 | [PruneVID](methods/prunevid.md) | PLLaVA-7B | **44.13%** | ✅ (its published backbone) |
 | PruneVID (LLaVA-OV port) | LLaVA-OV-7B | **38.20%** | ✅ gated — 4536/8052 divergence after switching to `PrunableDynamicCache.kv_cache`; was inert. A **real −14.46 loss** (χ²=220.3) at 50% retention, not a broken run |
-| [VisionZip](methods/visionzip.md) | LLaVA-1.5-7B | **39.97%** | 🟡 |
+| [VisionZip](methods/visionzip.md) | LLaVA-1.5-7B | **39.97%** | 🟡 ⚠️ weights deleted from the cluster 2026-07-29 (disk-full); re-download `liuhaotian/llava-v1.5-7b` to reproduce |
 | STTM-LLaVAVid | LLaVA-Video-7B | **53.33%** | 🟡 |
 | [DyTo (reconstructed TW-FINCH)](methods/dyto.md) | Vicuna-7B | **42.06%** ⚠️ | Full 8052/8052 run, gate PASS on every check **except divergence — no Vicuna baseline exists**, so no Δ and no McNemar. Subcats 32.4/33.0/42.1/43.0/61.7/26.0. The missing `finch_cluster` return was recovered verbatim from a sibling function; `tw_finch` needed a labelled reconstruction, so **never quote as plain "DyTo"**. A/B: TW vs standard FINCH **0/8 differ** ([evidence](UPSTREAM_DEFECTS.md)) |
 | iMove, TrajViT | — | — | ❌ no public code |

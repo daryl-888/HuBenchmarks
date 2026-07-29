@@ -253,7 +253,7 @@ it — which is why every row above reports a Differ count. See [PORT_FEASIBILIT
 | Method | Backbone | Overall | Status |
 |---|---|:---:|---|
 | PruneVID | PLLaVA-7B | **44.13%** ✅ | Wave 2 gated (`enabled: True`). **Not run on LLaVA-OV**: its VTP is bound to PLLaVA — the OV port produced 0/8052 divergence (inert). PLLaVA-7B is its published backbone. |
-| VisionZip | LLaVA-1.5-7B | **39.97%** 🟡 | Only usable VisionZip figure; the 0.00% runs are ❌ |
+| VisionZip | LLaVA-1.5-7B | **39.97%** 🟡 | Only usable VisionZip figure; the 0.00% runs are ❌. ⚠️ **Weights deleted from Carya 2026-07-29** to free space during a full-filesystem outage — the number stands, but re-running requires re-downloading `liuhaotian/llava-v1.5-7b` (13G) |
 | STTM-LLaVAVid | LLaVA-Video-7B | **53.33%** 🟡 | `sttm_llavavid_t80_full` |
 | **DyTo (reconstructed TW-FINCH)** | LLaVA-NeXT Vicuna-7B | **42.06%** (1690/4018) ⚠️ | Full 8052/8052 run, 4:37:54 on an L40S (compute 8.9 — ada, same as every other cell). Gate PASS on completeness, NA accounting, accuracy band, params, and prediction realism (all 4 letters used; 2 empty). **NOT divergence-checked — no Vicuna baseline exists** (see §5a). **Never report as plain "DyTo".** The earlier ❌ 5.25% run (captions, not letters) is superseded and must not be cited |
 | iMove, TrajViT | — | — | ❌ No public code / weights |

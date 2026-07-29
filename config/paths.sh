@@ -26,7 +26,11 @@ export W_QWEN3VL="${W_QWEN3VL:-$HUVLLM_WEIGHTS/qwen3-vl-8b}"             # Qwen/
 export W_LLAVA_VIDEO="${W_LLAVA_VIDEO:-$HUVLLM_WEIGHTS/llava-video-7b}"  # lmms-lab/LLaVA-Video-7B-Qwen2
 export W_PLLAVA="${W_PLLAVA:-$HUVLLM_WEIGHTS/pllava-7b}"                 # ermu2001/pllava-7b (PEFT/LoRA)
 export W_VICUNA="${W_VICUNA:-$HUVLLM_WEIGHTS/llava-v1.6-vicuna-7b}"      # liuhaotian/llava-v1.6-vicuna-7b
-export W_LLAVA15="${W_LLAVA15:-$HUVLLM_WEIGHTS/llava-v1.5-7b}"           # liuhaotian/llava-v1.5-7b
+# NOT PRESENT on Carya: deleted 2026-07-29 to free space during a full-filesystem
+# outage (/project/rhu hit 100%). Only VisionZip-on-LLaVA-1.5 uses it, and that
+# result (39.97%) is already recorded. Re-download before re-running:
+#   huggingface-cli download liuhaotian/llava-v1.5-7b --local-dir "$W_LLAVA15"
+export W_LLAVA15="${W_LLAVA15:-$HUVLLM_WEIGHTS/llava-v1.5-7b}"           # liuhaotian/llava-v1.5-7b (13G)
 export W_VIDEOITG="${W_VIDEOITG:-$HUVLLM_WEIGHTS/videoitg-8b}"           # nvidia/VideoITG-8B
 
 # ---------------------------------------------------------------------------
