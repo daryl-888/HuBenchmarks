@@ -221,6 +221,29 @@ the LLaVA-OV row (40.09%).*
 | **MDP3** | `pool=32, select=8` | `pool=32 -> selected=8 frames` | Selector loaded **by file path** — `vlmeval` imports `AutoModelForVision2Seq`, removed in transformers 5.x which Qwen3-VL requires |
 | **VisionZip** (contextual-only) | `contextual=1750` (15%) | `merger out 11664 -> 1750 (15.0%)` | **Partial by design.** Dominant half needs a CLS token Qwen3-VL lacks. Hooked on `vis.merger`; token count preserved for `masked_scatter`. Report only as "VisionZip (contextual-only)" |
 
+### 3c. Retention sweep — LLaVA-OV, first three cells (2026-07-29)
+
+Full 8,052-sample runs. All three trip the gate's 0.40 accuracy floor, and in all
+three that is the **documented false alarm**, not breakage: thousands of
+predictions differ from baseline, all four answer letters appear, and only 8 of
+8,052 predictions are empty (the known bad-NFS videos).
+
+| Method | r | Accuracy | Δ vs 52.66% | Differ | Gate |
+|---|:---:|:---:|:---:|:---:|---|
+| **FastV** | 0.25 | 36.73% | −15.93 | 4570 | floor FAIL (false alarm) |
+| **PruneVID** | 0.10 | 38.10% | −14.56 | 4682 | floor FAIL (false alarm) |
+| **PruneVID** | 0.25 | 38.38% | −14.28 | 4612 | floor FAIL (false alarm) |
+
+Retention verified arithmetically from the ACTIVE logs, not just from the flag:
+PruneVID r=0.10 kept 309/3097 = **9.98%**; r=0.25 kept 774/3097 = **25.0%**;
+FastV r=0.25 kept 1568/6273 = **25.0%** (confirming `--fastv_r` is the *drop*
+fraction and the inversion is applied correctly).
+
+**Early read on the trend:** PruneVID moves only **+0.28** between r=0.10 and
+r=0.25 — nearly flat. On LLaVA-OV, how hard these methods prune appears to matter
+far less than the fact that they prune at all. The remaining cells will confirm or
+break that.
+
 ### 4c. Ports completed 2026-07-25 — both now GATED on the full 8,052
 
 Both passed the full gate with **zero warnings**: 8052/8052 samples, NA accounting
@@ -326,9 +349,32 @@ Motion Recognition 43.0 · Motion-related Objects 61.7 · Repetition Count 26.0.
 > | DyTo | 32 → FINCH ~25 → ToMe | ~3,680 |
 > | baseline | 6 (no compression) | 3,456 |
 >
-> Job **7904589** runs that. The question it answers is the one DyTo's paper
-> implicitly poses: at a fixed token budget, is compressing 32 frames better than
-> simply using fewer frames?
+> **RESULT (token-matched, job 7910037):** the baseline scores **43.35%**
+> (1742/4018) at 6 uncompressed frames. DyTo scores **42.06%**.
+>
+> | | frames | tokens | accuracy |
+> |---|:---:|:---:|:---:|
+> | baseline | 6 (no compression) | 3,456 | **43.35%** |
+> | DyTo (reconstructed TW-FINCH) | 32 → ~25 → ToMe | ~3,680 | **42.06%** |
+> | **Δ** | | | **−1.29** |
+>
+> **McNemar: win 177 / lose 229, χ² = 6.4 → SIGNIFICANT.** Divergence on the
+> 4,018 scoreable pairs is **622 (15.5%)**, so the method is plainly engaged.
+>
+> **At an equal token budget, DyTo is significantly WORSE than simply sampling 6
+> frames and not compressing at all.** That is a negative result against the
+> method's own premise, and it is the first DyTo number in this project with a
+> valid control behind it.
+>
+> Three caveats that must travel with it: (1) this is our **reconstructed
+> TW-FINCH**, not the authors' code, so it may understate the published method;
+> (2) DyTo gets slightly *more* budget (3,680 vs 3,456), so the comparison is
+> mildly generous to DyTo, not to the baseline; (3) the gate FAILed the baseline
+> on "50% of predictions are empty" — that is a **false alarm**: all 4,034 empties
+> are NA rows, which are excluded from scoring, and only **2 of 4,018** scoreable
+> predictions are empty.
+>
+> Baseline subcategories: 32.6 / 35.6 / 42.1 / 44.7 / 64.5 / 25.2.
 
 ## 6. Known duplicate rows (to dedupe)
 
