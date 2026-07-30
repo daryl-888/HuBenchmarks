@@ -116,6 +116,63 @@ Subcategory breakdown (% correct within category):
 > only port that *shortens* the sequence rather than masking it, so `position_ids`,
 > `visual_pos_masks` and `deepstack_visual_embeds` all had to be rebuilt.
 
+## Retention sweep (9 of 16 cells, 2026-07-29)
+
+Only the retention knob varies — 32 frames, greedy decoding and all other
+parameters fixed. Retention verified **arithmetically from the ACTIVE logs**, not
+just from the CLI flag. Full tables regenerate with
+`scripts/fetch_results.sh && python3 scripts/build_retention_tables.py --local`.
+
+**LLaVA-OV-7B** (baseline 52.66%)
+
+| Method | r=0.10 | r=0.15 | r=0.25 | trend |
+|---|:---:|:---:|:---:|---|
+| FastV | 36.06% (−16.60) | 36.78% (−15.88) | 36.73% (−15.93) | **flat**, +0.67 across the range |
+| HoliTom | 52.76% (+0.10) | 53.14% (+0.48) | 53.41% (+0.75) | rising, **none significant** |
+| PruneVID | 38.10% (−14.56) | 38.20% (−14.46) | 38.38% (−14.28) | **flat**, +0.28 across the range |
+| FlashVID | 🔄 | 53.31% (+0.65) | 🔄 | — |
+
+**Qwen3-VL-8B** (baseline 62.52%)
+
+| Method | r=0.10 | r=0.15 | r=0.25 | trend |
+|---|:---:|:---:|:---:|---|
+| FastV | 56.92% (−5.60) | 59.01% (−3.51) | 60.60% (−1.92) | **monotonic +3.68**; χ² 89.8→44.6→18.2 |
+| FlashVID | 54.73% (−7.79) | 56.65% (−5.87) | 🔄 | rising |
+| HoliTom | 🔄 | 60.33% (−2.19) | 🔄 | — |
+| PruneVID | 🔄 | 62.17% (−0.35) | 🔄 | — |
+
+> ### The retention response is backbone-dependent
+> On **LLaVA-OV**, tripling FastV's budget from 10% to 25% buys **+0.67** points and
+> it stays ~16 below baseline; PruneVID moves **+0.28**. Retention is nearly
+> irrelevant — the cost comes from pruning at all, not from how hard.
+>
+> On **Qwen3-VL**, FastV climbs **monotonically** and its loss shrinks steadily
+> (χ² 89.8 → 18.2), converging on the baseline as tokens are restored.
+>
+> Same method, same benchmark, opposite sensitivity to the same knob. A retention
+> setting tuned on one backbone does not transfer to another.
+
+## DyTo vs a token-matched baseline
+
+DyTo's earlier 42.06% had no control. It does now — and the result is negative.
+
+| | frames | visual tokens | accuracy |
+|---|:---:|:---:|:---:|
+| baseline | 6 (uncompressed) | 3,456 | **43.35%** |
+| DyTo (reconstructed TW-FINCH) | 32 → FINCH ~25 → ToMe | ~3,680 | **42.06%** |
+| **Δ** | | | **−1.29** |
+
+**McNemar win 177 / lose 229, χ² = 6.4 → significant.** Divergence 622/4018 (15.5%)
+on scoreable pairs, so the method is genuinely engaged.
+
+**At an equal token budget, compressing 32 frames is significantly worse than
+sampling 6 frames and not compressing at all** — a negative result against DyTo's
+own premise. Caveats: this is our *reconstructed* TW-FINCH, not the authors' code;
+DyTo actually received slightly **more** budget (3,680 vs 3,456), so the comparison
+favours it; and a frame-matched baseline is impossible — Vicuna's 4,096 context
+cannot hold 32 uncompressed frames (18,432 tokens), which is precisely why DyTo
+exists.
+
 ## Other backbones (each method's native model)
 
 | Method | Backbone | Overall | Status |
