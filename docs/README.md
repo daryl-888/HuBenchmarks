@@ -34,7 +34,7 @@ backbone comes close to.
 **2. Method effects do not transfer across backbones.** On LLaVA-OV every method
 lands within ~0.8 points of the backbone — none significantly different, i.e. the
 methods are effectively free. On **Qwen3-VL, at the same 32 frames and 15%
-retention, all 8 lose accuracy and 7 lose significantly** (−0.67 to −6.55). A
+retention, all 10 lose accuracy and 8 lose significantly** (−0.35 to −6.55). A
 stronger backbone extracts more from the full token set, so discarding tokens costs
 more. A ranking measured on one backbone must not be assumed on another.
 
