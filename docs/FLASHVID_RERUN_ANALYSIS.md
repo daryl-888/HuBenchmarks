@@ -77,21 +77,65 @@ while disagreeing on one answer in seven.
 
 ---
 
-## 4. A true re-run reproduction
+## 4. There is no noise floor — identical runs are bit-identical
 
-Runs 1 and 2 are the same configuration executed weeks apart, on different job
-IDs, after a full repo restructure:
+I originally wrote that a faithful re-run "diverges by ~13 predictions (the
+bad-NFS videos)". **That is wrong**, and the correction matters for how every
+small divergence in this project should be read.
 
-| | |
-|---|---|
-| Accuracy difference | **0.00 pts** |
-| Predictions differing | **13 / 8,052** (0.16%) |
+**A genuinely identical re-run diverges by zero.** Verified on three independent
+pairs:
 
-This is what determinism buys. Greedy decoding (`do_sample=False`) makes a re-run
-reproducible to within the handful of samples affected by the known bad-NFS
-videos. It is also the property the whole verification gate rests on: because a
-faithful re-run diverges by ~13, a run diverging by **0** from the plain backbone
-is proof the method never engaged.
+| Pair | Divergence |
+|---|:---:|
+| `ovqwen_dycoke_run1` vs `dycoke_ovqwen15_fresh` | **0 / 8,052** |
+| `dycoke_ovqwen15_fresh` vs `dycoke_ovqwen2_fresh` | **0 / 8,052** |
+| `mdp3_qwen15_run` vs `mdp3_ovqwen15_fresh` | **0 / 8,052** |
+
+Greedy decoding is exactly deterministic: same weights, same code, same input ⇒
+byte-identical output. Not "approximately", not "within a few samples". **Zero.**
+
+That last pair is worth noting — `ovqwen15` and `ovqwen2` are the two *different
+weight directories*, and they still produce 0 differences. This confirms
+`llava-ov-7b-qwen2` really was a byte-for-byte copy of `llava-ov-7b`, so the
+model path is not a source of divergence.
+
+### Which means the FlashVID residuals are real, not noise
+
+| Pair | Same retention? | Divergence | On bad-NFS videos |
+|---|:---:|:---:|:---:|
+| `flashvid_run4` vs `s1_flashvid_r25_run` | yes (0.25) | **13** | **0** |
+| `flashvid_qwen2_v2` vs `w2_flashvid_run` | yes (0.15) | **23** | **0** |
+
+**None of the differing samples fall on the five known bad videos.** So the
+bad-NFS explanation is excluded outright, and with a true noise floor of zero,
+13 and 23 are not tolerances — they are *signal*.
+
+What every one of these pairs has in common: **each spans a code change.**
+
+* `flashvid_run4` (2026-07-15) ran pre-fix; `s1_flashvid_r25_run` (07-30) runs
+  the current script — separated by the sdpa change (`52d8d24`), the retention
+  fix (`26c8ce4`) and a `$MOTIONBENCH` refactor (`2a7cab2`).
+* `flashvid_qwen2_v2` (07-22) ran a partially-updated deployed copy;
+  `w2_flashvid_run` (07-24) ran the committed post-fix version.
+
+The DyCoke and MDP3 pairs that diverge by 0 were the *same* code. The FlashVID
+pairs that diverge by 13 and 23 were *different* code. The pattern is consistent
+and the direction is clear, even though the specific line cannot be isolated from
+the surviving artifacts.
+
+> **The scale hierarchy this establishes:**
+>
+> | Cause | Predictions changed (of 8,052) |
+> |---|:---:|
+> | Nothing — identical re-run | **0** |
+> | Code-version drift | **13–23** |
+> | Retention 0.15 ↔ 0.25 | **~1,120** |
+> | Retention 0.10 ↔ 0.25 | **~1,507** |
+>
+> Two orders of magnitude separate "the code changed slightly" from "the
+> hyperparameter changed". That separation is what let §5 recover the true
+> retention of a mislabelled run.
 
 ---
 
