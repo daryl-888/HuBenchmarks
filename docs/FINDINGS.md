@@ -133,5 +133,7 @@ Every gated figure required **two** independent signals: an `ACTIVE` log proving
 | STTM (Qwen3-VL) | 0/8 divergence | visual span is not contiguous — Qwen3-VL interleaves timestamp tokens |
 | Vicuna baseline | completed, exit 0 | 4.5× context overflow; 73% empty output |
 
+A worked example of all of this — including a true re-run reproducing to 13/8,052, a 0.05-point gap concealing 1,123 changed predictions, and a run whose stored retention parameter is wrong — is in [FLASHVID_RERUN_ANALYSIS.md](FLASHVID_RERUN_ANALYSIS.md).
+
 Greedy decoding makes reruns bit-identical, which is what gives "0 predictions differ" its force as proof of a no-op. See [DETERMINISM_AND_VALIDITY.md](DETERMINISM_AND_VALIDITY.md) and [METHODOLOGY.md](METHODOLOGY.md).
 
