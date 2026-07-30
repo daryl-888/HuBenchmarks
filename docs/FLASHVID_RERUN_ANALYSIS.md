@@ -17,7 +17,7 @@ effect — the two templates emit *byte-identical* prompts. It was a known bug. 
 | 1 | `flashvid_run4` | 7713093 | 0.25 | **0.25** | **53.36%** | ✅ valid |
 | 2 | `s1_flashvid_r25_run` | 7933873 | 0.25 | **0.25** | **53.36%** | ✅ valid (2026-07-30 sweep) |
 | 3 | `w2_flashvid_run` | — | 0.15 | **0.15** | **53.31%** | ✅ valid (gated reference) |
-| 4 | `flashvid_qwen2_v2` | 7750906 | 0.25 | **0.15** ⚠️ | **53.29%** | ⚠️ mislabelled |
+| 4 | `flashvid_qwen2_v2` | 7750906 | 0.25 | **unresolved** ⚠️ | **53.29%** | ⚠️ see §5 |
 | — | *"FlashVID (qwen15)"* | 7751030 | 0.15 | **0.10** ❌ | **51.22%** | ❌ **invalid** — wrong model class |
 
 Run 5's data no longer exists on disk; it survives only in git history and in the
@@ -95,22 +95,57 @@ is proof the method never engaged.
 
 ---
 
-## 5. The mislabelled run
+## 5. Two runs, identical recorded config, 1,114 different predictions
 
-Run 4 (`flashvid_qwen2_v2`) records `retention_ratio: 0.25` in its
-`summary.json`, but it behaves like a 0.15 run:
+This is the most important row in the table, and my first reading of it was
+wrong. I originally wrote that run 4 was "mislabelled — records 0.25, behaves as
+0.15". The git history does not support that, so here is what the evidence
+actually shows.
 
-| Comparison | Δ accuracy | Predictions differing |
-|---|:---:|:---:|
-| run 4 vs run 3 (**real** 0.15) | 0.02 | **23** / 8,052 |
-| run 4 vs run 1 (**real** 0.25) | 0.07 | **1,118** / 8,052 |
+**The pairwise divergences:**
 
-23 differences against the 0.15 run and 1,118 against the 0.25 run. Its recorded
-retention is wrong — almost certainly the documented FlashVID defect where
-`retention_ratio` was **hardcoded to 0.25 while the CLI value was ignored**, so
-the *stored parameter* and the *executed* value diverged.
+| Comparison | Recorded retention | Δ accuracy | Predictions differing |
+|---|:---:|:---:|:---:|
+| run 4 vs run 3 | 0.25 vs **0.15** | 0.02 | **23** / 8,052 |
+| run 4 vs run 1 | 0.25 vs **0.25** | 0.07 | **1,114** / 8,052 |
 
-**Do not cite run 4's retention.** Its accuracy is real; its label is not.
+Read those together. Two runs recording **different** retention agree almost
+perfectly (23). Two runs recording the **same** retention disagree substantially
+(1,114). The recorded parameter does not predict the behaviour in either
+direction.
+
+**Why "mislabelled" was the wrong conclusion.** The pre-fix code (commit
+`26c8ce4` reverted) hardcoded `0.25` in *both* places at once:
+
+```python
+m = apply_flashvid(m, retention_ratio=0.25, ...)          # execution
+summary = {... "flashvid_params": {"retention_ratio": 0.25 ...}}   # what got recorded
+```
+
+Execution and record were the *same constant*, so run 4's summary is internally
+honest — it really did run at 0.25. The label is not the problem.
+
+**What actually varied is not in the summary.** Runs 1 and 4 share model path
+(`llava-ov-7b-qwen2`), recorded retention (0.25), alpha (0.7), temporal threshold
+(0.8), frames (32) and conv template (`qwen_2`) — every field the summary
+captures — and still differ on 1,114 predictions. Under greedy decoding that is
+impossible unless something outside the recorded fields changed. The most likely
+candidate is the **eval script**: this method had two (`eval_flashvid.py` and the
+`_motionbench` variant), and the variant is documented as loading
+`LlavaLlamaForCausalLM` — the wrong model class. The summaries do not record
+which script ran, so this cannot be settled from the artifacts alone.
+
+> **The real lesson is stronger than the one I first drew.** It is not "labels can
+> be wrong". It is that **`summary.json` did not capture every input that changed
+> the output** — so two runs could be identical on every recorded field and still
+> diverge on one prediction in seven. That is a gap in provenance, and it is why
+> later runs record `enabled` and why the sweep verifies retention
+> *arithmetically from the ACTIVE log* rather than trusting the stored parameter.
+
+*(Both runs 1 and 4 also used `weights/llava-ov-7b-qwen2`, a byte-for-byte copy of
+`llava-ov-7b` since deleted. That duplicate is a separate documented
+misconception and is **not** the cause here — the copy was identical, so it
+cannot produce divergence.)*
 
 ---
 
@@ -186,7 +221,7 @@ this analysis** — it explains none of the observed differences.
 | **2.14%** | 53.36% vs 51.22% | ❌ **Bug**, not prompt: wrong model class + retention 0.10. The `qwen15` label was irrelevant — the templates are byte-identical |
 | **0.05%** | 53.36% vs 53.31% | ✅ Real retention effect (0.25 vs 0.15) — but **1,123 predictions changed** to produce it |
 | **0.00%** | run 1 vs run 2 | ✅ True re-run reproduction, 13/8,052 differ (bad-NFS videos) |
-| **0.07%** | run 1 vs run 4 | ⚠️ Run 4 is **mislabelled** — records 0.25, behaves as 0.15 |
+| **0.07%** | run 1 vs run 4 | ⚠️ **Unexplained**: identical on every recorded field, yet 1,114 predictions differ. Something outside `summary.json` varied — probably the eval script |
 
 Three things worth carrying forward:
 
@@ -196,5 +231,8 @@ Three things worth carrying forward:
 2. **Accuracy hides behaviour.** A 0.05-point gap concealed 1,123 changed
    predictions, and a 0.00-point gap concealed only 13. The number alone
    distinguishes neither.
-3. **Stored parameters can lie.** Run 4's `summary.json` records a retention it
-   did not use. The subcategory fingerprint caught it; the label did not.
+3. **The summary did not capture everything that mattered.** Runs 1 and 4 agree
+   on every recorded field and still differ on 1,114 predictions — so provenance
+   was incomplete, not merely mislabelled. This is why the current sweep verifies
+   retention arithmetically from each run's ACTIVE log instead of trusting the
+   stored parameter.
