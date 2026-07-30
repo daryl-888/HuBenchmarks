@@ -26,11 +26,10 @@ cd /project/rhu/dpalfaro
     --conv_template qwen_2 \
     --meta_path /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
     --output_dir /project/rhu/dpalfaro/results/samp_aim_run \
-    --num_frames 32
+    --num_frames 32 \
+    --temperature 0.7 --top_p 0.9 --seed 0
 
 OUT=/project/rhu/dpalfaro/results/samp_aim_run
-echo "=== GATE: did aim actually engage? ==="
 # NO GATE: sampling breaks the divergence check (two sampled runs differ by
-# chance), so --vs-baseline cannot prove engagement here. Distribution analysis
-# is done afterwards by sampled-llava-ov/build_distribution.py.
-    --temperature 0.7 --top_p 0.9 --seed 0
+# chance), so --vs-baseline cannot prove engagement. Distribution analysis is
+# done afterwards by sampled-llava-ov/build_distribution.py.

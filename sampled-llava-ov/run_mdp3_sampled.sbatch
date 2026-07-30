@@ -41,11 +41,10 @@ cd /project/rhu/dpalfaro
     --output-dir /project/rhu/dpalfaro/results/samp_mdp3_run \
     --conv-template qwen_1_5 \
     --pool-frames  32 \
-    --select-frames 8
+    --select-frames 8 \
+    --temperature 0.7 --top_p 0.9 --seed 0
 
 OUTDIR=/project/rhu/dpalfaro/results/samp_mdp3_run
-echo "=== GATE: did the method actually engage? ==="
 # NO GATE: sampling breaks the divergence check (two sampled runs differ by
-# chance), so --vs-baseline cannot prove engagement here. Distribution analysis
-# is done afterwards by sampled-llava-ov/build_distribution.py.
-    --temperature 0.7 --top_p 0.9 --seed 0
+# chance), so --vs-baseline cannot prove engagement. Distribution analysis is
+# done afterwards by sampled-llava-ov/build_distribution.py.

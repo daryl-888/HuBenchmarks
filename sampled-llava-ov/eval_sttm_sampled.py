@@ -277,7 +277,8 @@ def main():
     _SAMP.update(temperature=args.temperature, top_p=args.top_p,
                  greedy=args.greedy)
     import random as _rnd
-    _rnd.seed(args.seed); np.random.seed(args.seed)
+    import numpy as _np
+    _rnd.seed(args.seed); _np.random.seed(args.seed)
     torch.manual_seed(args.seed); torch.cuda.manual_seed_all(args.seed)
 
     os.makedirs(args.output_dir, exist_ok=True)

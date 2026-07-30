@@ -30,11 +30,10 @@ cd /project/rhu/dpalfaro
     --meta_path       /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
     --grounding_jsonl /project/rhu/dpalfaro/results/videoitg_grounding/frame_scores.jsonl \
     --output_dir /project/rhu/dpalfaro/results/samp_videoitg_run \
-    --num_frames      32
+    --num_frames      32 \
+    --temperature 0.7 --top_p 0.9 --seed 0
 
 OUT=/project/rhu/dpalfaro/results/samp_videoitg_run
-echo "=== GATE: did videoitg actually engage? ==="
 # NO GATE: sampling breaks the divergence check (two sampled runs differ by
-# chance), so --vs-baseline cannot prove engagement here. Distribution analysis
-# is done afterwards by sampled-llava-ov/build_distribution.py.
-    --temperature 0.7 --top_p 0.9 --seed 0
+# chance), so --vs-baseline cannot prove engagement. Distribution analysis is
+# done afterwards by sampled-llava-ov/build_distribution.py.

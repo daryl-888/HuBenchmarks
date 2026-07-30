@@ -31,11 +31,10 @@ cd /project/rhu/dpalfaro
     --conv_template qwen_2 \
     --retention_ratio 0.15 \
     --alpha 0.7 \
-    --temporal_threshold 0.8
+    --temporal_threshold 0.8 \
+    --temperature 0.7 --top_p 0.9 --seed 0
 
 OUT=/project/rhu/dpalfaro/results/samp_flashvid_run
-echo "=== GATE ==="
 # NO GATE: sampling breaks the divergence check (two sampled runs differ by
-# chance), so --vs-baseline cannot prove engagement here. Distribution analysis
-# is done afterwards by sampled-llava-ov/build_distribution.py.
-    --temperature 0.7 --top_p 0.9 --seed 0
+# chance), so --vs-baseline cannot prove engagement. Distribution analysis is
+# done afterwards by sampled-llava-ov/build_distribution.py.

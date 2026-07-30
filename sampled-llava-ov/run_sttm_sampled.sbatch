@@ -33,12 +33,11 @@ cd /project/rhu/dpalfaro
     --sa_start_layer_idx      2 \
     --sa_tree_thresh          0.85 \
     --sa_tree_temporal_thresh 0.65 \
-    --sa_tree_root_level      1
+    --sa_tree_root_level      1 \
+    --temperature 0.7 --top_p 0.9 --seed 0
 
 OUTDIR=/project/rhu/dpalfaro/results/samp_sttm_run
 
-echo "=== GATE: did the method actually engage? ==="
 # NO GATE: sampling breaks the divergence check (two sampled runs differ by
-# chance), so --vs-baseline cannot prove engagement here. Distribution analysis
-# is done afterwards by sampled-llava-ov/build_distribution.py.
-    --temperature 0.7 --top_p 0.9 --seed 0
+# chance), so --vs-baseline cannot prove engagement. Distribution analysis is
+# done afterwards by sampled-llava-ov/build_distribution.py.

@@ -34,11 +34,10 @@ HOLITOM_r=0.5 \
     --model_path /project/rhu/dpalfaro/weights/llava-ov-7b \
     --meta_path  /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
     --output_dir /project/rhu/dpalfaro/results/samp_holitom_run \
-    --num_frames 32
+    --num_frames 32 \
+    --temperature 0.7 --top_p 0.9 --seed 0
 
 OUT=/project/rhu/dpalfaro/results/samp_holitom_run
-echo "=== GATE: did holitom actually engage? ==="
 # NO GATE: sampling breaks the divergence check (two sampled runs differ by
-# chance), so --vs-baseline cannot prove engagement here. Distribution analysis
-# is done afterwards by sampled-llava-ov/build_distribution.py.
-    --temperature 0.7 --top_p 0.9 --seed 0
+# chance), so --vs-baseline cannot prove engagement. Distribution analysis is
+# done afterwards by sampled-llava-ov/build_distribution.py.

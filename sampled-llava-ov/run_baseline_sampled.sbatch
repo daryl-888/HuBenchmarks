@@ -35,8 +35,9 @@ OUT=/project/rhu/dpalfaro/results/samp_baseline_run
     --meta_path  /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
     --output_dir /project/rhu/dpalfaro/results/samp_baseline_run \
     --num_frames 32 \
-
-echo "=== GATE: did FastV actually prune (predictions differ from baseline)? ==="
-# NO GATE: sampling breaks the divergence check. Distribution analysis is done
-# afterwards by sampled-llava-ov/build_distribution.py.
     --temperature 0.7 --top_p 0.9 --seed 0
+
+# NO GATE: sampling breaks the divergence check (two sampled runs differ by
+# chance), so --vs-baseline cannot prove engagement. Distribution analysis is
+# done afterwards by sampled-llava-ov/build_distribution.py.
+    --expect-method fastv || echo "(gate: single-run checks; --vs-baseline needs a matching baseline run)"
