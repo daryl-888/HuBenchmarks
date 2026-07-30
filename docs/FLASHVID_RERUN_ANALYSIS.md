@@ -125,22 +125,36 @@ summary = {... "flashvid_params": {"retention_ratio": 0.25 ...}}   # what got re
 Execution and record were the *same constant*, so run 4's summary is internally
 honest — it really did run at 0.25. The label is not the problem.
 
-**What actually varied is not in the summary.** Runs 1 and 4 share model path
-(`llava-ov-7b-qwen2`), recorded retention (0.25), alpha (0.7), temporal threshold
-(0.8), frames (32) and conv template (`qwen_2`) — every field the summary
-captures — and still differ on 1,114 predictions. Under greedy decoding that is
-impossible unless something outside the recorded fields changed. The most likely
-candidate is the **eval script**: this method had two (`eval_flashvid.py` and the
-`_motionbench` variant), and the variant is documented as loading
-`LlavaLlamaForCausalLM` — the wrong model class. The summaries do not record
-which script ran, so this cannot be settled from the artifacts alone.
+**What actually varied is not in the summary.** I traced every variable that
+could plausibly change the output and eliminated all but one.
 
-> **The real lesson is stronger than the one I first drew.** It is not "labels can
-> be wrong". It is that **`summary.json` did not capture every input that changed
-> the output** — so two runs could be identical on every recorded field and still
-> diverge on one prediction in seven. That is a gap in provenance, and it is why
-> later runs record `enabled` and why the sweep verifies retention
-> *arithmetically from the ACTIVE log* rather than trusting the stored parameter.
+| # | Variable | Verdict | Evidence |
+|:-:|---|:---:|---|
+| 1 | Eval script *identity* | ❌ ruled out | Only `eval_flashvid.py` writes `flashvid_params`; both runs have it. The 1163-line `_motionbench` variant never does |
+| 2 | Eval script *version* | ❌ ruled out | Runs dated **2026-07-15** and **2026-07-22**; no commit touched the file between 07-12 and 07-23 |
+| 3 | FlashVID method source | ❌ ruled out | Checkout HEAD `983cce6`, dated **2026-05-01**; no `.py` modified in the window |
+| 4 | Conda environment | ❌ ruled out | `flashvid` env last modified **2026-06-11**, before both runs |
+| 5 | Model weights | ❌ ruled out | Both recorded `weights/llava-ov-7b-qwen2`; `_v2` log confirms `Model Class: LlavaQwenForCausalLM` (the correct class) |
+| 6 | GPU architecture | ❌ ruled out | Both `gres/gpu:ada=1` — `compute-10-10` and `compute-9-3`. Cross-node ada reproduction was separately verified bit-identical |
+| 7 | Data subset | ❌ ruled out | The 1,114 differences spread evenly across indices **0–8,049** and all six categories proportionally — systematic, not a subset effect |
+| 8 | **Attention implementation** | ⚠️ **surviving** | Not recorded in `summary.json`, and the two jobs ran from **different sbatch files** (`ovqwen2_flashvid_full` vs `ovqwen2_flashvid_v2`) |
+
+**Why #8 is the best-supported explanation.** The surviving `_v2` log (07-22)
+shows sdpa in use. But the commit that added `attn_implementation="sdpa"` to this
+script — `52d8d24` — is dated **07-23**, *after both runs*. The deployed copy on
+Carya therefore already carried sdpa before it was committed, which fits this
+project's `scp`-then-commit workflow. That makes it very likely the earlier
+`_full` run (07-15) executed on the builder's **default** attention path while
+`_v2` (07-22) executed on **sdpa**.
+
+Different attention kernels produce different floating-point results, which under
+greedy decoding flips arg-max on borderline questions — exactly the evenly-spread,
+all-category divergence observed.
+
+**This is not proven.** The `_full` run's log no longer exists, and neither the
+sbatch difference nor the attention path was ever recorded in `summary.json`. It
+is the one hypothesis consistent with all eight lines of evidence, and the seven
+alternatives are positively excluded rather than merely unexamined.
 
 *(Both runs 1 and 4 also used `weights/llava-ov-7b-qwen2`, a byte-for-byte copy of
 `llava-ov-7b` since deleted. That duplicate is a separate documented
