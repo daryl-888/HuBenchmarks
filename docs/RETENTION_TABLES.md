@@ -1,5 +1,8 @@
 # Retention sweep — MotionBench
 
+
+> **This is the standalone retention sweep.** For the combined report — headline findings, gated results, this sweep, the sampled study and the DyTo control in one place — see [FINDINGS.md](FINDINGS.md).
+
 Six tables: two backbones × three retention levels. **Only the retention knob varies** — 32 frames, greedy decoding and every other parameter are held fixed, so differences down a column are attributable to retention alone.
 
 Δ is vs that backbone's plain baseline. χ² is McNemar on paired predictions (≥3.84 ⇒ p<0.05). *Differ* = predictions ≠ baseline out of 8,052; **0 would mean the method never engaged**.

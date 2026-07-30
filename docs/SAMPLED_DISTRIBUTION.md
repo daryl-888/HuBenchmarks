@@ -1,5 +1,8 @@
 # Answer distribution — sampled LLaVA-OV runs
 
+
+> **This is the standalone sampled answer distribution.** For the combined report — headline findings, gated results, this sweep, the sampled study and the DyTo control in one place — see [FINDINGS.md](FINDINGS.md).
+
 **These are SAMPLED runs** (`temperature=0.7, top_p=0.9, seed=0`), not the gated greedy results. They cannot pass the divergence gate — two sampled runs differ by chance — so they are not comparable to the numbers in `master-results.md` and must not be merged into it.
 
 Counts are over the 4,018 scoreable questions (NA excluded). *unparsed* = generations with no recoverable A–D letter.

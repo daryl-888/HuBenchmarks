@@ -38,7 +38,9 @@ retention, all 8 lose accuracy and 7 lose significantly** (−0.67 to −6.55). 
 stronger backbone extracts more from the full token set, so discarding tokens costs
 more. A ranking measured on one backbone must not be assumed on another.
 
-See [RESULTS.md](RESULTS.md).
+**Everything in one document: [FINDINGS.md](FINDINGS.md)** — headline findings, gated results, the 16-cell retention sweep, the sampled answer-distribution study, and the DyTo token-matched control.
+
+Per-topic pages: [RESULTS.md](RESULTS.md) · [RETENTION_TABLES.md](RETENTION_TABLES.md) · [SAMPLED_DISTRIBUTION.md](SAMPLED_DISTRIBUTION.md).
 
 ## Quick start
 
