@@ -17,7 +17,7 @@ effect — the two templates emit *byte-identical* prompts. It was a known bug. 
 | 1 | `flashvid_run4` | 7713093 | 0.25 | **0.25** | **53.36%** | ✅ valid |
 | 2 | `s1_flashvid_r25_run` | 7933873 | 0.25 | **0.25** | **53.36%** | ✅ valid (2026-07-30 sweep) |
 | 3 | `w2_flashvid_run` | — | 0.15 | **0.15** | **53.31%** | ✅ valid (gated reference) |
-| 4 | `flashvid_qwen2_v2` | 7750906 | 0.25 | **unresolved** ⚠️ | **53.29%** | ⚠️ see §5 |
+| 4 | `flashvid_qwen2_v2` | 7750906 | 0.25 ⚠️ | **0.15** | **53.29%** | ⚠️ record disagrees with execution — §5 |
 | — | *"FlashVID (qwen15)"* | 7751030 | 0.15 | **0.10** ❌ | **51.22%** | ❌ **invalid** — wrong model class |
 
 Run 5's data no longer exists on disk; it survives only in git history and in the
@@ -95,71 +95,71 @@ is proof the method never engaged.
 
 ---
 
-## 5. Two runs, identical recorded config, 1,114 different predictions
+## 5. `flashvid_qwen2_v2` executed at 0.15, not the 0.25 it records
 
-This is the most important row in the table, and my first reading of it was
-wrong. I originally wrote that run 4 was "mislabelled — records 0.25, behaves as
-0.15". The git history does not support that, so here is what the evidence
-actually shows.
+**Correction history, stated plainly:** I first called this run mislabelled, then
+retracted that because git showed the pre-fix code hardcoding `0.25` in both the
+execution and the summary. The retraction was wrong. I trusted git to reflect the
+*deployed* state after having already proven, in this same file, that it does
+not (§5a). The behavioural evidence is decisive and I should have weighted it
+higher.
 
-**The pairwise divergences:**
+### The divergence matrix settles it
 
-| Comparison | Recorded retention | Δ accuracy | Predictions differing |
-|---|:---:|:---:|:---:|
-| run 4 vs run 3 | 0.25 vs **0.15** | 0.02 | **23** / 8,052 |
-| run 4 vs run 1 | 0.25 vs **0.25** | 0.07 | **1,114** / 8,052 |
+Group all ten pairwise divergences by the retention each run *behaves* as:
 
-Read those together. Two runs recording **different** retention agree almost
-perfectly (23). Two runs recording the **same** retention disagree substantially
-(1,114). The recorded parameter does not predict the behaviour in either
-direction.
+| Retention gap | Divergences observed | Spread |
+|---|---|:---:|
+| 0.25 vs 0.25 | 13 | — |
+| 0.15 vs 0.15 | 23 | — |
+| **0.15 vs 0.25** | **1,114 · 1,118 · 1,123 · 1,127** | **13** |
+| 0.10 vs 0.15 | 869 · 876 | 7 |
+| 0.10 vs 0.25 | 1,506 · 1,508 | 2 |
 
-**Why "mislabelled" was the wrong conclusion.** The pre-fix code (commit
-`26c8ce4` reverted) hardcoded `0.25` in *both* places at once:
+**Four independent run-pairs at a 0.15↔0.25 gap agree to within 13 out of
+~1,120 — a 1% spread.** Two independent pairs at 0.10↔0.25 agree to within 2.
+A retention gap produces a reproducible, characteristic divergence, and every
+pair lands in its bucket.
 
-```python
-m = apply_flashvid(m, retention_ratio=0.25, ...)          # execution
-summary = {... "flashvid_params": {"retention_ratio": 0.25 ...}}   # what got recorded
-```
+That partition only works if `flashvid_qwen2_v2` is assigned **0.15**. Assign it
+the 0.25 it records and the matrix breaks: it would have to diverge by ~1,120
+from `w2_flashvid_run` (it diverges by **23**) and by ~13 from `flashvid_run4`
+(it diverges by **1,114**).
 
-Execution and record were the *same constant*, so run 4's summary is internally
-honest — it really did run at 0.25. The label is not the problem.
+### So the numbers mean
 
-**What actually varied is not in the summary.** I traced every variable that
-could plausibly change the output and eliminated all but one.
+| Run | Recorded | **Executed** | Basis |
+|---|:---:|:---:|---|
+| `flashvid_run4` | 0.25 | **0.25** | matches `s1_flashvid_r25_run` to 13 |
+| `flashvid_qwen2_v2` | 0.25 ⚠️ | **0.15** | matches `w2_flashvid_run` to 23 |
+| `w2_flashvid_run` | 0.15 | **0.15** | post-fix, CLI-driven, records `enabled` |
 
-| # | Variable | Verdict | Evidence |
-|:-:|---|:---:|---|
-| 1 | Eval script *identity* | ❌ ruled out | Only `eval_flashvid.py` writes `flashvid_params`; both runs have it. The 1163-line `_motionbench` variant never does |
-| 2 | Eval script *version* | ❌ ruled out | Runs dated **2026-07-15** and **2026-07-22**; no commit touched the file between 07-12 and 07-23 |
-| 3 | FlashVID method source | ❌ ruled out | Checkout HEAD `983cce6`, dated **2026-05-01**; no `.py` modified in the window |
-| 4 | Conda environment | ❌ ruled out | `flashvid` env last modified **2026-06-11**, before both runs |
-| 5 | Model weights | ❌ ruled out | Both recorded `weights/llava-ov-7b-qwen2`; `_v2` log confirms `Model Class: LlavaQwenForCausalLM` (the correct class) |
-| 6 | GPU architecture | ❌ ruled out | Both `gres/gpu:ada=1` — `compute-10-10` and `compute-9-3`. Cross-node ada reproduction was separately verified bit-identical |
-| 7 | Data subset | ❌ ruled out | The 1,114 differences spread evenly across indices **0–8,049** and all six categories proportionally — systematic, not a subset effect |
-| 8 | **Attention implementation** | ⚠️ **surviving** | Not recorded in `summary.json`, and the two jobs ran from **different sbatch files** (`ovqwen2_flashvid_full` vs `ovqwen2_flashvid_v2`) |
+### How the record came to disagree with the execution
 
-**Why #8 is the best-supported explanation.** The surviving `_v2` log (07-22)
-shows sdpa in use. But the commit that added `attn_implementation="sdpa"` to this
-script — `52d8d24` — is dated **07-23**, *after both runs*. The deployed copy on
-Carya therefore already carried sdpa before it was committed, which fits this
-project's `scp`-then-commit workflow. That makes it very likely the earlier
-`_full` run (07-15) executed on the builder's **default** attention path while
-`_v2` (07-22) executed on **sdpa**.
+The fix commit `26c8ce4` changed **two** lines together — the `apply_flashvid`
+call and the summary dict. On the deployed Carya copy those were evidently *not*
+in sync on 2026-07-22: execution already took the CLI value (0.15) while the
+summary still emitted the hardcoded `0.25`.
 
-Different attention kernels produce different floating-point results, which under
-greedy decoding flips arg-max on borderline questions — exactly the evenly-spread,
-all-category divergence observed.
+That is the same deploy-ahead-of-commit pattern independently established for
+`attn_implementation`: the `_v2` log shows sdpa in use on 07-22, but the commit
+adding sdpa is dated 07-23. The working copy on the cluster ran ahead of git in
+both cases.
 
-**This is not proven.** The `_full` run's log no longer exists, and neither the
-sbatch difference nor the attention path was ever recorded in `summary.json`. It
-is the one hypothesis consistent with all eight lines of evidence, and the seven
-alternatives are positively excluded rather than merely unexamined.
+### What this does and does not explain
 
-*(Both runs 1 and 4 also used `weights/llava-ov-7b-qwen2`, a byte-for-byte copy of
-`llava-ov-7b` since deleted. That duplicate is a separate documented
-misconception and is **not** the cause here — the copy was identical, so it
-cannot produce divergence.)*
+* The **1,114** gap between runs 1 and 4 is a **retention effect** (0.25 vs
+  0.15) — *not* the attention implementation. My §5 elimination table reached
+  the wrong conclusion there; the divergence matrix supersedes it.
+* Attention and code-version differences account for the **small residuals**:
+  13 between two identical-config runs, 23 between two same-retention runs from
+  different script versions. Retention operates at the ~1,100 scale; code
+  differences at the ~10–20 scale.
+
+> **The methodological point survives, and is sharpened.** `summary.json` did not
+> capture everything that determined the output — but the paired-divergence
+> structure recovered the true configuration anyway. Behaviour was a more reliable
+> witness than either the stored parameter or the commit history.
 
 ---
 
@@ -172,7 +172,7 @@ cannot produce divergence.)*
 | `flashvid_run4` | 0.25 | 53.36% | 42.2 | 47.5 | 55.1 | 57.6 | 71.7 | 23.8 |
 | `s1_flashvid_r25_run` | 0.25 | 53.36% | 42.2 | 47.5 | 55.1 | 57.5 | 71.9 | 23.8 |
 | `w2_flashvid_run` | 0.15 | 53.31% | 39.9 | 45.7 | 53.8 | 58.0 | 71.7 | 28.2 |
-| `flashvid_qwen2_v2` | 0.25 recorded ⚠️ | 53.29% | 39.7 | 45.7 | 54.0 | 57.8 | 71.9 | 28.2 |
+| `flashvid_qwen2_v2` | 0.15 (records 0.25 ⚠️) | 53.29% | 39.7 | 45.7 | 54.0 | 57.8 | 71.9 | 28.2 |
 | `s1_flashvid_r10_run` | 0.10 | 52.51% | 41.0 | 46.8 | 53.3 | 56.3 | 70.7 | 26.5 |
 | *baseline* | — | *52.66%* | *40.5* | *45.2* | *55.5* | *57.0* | *71.2* | *23.8* |
 
@@ -243,7 +243,7 @@ this analysis** — it explains none of the observed differences.
 | **2.14%** | 53.36% vs 51.22% | ❌ **Bug**, not prompt: wrong model class + retention 0.10. The `qwen15` label was irrelevant — the templates are byte-identical |
 | **0.05%** | 53.36% vs 53.31% | ✅ Real retention effect (0.25 vs 0.15) — but **1,123 predictions changed** to produce it |
 | **0.00%** | run 1 vs run 2 | ✅ True re-run reproduction, 13/8,052 differ (bad-NFS videos) |
-| **0.07%** | run 1 vs run 4 | ⚠️ **Unexplained**: identical on every recorded field, yet 1,114 predictions differ. Something outside `summary.json` varied — probably the eval script |
+| **0.07%** | run 1 vs run 4 | ⚠️ A **retention** difference (0.25 vs 0.15) that `summary.json` hides — run 4 records 0.25 but executed 0.15 |
 
 Three things worth carrying forward:
 
