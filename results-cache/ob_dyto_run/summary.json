@@ -1,0 +1,22 @@
+{
+  "accuracy": 0.42060726729716275,
+  "correct": 1690,
+  "total_scoreable": 4018,
+  "total_na_skipped": 4034,
+  "total_samples": 8052,
+  "model": "/project/rhu/dpalfaro/weights/llava-v1.6-vicuna-7b",
+  "dyto_params": {
+    "enabled": true,
+    "num_frames": 32,
+    "temporal_aggregation": "spatial_tome_finch_dynamic_all_frms",
+    "rope_scaling": 2,
+    "conv_template": "vicuna_v1",
+    "finch_variant": "reconstructed-TW-FINCH",
+    "paper_faithful": false,
+    "reconstruction_notes": [
+      "finch_cluster() return: TRANSCRIBED verbatim from the sibling KMeans function in the same file (13/14 normalized lines identical) \u2014 recovered, not invented",
+      "TW-FINCH weighting: OUR implementation of the published d_feat*|i-j| rule via FINCH's initial_rank hook; `tw_finch` is absent from the pinned finch-clust==0.2.0"
+    ],
+    "report_as": "DyTo (reconstructed TW-FINCH)"
+  }
+}

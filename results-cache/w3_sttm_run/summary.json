@@ -1,0 +1,45 @@
+{
+  "accuracy": 0.570681931309109,
+  "correct": 2293,
+  "total_scoreable": 4018,
+  "total_na_skipped": 4034,
+  "total_samples": 8052,
+  "sttm_params": {
+    "enabled": true,
+    "tree_thresh": 0.85,
+    "temporal_thresh": -1.0,
+    "root_level": 0,
+    "start_layer": 2,
+    "weighted_avg": false,
+    "num_frames": 32
+  },
+  "model": "Qwen/Qwen3-VL-8B-Instruct",
+  "num_frames": 32,
+  "note": "STTM on Qwen3-VL \u2014 quadtree spatio-temporal merge (authors' get_quadtree_features); SHORTENS the sequence, rebuilds position_ids/visual_pos_masks/deepstack",
+  "per_category": {
+    "Action Order": {
+      "correct": 230,
+      "total": 519
+    },
+    "Motion-related Objects": {
+      "correct": 509,
+      "total": 690
+    },
+    "Repetition Count": {
+      "correct": 95,
+      "total": 400
+    },
+    "Location-related Motion": {
+      "correct": 333,
+      "total": 546
+    },
+    "Camera Motion": {
+      "correct": 231,
+      "total": 385
+    },
+    "Motion Recognition": {
+      "correct": 895,
+      "total": 1478
+    }
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "accuracy": 0.5634644101543056,
+  "correct": 2264,
+  "total_scoreable": 4018,
+  "total_na_skipped": 4034,
+  "total_samples": 8052,
+  "videoitg_params": {
+    "enabled": true,
+    "grounding_src": "/project/rhu/dpalfaro/results/videoitg_grounding/frame_scores.jsonl",
+    "stage": "infer (consumes grounding frame_indices)"
+  },
+  "model": "Qwen/Qwen3-VL-8B-Instruct",
+  "num_frames": 32,
+  "note": "VideoITG on Qwen3-VL \u2014 grounded frame selection (stage-1 indices reused)",
+  "per_category": {
+    "Action Order": {
+      "correct": 235,
+      "total": 519
+    },
+    "Motion-related Objects": {
+      "correct": 520,
+      "total": 690
+    },
+    "Repetition Count": {
+      "correct": 89,
+      "total": 400
+    },
+    "Location-related Motion": {
+      "correct": 324,
+      "total": 546
+    },
+    "Camera Motion": {
+      "correct": 206,
+      "total": 385
+    },
+    "Motion Recognition": {
+      "correct": 890,
+      "total": 1478
+    }
+  }
+}
