@@ -1076,7 +1076,8 @@ def parse_args() -> argparse.Namespace:
     # --- sampled-variant flags (not in the original) ---
     parser.add_argument("--temperature", type=float, default=0.7)
     parser.add_argument("--top_p", type=float, default=0.9)
-    parser.add_argument("--seed", type=int, default=0)
+    # NOTE: eval_flashvid.py already defines --seed, so we must not re-add it
+    # (argparse raises "conflicting option string: --seed").
     parser.add_argument("--greedy", action="store_true")
     return parser.parse_args()
 

@@ -116,7 +116,7 @@ Subcategory breakdown (% correct within category):
 > only port that *shortens* the sequence rather than masking it, so `position_ids`,
 > `visual_pos_masks` and `deepstack_visual_embeds` all had to be rebuilt.
 
-## Retention sweep (9 of 16 cells, 2026-07-29)
+## Retention sweep — COMPLETE, 16/16 cells (2026-07-30)
 
 Only the retention knob varies — 32 frames, greedy decoding and all other
 parameters fixed. Retention verified **arithmetically from the ACTIVE logs**, not
@@ -130,24 +130,30 @@ just from the CLI flag. Full tables regenerate with
 | FastV | 36.06% (−16.60) | 36.78% (−15.88) | 36.73% (−15.93) | **flat**, +0.67 across the range |
 | HoliTom | 52.76% (+0.10) | 53.14% (+0.48) | 53.41% (+0.75) | rising, **none significant** |
 | PruneVID | 38.10% (−14.56) | 38.20% (−14.46) | 38.38% (−14.28) | **flat**, +0.28 across the range |
-| FlashVID | 🔄 | 53.31% (+0.65) | 🔄 | — |
+| FlashVID | 52.51% (−0.15) | 53.31% (+0.65) | 53.36% (+0.70) | +0.85 |
 
 **Qwen3-VL-8B** (baseline 62.52%)
 
 | Method | r=0.10 | r=0.15 | r=0.25 | trend |
 |---|:---:|:---:|:---:|---|
 | FastV | 56.92% (−5.60) | 59.01% (−3.51) | 60.60% (−1.92) | **monotonic +3.68**; χ² 89.8→44.6→18.2 |
-| FlashVID | 54.73% (−7.79) | 56.65% (−5.87) | 🔄 | rising |
-| HoliTom | 🔄 | 60.33% (−2.19) | 🔄 | — |
-| PruneVID | 🔄 | 62.17% (−0.35) | 🔄 | — |
+| FlashVID | 54.73% (−7.79) | 56.65% (−5.87) | 59.36% (−3.16) | **+4.63** |
+| HoliTom | 60.05% (−2.47) | 60.33% (−2.19) | 60.43% (−2.09) | +0.37 |
+| PruneVID | 60.23% (−2.29) | 62.17% (−0.35) | 61.40% (−1.12) | +1.17 (non-monotonic) |
 
 > ### The retention response is backbone-dependent
 > On **LLaVA-OV**, tripling FastV's budget from 10% to 25% buys **+0.67** points and
 > it stays ~16 below baseline; PruneVID moves **+0.28**. Retention is nearly
 > irrelevant — the cost comes from pruning at all, not from how hard.
 >
-> On **Qwen3-VL**, FastV climbs **monotonically** and its loss shrinks steadily
-> (χ² 89.8 → 18.2), converging on the baseline as tokens are restored.
+> On **Qwen3-VL**, FastV climbs **+3.68** and FlashVID **+4.63**, with significance
+> decaying as tokens are restored (FastV χ² 89.8 → 44.6 → 18.2) — they converge on
+> the baseline. Retention matters roughly **5× more** on the stronger backbone.
+>
+> One anomaly, flagged rather than smoothed: **PruneVID on Qwen3-VL is
+> non-monotonic** (60.23 → 62.17 → 61.40); its midpoint is the best and the only
+> non-significant cell. At ±1.54 pt resolution that may be noise — it is not a
+> clean trend.
 >
 > Same method, same benchmark, opposite sensitivity to the same knob. A retention
 > setting tuned on one backbone does not transfer to another.
@@ -172,6 +178,30 @@ DyTo actually received slightly **more** budget (3,680 vs 3,456), so the compari
 favours it; and a frame-matched baseline is impossible — Vicuna's 4,096 context
 cannot hold 32 uncompressed frames (18,432 tokens), which is precisely why DyTo
 exists.
+
+## Sampled study — answer distribution
+
+**Not gated results.** `temperature=0.7, top_p=0.9` instead of greedy, so these
+cannot pass the divergence check and are not comparable to the tables above.
+Sampling verified effective (23.7% of DyCoke's predictions differ from greedy).
+
+| Method | A | B | C | D | acc |
+|---|:---:|:---:|:---:|:---:|:---:|
+| *ground truth* | *25.4%* | *25.6%* | *25.5%* | *23.6%* | — |
+| baseline | 29.3% | 25.3% | 25.5% | 19.9% | 52.26% |
+| DyCoke | 29.0% | 25.7% | 25.4% | 19.8% | 52.19% |
+| HoliTom | 27.2% | 25.0% | 25.7% | 22.1% | 51.00% |
+| MDP3 | 28.9% | 24.7% | 25.9% | 20.4% | 50.67% |
+| AIM | 29.6% | 24.7% | 25.9% | 19.7% | 51.07% |
+| STTM | 29.4% | 24.4% | 25.8% | 20.5% | 51.52% |
+
+> **The answer bias belongs to the backbone, not the methods.** Every row —
+> including the plain baseline — over-picks **A** and under-picks **D**. No method
+> introduces or corrects it. Contrast the *greedy* runs, where FastV and PruneVID
+> collapse to ~47% 'D': that collapse is a method artifact, and this view is what
+> makes the difference visible.
+
+Chart: [figures/answer_distribution_llava_ov.png](figures/answer_distribution_llava_ov.png)
 
 ## Other backbones (each method's native model)
 

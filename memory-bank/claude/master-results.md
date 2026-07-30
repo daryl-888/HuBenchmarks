@@ -221,44 +221,74 @@ the LLaVA-OV row (40.09%).*
 | **MDP3** | `pool=32, select=8` | `pool=32 -> selected=8 frames` | Selector loaded **by file path** — `vlmeval` imports `AutoModelForVision2Seq`, removed in transformers 5.x which Qwen3-VL requires |
 | **VisionZip** (contextual-only) | `contextual=1750` (15%) | `merger out 11664 -> 1750 (15.0%)` | **Partial by design.** Dominant half needs a CLS token Qwen3-VL lacks. Hooked on `vis.merger`; token count preserved for `masked_scatter`. Report only as "VisionZip (contextual-only)" |
 
-### 3c. Retention sweep — 9 of 16 cells (2026-07-29)
+### 3c. Retention sweep — COMPLETE, 16/16 cells (2026-07-30)
 
-Only the retention knob varies; 32 frames, greedy decoding and all other
-parameters held fixed. Retention verified **arithmetically from the ACTIVE logs**,
-not just from the flag. Δ vs each backbone's own baseline; χ² is McNemar.
+Only the retention knob varies; 32 frames, greedy decoding, all else fixed.
+Retention verified **arithmetically from the ACTIVE logs**, not from the CLI flag.
+Δ vs each backbone's own baseline; **bold** = significant (McNemar χ² ≥ 3.84).
+Regenerate with `scripts/fetch_results.sh && python3 scripts/build_retention_tables.py --local`.
 
 **LLaVA-OV-7B** (baseline 52.66%)
 
-| Method | r=0.10 | r=0.15 | r=0.25 | trend |
-|---|:---:|:---:|:---:|---|
-| **FastV** | 36.06% (−16.60) | 36.78% (−15.88) | 36.73% (−15.93) | **flat** — +0.67 across the whole range |
-| **HoliTom** | 52.76% (+0.10) | 53.14% (+0.48) | 53.41% (+0.75) | mild rise, **none significant** (χ²=0.0/0.6/1.8) |
-| **PruneVID** | 38.10% (−14.56) | 38.20% (−14.46) | 38.38% (−14.28) | **flat** — +0.28 across the whole range |
+| Method | r=0.10 | r=0.15 | r=0.25 | Δ across range |
+|---|:---:|:---:|:---:|:---:|
+| **FastV** | **36.06%** (−16.60) | **36.78%** (−15.88) | **36.73%** (−15.93) | +0.67 |
+| **FlashVID** | 52.51% (−0.15) | 53.31% (+0.65) | 53.36% (+0.70) | +0.85 |
+| **HoliTom** | 52.76% (+0.10) | 53.14% (+0.48) | 53.41% (+0.75) | +0.65 |
+| **PruneVID** | **38.10%** (−14.56) | **38.20%** (−14.46) | **38.38%** (−14.28) | +0.27 |
 
 **Qwen3-VL-8B** (baseline 62.52%)
 
-| Method | r=0.10 | r=0.15 | r=0.25 | trend |
-|---|:---:|:---:|:---:|---|
-| **FastV** | 56.92% (−5.60) | 59.01% (−3.51) | 60.60% (−1.92) | **monotonic, +3.68** — and χ² falls 89.8 → 44.6 → 18.2 |
-| **FlashVID** | 54.73% (−7.79) | 56.65% (−5.87) | 🔄 | rising |
+| Method | r=0.10 | r=0.15 | r=0.25 | Δ across range |
+|---|:---:|:---:|:---:|:---:|
+| **FastV** | **56.92%** (−5.60) | **59.01%** (−3.51) | **60.60%** (−1.92) | **+3.68** |
+| **FlashVID** | **54.73%** (−7.79) | **56.65%** (−5.87) | **59.36%** (−3.16) | **+4.63** |
+| **HoliTom** | **60.05%** (−2.47) | **60.33%** (−2.19) | **60.43%** (−2.09) | +0.37 |
+| **PruneVID** | **60.23%** (−2.29) | 62.17% (−0.35) | **61.40%** (−1.12) | +1.17 (non-monotonic) |
 
-> #### The retention response is backbone-dependent
-> On **LLaVA-OV**, FastV and PruneVID are **flat**: tripling the token budget from
-> 10% to 25% buys +0.67 and +0.28 points respectively, both still ~15 points below
-> baseline. Retention is almost irrelevant — what costs accuracy is *that* they
-> prune, not how hard.
+> #### Retention matters ~5× more on the stronger backbone
+> Across the full 10%→25% range, the **largest** movement on LLaVA-OV is
+> **+0.85** (FlashVID). On Qwen3-VL, FastV moves **+3.68** and FlashVID **+4.63** —
+> and their significance decays as tokens are restored (FastV χ² 89.8 → 44.6 →
+> 18.2), i.e. they converge on the baseline.
 >
-> On **Qwen3-VL**, FastV climbs **monotonically** and its loss shrinks steadily
-> (χ² 89.8 → 18.2, i.e. converging on the baseline as tokens are restored).
+> On LLaVA-OV the methods split into two flat regimes and retention moves neither:
+> FlashVID/HoliTom sit *at* baseline at every setting, while FastV/PruneVID sit
+> ~15 points below at every setting. **What costs accuracy there is that they
+> prune, not how hard.**
 >
-> Same method, same benchmark, opposite sensitivity to the same knob. This
-> extends the cross-backbone finding: a retention setting tuned on one backbone
-> does not carry to another — on the weaker one it barely matters, on the stronger
-> one it dominates.
+> Caveat on scope: only these 4 of 11 methods expose a comparable retention knob,
+> so this is a claim about them, not about the field.
+>
+> One anomaly worth flagging rather than smoothing: **PruneVID on Qwen3-VL is
+> non-monotonic** (60.23 → 62.17 → 61.40). The r=0.15 midpoint is its best and the
+> only non-significant cell. With ±1.54 pt resolution this may be noise, but it is
+> not a clean trend and should not be reported as one.
 
-*FastV/PruneVID rows on LLaVA-OV trip the gate's 0.40 accuracy floor. That is the
-documented false alarm: 4,500+ predictions differ from baseline, all four answer
-letters appear, and only 8 of 8,052 predictions are empty.*
+### 3d. Sampled study — answer distribution (2026-07-30)
+
+**Not gated results.** These runs use `temperature=0.7, top_p=0.9` instead of
+greedy decoding, so they cannot pass the divergence check and are **not
+comparable** to §3a. Purpose: expose answer bias that an accuracy figure hides.
+Sampling confirmed effective — 23.7% of DyCoke's and 22.6% of HoliTom's
+predictions differ from their greedy counterparts.
+
+| Method | A | B | C | D | acc |
+|---|:---:|:---:|:---:|:---:|:---:|
+| *ground truth* | *25.4%* | *25.6%* | *25.5%* | *23.6%* | — |
+| baseline | 29.3% | 25.3% | 25.5% | 19.9% | 52.26% |
+| DyCoke | 29.0% | 25.7% | 25.4% | 19.8% | 52.19% |
+| HoliTom | 27.2% | 25.0% | 25.7% | 22.1% | 51.00% |
+| MDP3 | 28.9% | 24.7% | 25.9% | 20.4% | 50.67% |
+| AIM | 29.6% | 24.7% | 25.9% | 19.7% | 51.07% |
+| STTM | 29.4% | 24.4% | 25.8% | 20.5% | 51.52% |
+
+> **The answer bias is the backbone's, not the methods'.** Every row — including
+> the plain baseline — over-picks **A** (27–30% vs 25.4% truth) and under-picks
+> **D** (19.7–22.1% vs 23.6%). No method introduces or corrects it; they inherit
+> it. Contrast with the gated greedy runs, where FastV and PruneVID collapse to
+> **~47% 'D'** — that collapse is a *method* artifact and is exactly what this
+> view is for.
 
 ### 4c. Ports completed 2026-07-25 — both now GATED on the full 8,052
 
