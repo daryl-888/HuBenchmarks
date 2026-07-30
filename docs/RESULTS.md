@@ -40,8 +40,23 @@ Per-model mechanism, full parameters and per-method notes:
 
 Six of seven methods land **within measurement resolution** (±1.54 pts) of the backbone — i.e. accuracy-neutral on MotionBench at a 15% budget — while FastV and VisionZip degrade significantly. Tested properly (McNemar on paired predictions) the best of them, DyCoke, gives **χ² = 2.34** vs the 3.84 needed for p<0.05 — i.e. **not significant**. Treat the ordering below as unranked: on LLaVA-OV these methods are indistinguishable from the backbone and from each other. See [DETERMINISM_AND_VALIDITY.md](DETERMINISM_AND_VALIDITY.md). FastV (and
 VisionZip, below) drop hard because they were run at the standardized 15% retention,
-far more aggressive than their paper defaults; the degradation is real (thousands of
-predictions differ from baseline), not a bug.
+far more aggressive than their paper defaults, and thousands of predictions do differ
+from baseline.
+
+> **Open — FastV and PruneVID-OV on this backbone may be harness artifacts.**
+> Their degradation was previously described here as "real, not a bug". That is no
+> longer supported. The two fail with signatures matching each other to within about
+> one point on accuracy, D-rate (46.8% / 46.1% against a 23.6% ground-truth rate),
+> broke:fixed ratio, and flatness across retention — despite being different
+> algorithms at different layers with different selection rules. Both drive pruning
+> through the same `PrunableDynamicCache.kv_cache` route. A keep-everything control
+> that still traverses that route is queued (job 7942024); if it fails to reproduce
+> the 52.66% backbone, both rows must be retracted and re-run. Full analysis and the
+> discriminating experiment: [FASTV_COLLAPSE_ANALYSIS.md](FASTV_COLLAPSE_ANALYSIS.md).
+>
+> Note also that **VisionZip runs on LLaVA-1.5-7B**, not LLaVA-OV — it patches
+> `CLIPVisionTower`, which LLaVA-OV does not have. Its 40.09% is measured against a
+> different and weaker backbone and should not be read as a LLaVA-OV result.
 
 ## Qwen3-VL-8B methods
 

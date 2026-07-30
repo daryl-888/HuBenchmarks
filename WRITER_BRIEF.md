@@ -157,3 +157,65 @@ fetched or has not finished.** Do not infer its value. Ask for it.
 | `samp_flashvid` | resubmitted as 7942019 after the first fork died in argparse; last missing row of `docs/SAMPLED_DISTRIBUTION.md` |
 
 Both must be reflected as open in anything you write until their results land.
+
+### Publication risk on two specific numbers
+
+FastV (36.78%) and PruneVID-OV (38.20%) on LLaVA-OV fail with signatures that
+match each other to within about one point on every measure — accuracy, D-rate,
+broke:fixed ratio, and flatness across retention — despite being different
+algorithms operating at different layers with different selection rules. Both
+drive pruning through the same `PrunableDynamicCache.kv_cache` route.
+
+The queued `keepall` arm keeps every visual token while still traversing that
+route, so it must reproduce the 52.66% backbone if the harness is sound.
+
+**If `keepall` does not return ~52.66%, those two rows in
+[docs/RESULTS.md](docs/RESULTS.md) and
+[memory-bank/claude/master-results.md](memory-bank/claude/master-results.md)
+are harness artifacts and have to be retracted and re-run.** Do not publish
+anything whose argument rests on either number until that control reports.
+
+## 9. Prompt to start a writing session
+
+Paste this, filling in the task. It is the intended entry point to this file.
+
+```text
+You're doing technical writing for the HuVLLM repo at /home/bung/Projects/HuVLLM
+(branch `restructure`).
+
+Read WRITER_BRIEF.md at the repo root first. It's your onboarding: the benchmark
+and its statistical floor, the doc map, the two-signal verification gate that
+governs every claim, the facts people reliably get wrong, how to compute new
+numbers without cluster access, and the house style.
+
+You do NOT have Carya access. Every result you need is cached in results-cache/
+as summary.json + results.jsonl per run. results.jsonl is one row per sample
+({idx, video_path, question_type, ground_truth, prediction, correct}, with
+correct=null for the 4,034 NA items) — that's enough to compute accuracy,
+per-category accuracy, answer distributions, pairwise divergence, and McNemar
+tables yourself. Compute from those files rather than quoting numbers out of
+prose; prose drifts, results.jsonl doesn't. If a run directory you need isn't
+in the cache, it hasn't finished — say so, don't estimate it.
+
+Your task: <TASK>
+
+Non-negotiable constraints:
+- Never edit anything under stage1-llava-ov/, stage3-qwen3-vl/, or
+  other-backbones/. Those are the gated eval scripts behind every reported
+  number. Study variants get their own folder.
+- Never call a method working or comparable without both gate signals: an ACTIVE
+  log AND prediction divergence from the bare backbone. An ACTIVE log alone
+  proves nothing.
+- Differences below ±1.54 pt are below resolution at n=4018. Don't rank
+  statistically tied methods, and don't describe a sub-floor difference as an
+  improvement.
+- Don't soften negative results. No-op ports, methods that lost accuracy, and
+  unresolved analyses are the substance of this project.
+- Mark open questions open and state what experiment would settle them.
+  docs/FASTV_COLLAPSE_ANALYSIS.md §7 is the model for this.
+
+Two items are in flight and must stay marked open until their results land: the
+FastV/PruneVID-OV shared-harness study (jobs 7942016-18, 7942024) and
+samp_flashvid (7942019). A separate agent owns the cluster connection and will
+supply those numbers — ask rather than guessing.
+```
