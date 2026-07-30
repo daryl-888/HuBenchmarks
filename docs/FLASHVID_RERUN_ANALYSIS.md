@@ -153,28 +153,36 @@ cannot produce divergence.)*
 
 % correct within each category, over 4,018 scoreable questions.
 
-| Run | Retention (effective) | Overall | Action Order | Camera Motion | Location | Motion Recog. | Motion Objects | Repetition |
+| Run | Retention | Overall | Action Order | Camera Motion | Location | Motion Recog. | Motion Objects | Repetition |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 | `flashvid_run4` | 0.25 | 53.36% | 42.2 | 47.5 | 55.1 | 57.6 | 71.7 | 23.8 |
 | `s1_flashvid_r25_run` | 0.25 | 53.36% | 42.2 | 47.5 | 55.1 | 57.5 | 71.9 | 23.8 |
 | `w2_flashvid_run` | 0.15 | 53.31% | 39.9 | 45.7 | 53.8 | 58.0 | 71.7 | 28.2 |
-| `flashvid_qwen2_v2` | 0.15 ⚠️ | 53.29% | 39.7 | 45.7 | 54.0 | 57.8 | 71.9 | 28.2 |
+| `flashvid_qwen2_v2` | 0.25 recorded ⚠️ | 53.29% | 39.7 | 45.7 | 54.0 | 57.8 | 71.9 | 28.2 |
 | `s1_flashvid_r10_run` | 0.10 | 52.51% | 41.0 | 46.8 | 53.3 | 56.3 | 70.7 | 26.5 |
 | *baseline* | — | *52.66%* | *40.5* | *45.2* | *55.5* | *57.0* | *71.2* | *23.8* |
 
-**The subcategories cluster into exactly two groups**, and the grouping is by
-*effective* retention, not by recorded label:
+**The subcategories cluster into exactly two groups**, and the clustering does
+*not* follow the recorded retention:
 
-* **r=0.25** — Action Order **42.2**, Camera Motion **47.5**, Repetition **23.8**
-* **r=0.15** — Action Order **39.7–39.9**, Camera Motion **45.7**, Repetition **28.2**
+* **Group A** — Action Order **42.2**, Camera Motion **47.5**, Repetition **23.8**
+  → `flashvid_run4`, `s1_flashvid_r25_run` (both recorded 0.25)
+* **Group B** — Action Order **39.7–39.9**, Camera Motion **45.7**, Repetition **28.2**
+  → `w2_flashvid_run` (0.15), `flashvid_qwen2_v2` (**recorded 0.25**)
 
-Run 4 sits unambiguously in the 0.15 cluster despite its 0.25 label. This is
-independent confirmation of §5 — the subcategory fingerprint identifies the
-configuration more reliably than the recorded parameter.
+`flashvid_qwen2_v2` sits in Group B despite recording the same retention as the
+two Group A runs. Combined with §5 — 23 predictions differing from the 0.15 run,
+1,114 from a same-retention 0.25 run — the subcategory fingerprint is a **more
+reliable identifier of what actually executed than the stored parameter is**.
 
-Note the trade rather than a uniform gain: moving from 0.15 to 0.25 **adds ~2.3
-points on Action Order and ~1.8 on Camera Motion** but **loses ~4.4 on
-Repetition Count**. The near-identical overall scores hide two genuinely
+What it does *not* do is tell us *why*. It shows run 4 behaved like a 0.15 run;
+it cannot show whether that came from a different retention, a different eval
+script, or a different model class. That question is unresolvable from the
+surviving artifacts.
+
+Note the trade rather than a uniform gain: Group A vs Group B **adds ~2.3 points
+on Action Order and ~1.8 on Camera Motion** but **loses ~4.4 on Repetition
+Count**. The near-identical overall scores (53.36 vs 53.31) hide two genuinely
 different behaviours.
 
 ---
