@@ -43,7 +43,7 @@ Start at [docs/README.md](docs/README.md). It is the hub and links everything.
 | [docs/DETERMINISM_AND_VALIDITY.md](docs/DETERMINISM_AND_VALIDITY.md) | Why re-runs reproduce exactly; where the methodology is weak |
 | [docs/VALIDITY_ASSESSMENT.md](docs/VALIDITY_ASSESSMENT.md) | Self-audit, honesty and scoring ratings per layer |
 | [docs/UPSTREAM_DEFECTS.md](docs/UPSTREAM_DEFECTS.md) | Defects found in the authors' released code |
-| [docs/FASTV_COLLAPSE_ANALYSIS.md](docs/FASTV_COLLAPSE_ANALYSIS.md) | Why FastV collapses on LLaVA-OV; has an **open** section |
+| [docs/FASTV_COLLAPSE_ANALYSIS.md](docs/FASTV_COLLAPSE_ANALYSIS.md) | Why FastV collapses on LLaVA-OV — resolved: a hard density floor at 15% retention, not a harness bug |
 | [docs/FLASHVID_RERUN_ANALYSIS.md](docs/FLASHVID_RERUN_ANALYSIS.md) | Why nominally identical FlashVID re-runs differed |
 | [docs/RETENTION_TABLES.md](docs/RETENTION_TABLES.md) | 16-cell retention sweep, both backbones |
 | [docs/SAMPLED_DISTRIBUTION.md](docs/SAMPLED_DISTRIBUTION.md) | Answer distribution under sampling (NOT comparable to gated runs) |
@@ -153,27 +153,32 @@ fetched or has not finished.** Do not infer its value. Ask for it.
 
 | Item | State |
 |---|---|
-| FastV vs PruneVID-OV shared-harness confound | 4 jobs queued (7942016–18, 7942024); see `docs/FASTV_COLLAPSE_ANALYSIS.md` §7 |
 | `samp_flashvid` | resubmitted as 7942019 after the first fork died in argparse; last missing row of `docs/SAMPLED_DISTRIBUTION.md` |
 
-Both must be reflected as open in anything you write until their results land.
+Must be reflected as open in anything you write until it lands.
 
-### Publication risk on two specific numbers
+### Resolved: FastV / PruneVID-OV were not a harness artifact
 
 FastV (36.78%) and PruneVID-OV (38.20%) on LLaVA-OV fail with signatures that
 match each other to within about one point on every measure — accuracy, D-rate,
 broke:fixed ratio, and flatness across retention — despite being different
 algorithms operating at different layers with different selection rules. Both
-drive pruning through the same `PrunableDynamicCache.kv_cache` route.
+drive pruning through the same `PrunableDynamicCache.kv_cache` route, which
+raised the question of whether that shared route, not either method, was the
+cause.
 
-The queued `keepall` arm keeps every visual token while still traversing that
-route, so it must reproduce the 52.66% backbone if the harness is sound.
+A four-arm control study (jobs 7942016–18, 7942024) settled it: a
+keep-everything run through the identical route reproduces the backbone
+(55.07% vs. a 54.36% matched-subset baseline), and FastV's attention ranking
+scores statistically identically to random selection (χ²=0.16) or to spreading
+tokens evenly across every frame (χ²=1.54). **Both numbers are real.** The
+mechanism is a hard density floor: at 15% retention, discarding tokens on this
+backbone degrades to ~38% regardless of which tokens are kept — which is also
+why the two structurally unrelated methods land on the same number. Full
+writeup: [docs/FASTV_COLLAPSE_ANALYSIS.md](docs/FASTV_COLLAPSE_ANALYSIS.md) §7.
 
-**If `keepall` does not return ~52.66%, those two rows in
-[docs/RESULTS.md](docs/RESULTS.md) and
-[memory-bank/claude/master-results.md](memory-bank/claude/master-results.md)
-are harness artifacts and have to be retracted and re-run.** Do not publish
-anything whose argument rests on either number until that control reports.
+This is safe to cite. It is **not** yet known where the recovery threshold sits
+between 25% and 100% retention — don't imply that's been located.
 
 ## 9. Prompt to start a writing session
 
@@ -214,8 +219,7 @@ Non-negotiable constraints:
 - Mark open questions open and state what experiment would settle them.
   docs/FASTV_COLLAPSE_ANALYSIS.md §7 is the model for this.
 
-Two items are in flight and must stay marked open until their results land: the
-FastV/PruneVID-OV shared-harness study (jobs 7942016-18, 7942024) and
-samp_flashvid (7942019). A separate agent owns the cluster connection and will
-supply those numbers — ask rather than guessing.
+One item is in flight and must stay marked open until it lands: samp_flashvid
+(job 7942019). A separate agent owns the cluster connection and will supply
+that number — ask rather than guessing.
 ```

@@ -34,13 +34,16 @@ baseline, and what mechanism produces it.
    (+3.68 across the same sweep) and its answer distribution tracks the backbone
    to within 1.5 points. The failure is an interaction with LLaVA-OV, not a
    property of FastV in general.
-6. **An unresolved confound.** PruneVID-OV — a different algorithm, different
-   layer, different selection rule — fails with a near-identical signature
-   (38.20%, D 46.1%, ratio 2.23, also flat). Both of our LLaVA-OV ports drive
-   pruning through the same `PrunableDynamicCache.kv_cache` route. That
-   similarity is strong enough that the shared harness has to be excluded before
-   the mechanism above can be attributed to FastV's algorithm. A controlled study
-   is running; see [§7](#7-open-question-method-or-harness).
+6. **Resolved: not our harness, and not FastV's ranking either.** A four-arm
+   controlled study (§7) shows the shared `kv_cache` pruning route is clean —
+   keeping 100% of tokens through it reproduces the backbone almost exactly.
+   But it also shows FastV's attention-based token ranking is statistically
+   indistinguishable from choosing tokens at random, and that spreading the
+   budget evenly across all 32 frames does not rescue it either. At 15%
+   retention on this backbone, **no selection policy for outright discarding
+   tokens works** — which is also the most likely explanation for why
+   PruneVID-OV, a structurally different algorithm, collapses to a nearly
+   identical number.
 
 ## 3. What the methods actually do
 
@@ -59,9 +62,11 @@ Merging preserves the low-frequency content of a discarded token in the survivor
 it folds into. Discarding does not. At a 15% budget that difference compounds:
 one method compresses the visual evidence 6.7:1, the other deletes 85% of it.
 
-Note that PruneVID-OV *does* have a temporal guarantee and still fails. Lack of
-temporal structure is therefore not sufficient to explain the collapse on its
-own — see §7.
+Note that PruneVID-OV *does* have a temporal guarantee and still fails. §7 shows
+why the "temporal guarantee" column above is not actually the deciding factor
+for either in-LLM pruner: even a hand-built policy that guarantees perfect
+temporal coverage fails just as badly. The deciding factor is **discard vs.
+merge**, full stop — not how the discarding is organized.
 
 ## 4. Reproduction
 
@@ -123,11 +128,18 @@ option; this is what that looks like. Accuracy alone would not have revealed it.
 FastV's D-rate across the same LLaVA-OV sweep is 47.0 / 46.8 / 47.1 — flat to a
 tenth of a point.
 
-This is the most diagnostic number in the study. If FastV were simply pruning too
-aggressively, restoring tokens would restore accuracy, as it plainly does on
-Qwen3-VL. On LLaVA-OV it does not. A failure that is indifferent to how many
-tokens survive is not a failure of *budget*; the retained tokens are not
-functioning as visual evidence at any budget.
+**Revised reading, after §7.** The original reading of this table argued that
+flatness across 10–25% retention meant the failure was not about budget at
+all — that the retained tokens carry no evidence regardless of how many
+survive. §7's `keepall` control (100% retention, same code path) contradicts
+the strong form of that claim: at 100% the backbone is fully recovered. So this
+*is* a budget effect — just one with a narrow, steep window. Somewhere between
+25% and 100% retention, discard-based pruning on this backbone crosses from
+"non-functional" to "fine," and the 10–25% range this sweep covers sits
+entirely below that line. What flatness across 10–25% actually shows is that
+the window is not gradual within this range — not that budget is irrelevant
+outright. Where exactly the recovery threshold sits (near FastV's own paper
+default of 50%, or elsewhere) has not been tested.
 
 ### 5.3 Category structure
 
@@ -185,61 +197,70 @@ Three factors account for the difference, in decreasing order of confidence:
    rather than a characterization. Our independent reproduction is what makes the
    ordering credible, not the table itself.
 
-## 7. Open question: method or harness?
+## 7. Resolved: neither the harness nor the ranking — a hard density floor
 
 PruneVID-OV uses a different algorithm (DPC-KNN clustering), a different layer
 (10 vs 2), and a different selection criterion, yet fails with a signature that
 matches FastV's to about one percentage point on every measure — accuracy, D
 rate, broke:fixed ratio, and flatness across retention. Two unrelated algorithms
-do not usually fail identically.
+do not usually fail identically, which raised two live explanations: our shared
+`PrunableDynamicCache.kv_cache` pruning route (used because this LLaVA-OV build
+silently ignores an additive attention mask — see
+[eval_fastv.py:186](../stage1-llava-ov/fastv-motionbenc/eval_fastv.py#L186)) could
+itself be corrupting the visual pathway, independent of which tokens either
+method nominates; or FastV's layer-2 ranking could simply be uninformative at
+video scale.
 
-Both LLaVA-OV ports express pruning through the same mechanism. From
-[eval_fastv.py:186](../stage1-llava-ov/fastv-motionbenc/eval_fastv.py#L186) and
-[eval_prunevid_ov.py:186](../stage1-llava-ov/prunevid-motionbenc/eval_prunevid_ov.py#L186),
-both set `cache.kv_cache = keep_idx.tolist()` on the shared
-`PrunableDynamicCache`, because this LLaVA-OV build calls its decoder layers with
-`attention_mask=None` and silently ignores an additive mask. The published FastV
-mechanism is attention *masking*, not cache index removal.
+A four-arm controlled study separated them — same fork of the gated script
+(untouched original), same 15% budget, same 986-question representative subset,
+varying only the layer-K selection policy:
+[analysis/fastv-selection-study/](../analysis/fastv-selection-study/).
 
-So there are two live explanations, and the evidence above does not separate
-them:
+| Arm | Policy | Accuracy | D-rate | Broke:fixed |
+|---|---|---:|---:|---:|
+| *bare backbone (subset)* | — | *54.36%* | *~19%* | — |
+| `keepall` (r=0.00) | same route, drops nothing | **55.07%** | 20.8% | 0.36 |
+| `attention` | FastV as published | 39.25% | 49.5% | 2.27 |
+| `random` | k tokens at random | 38.74% | 47.3% | 2.43 |
+| `uniform` | k tokens spread evenly across frames | 38.13% | 50.0% | 2.43 |
 
-- **A. Algorithmic.** FastV's layer-2 ranking is uninformative at video scale
-  (softmax over ~6,300 keys, before visual-semantic attention has formed), so its
-  budget lands on tokens that carry no evidence.
-- **B. Infrastructural.** The shared `kv_cache` route corrupts the visual pathway
-  at high drop fractions, and both methods inherit the same failure regardless of
-  which tokens they nominate.
+Fork fidelity confirmed first: `attention` reproduces `w2_fastv_run` on the
+matching subset exactly (0/986 divergence, identical accuracy), so the fork did
+not alter FastV's behavior.
 
-**A controlled study is running to separate them.** It forks the gated script
-(leaving it untouched) and varies only the layer-K selection policy at a fixed
-budget — see [analysis/fastv-selection-study/](../analysis/fastv-selection-study/):
+**The harness is clean.** `keepall` reproduces the backbone — 55.07% vs. 54.36%,
+D-rate 20.8% vs. ~19%, and a broke:fixed ratio of 0.36 (it fixes more than it
+breaks, consistent with sdpa/eager floating-point noise from temporarily
+swapping layer K's attention module, not corruption). Explanation **B** is
+rejected: the shared `kv_cache` route does not damage anything when it is not
+asked to discard tokens.
 
-| Arm | Selection policy | What it isolates |
-|---|---|---|
-| `attention` | FastV as published | fork fidelity — must reproduce `w2_fastv_run` on the same subset |
-| `random` | k tokens at random | does the attention ranking carry any signal? |
-| `uniform` | k tokens spread evenly across frames | is the loss structural — does guaranteeing temporal coverage recover it? |
-| `keepall` | r=0.00, keeps every token | **the decisive control** — same `kv_cache` route, nothing discarded |
+**The ranking carries no signal at this budget.** `attention` (39.25%) is 0.51
+points from `random` (38.74%) — McNemar χ²=0.16, nowhere near significant.
+FastV's layer-2 attention ranking performs identically to picking 15% of tokens
+uniformly at random.
 
-Predicted readings:
+**Temporal spread does not rescue it either.** `uniform` (38.13%) is
+statistically indistinguishable from both `attention` and `random`
+(χ²=1.54 and 0.30). `frame_hist.jsonl` confirms this isn't about frame
+collapse to begin with: every arm — including plain `attention` — touches all
+32 frames on essentially every sample (mean 32.0/32); `attention`'s busiest
+frame gets a mildly higher share of the budget than the others (10.5% vs.
+3.1–4.2%), nowhere near the "two or three frames get everything" scenario the
+original §3 hypothesis proposed.
 
-- `keepall` ≉ 52.66% → explanation **B**. The harness is at fault, and our
-  reported LLaVA-OV FastV and PruneVID numbers are artifacts that must be
-  withdrawn and re-run, not properties of either method.
-- `keepall` ≈ 52.66% and `uniform` ≫ `attention` → explanation **A**, and
-  specifically that the damage is structural: spreading the same budget across
-  frames recovers accuracy without using any importance signal at all.
-- `keepall` ≈ 52.66% and `random` ≈ `attention` ≈ `uniform` → the budget itself is
-  simply too small on this backbone, and selection is irrelevant.
-
-The run also writes `frame_hist.jsonl`, recording how many kept tokens came from
-each of the 32 frames, which measures budget collapse onto a few frames directly
-rather than inferring it from accuracy.
-
-**Until `keepall` reports, the mechanism in §3 is the leading explanation and not
-a settled one.** The reproduction, the ordering, and the paper-table reading in
-§6 do not depend on the outcome; the attribution of the LLaVA-OV magnitude does.
+**Conclusion.** At 15% retention on LLaVA-OV, discarding 85% of visual tokens
+degrades the backbone to the same ~38–39% regardless of *how* the surviving 15%
+is chosen — by attention rank, at random, or spread deliberately across every
+frame. This is a density floor specific to outright token discarding on this
+backbone, not a property of FastV's ranking, PruneVID's clustering, or our
+pruning plumbing. It explains why two structurally unrelated discard-based
+methods land on the same number: below this floor, the selection rule stops
+mattering. It does not by itself explain *why* the floor sits where it does, or
+whether accuracy recovers gradually or sharply between 25% and 100% retention
+— the sweep in §5.2 only covers 10–25%, and `keepall` is the only point tested
+above that. That gap — and whether the recovery threshold sits near FastV's own
+paper default of 50% — is the natural next experiment, not yet run.
 
 ## 8. Reproduce
 
@@ -269,9 +290,16 @@ pull them with `scripts/fetch_results.sh`.
 |---|---|
 | §4 reproduction, §5 evidence | complete, from gated full runs |
 | §6 paper-table reading | complete |
-| §7 selection study | 4 jobs queued on Carya (7942016–18, 7942024) |
+| §7 selection study | **complete** — jobs 7942016–18, 7942024 all landed |
+
+The FastV and PruneVID-OV LLaVA-OV numbers in [RESULTS.md](RESULTS.md) and
+[master-results.md](../memory-bank/claude/master-results.md) are confirmed real,
+not harness artifacts, and the earlier retraction warning attached to them is
+lifted. What remains unknown is only where the recovery threshold sits between
+25% and 100% retention (§7, final paragraph).
 
 Run directories: `w2_fastv_run`, `w2_prunevid_ov_run`, `w2_flashvid_run`,
 `w2_dycoke_run`, `w2_holitom_run`, `s1_fastv_r10_run`, `s1_fastv_r25_run`,
 `fastv_run1` (bare backbone). Qwen3-VL: `w3_fastv_run`, `s3_fastv_r10_run`,
-`s3_fastv_r25_run`, `qwen3vl_baseline_run1`.
+`s3_fastv_r25_run`, `qwen3vl_baseline_run1`. Selection study:
+`fv_sel_attention`, `fv_sel_random`, `fv_sel_uniform`, `fv_sel_keepall`.

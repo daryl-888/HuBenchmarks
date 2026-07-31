@@ -43,16 +43,20 @@ VisionZip, below) drop hard because they were run at the standardized 15% retent
 far more aggressive than their paper defaults, and thousands of predictions do differ
 from baseline.
 
-> **Open — FastV and PruneVID-OV on this backbone may be harness artifacts.**
-> Their degradation was previously described here as "real, not a bug". That is no
-> longer supported. The two fail with signatures matching each other to within about
-> one point on accuracy, D-rate (46.8% / 46.1% against a 23.6% ground-truth rate),
-> broke:fixed ratio, and flatness across retention — despite being different
-> algorithms at different layers with different selection rules. Both drive pruning
-> through the same `PrunableDynamicCache.kv_cache` route. A keep-everything control
-> that still traverses that route is queued (job 7942024); if it fails to reproduce
-> the 52.66% backbone, both rows must be retracted and re-run. Full analysis and the
-> discriminating experiment: [FASTV_COLLAPSE_ANALYSIS.md](FASTV_COLLAPSE_ANALYSIS.md).
+> **Resolved — FastV and PruneVID-OV are real, not harness artifacts.** Both fail
+> with signatures matching each other to within about one point on accuracy,
+> D-rate (46.8% / 46.1% against a 23.6% ground-truth rate), broke:fixed ratio, and
+> flatness across retention, despite being different algorithms at different
+> layers with different selection rules — which raised the question of whether the
+> shared `PrunableDynamicCache.kv_cache` pruning route both use was corrupting
+> results. A four-arm control study (job 7942024 and siblings) answered this: a
+> keep-everything run through the identical code path reproduces the backbone
+> (55.07% vs. 54.36% on the matched subset), and FastV's attention-based token
+> ranking scores statistically identically to choosing tokens at random (χ²=0.16)
+> or spreading them evenly across every frame (χ²=1.54). The conclusion is a hard
+> density floor: at 15% retention, discarding tokens on this backbone degrades to
+> ~38% regardless of *which* tokens are kept. Full analysis:
+> [FASTV_COLLAPSE_ANALYSIS.md](FASTV_COLLAPSE_ANALYSIS.md) §7.
 >
 > Note also that **VisionZip runs on LLaVA-1.5-7B**, not LLaVA-OV — it patches
 > `CLIPVisionTower`, which LLaVA-OV does not have. Its 40.09% is measured against a
