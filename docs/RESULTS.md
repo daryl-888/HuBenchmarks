@@ -24,22 +24,23 @@ retention appear at 15%; others at their own default, stated per row.
 
 | Method | Venue | Year | Backbone | Setting | Overall | Δ base | AO | CM | LM | MR | MO | RC |
 |---|:--:|:--:|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| **FlashVID** | ICLR (Oral) | 2026 | LLaVA-OV | retention=0.25 | **53.36%** | +0.70 | 42.2 | 47.5 | 55.1 | 57.5 | 71.9 | 23.8 |
-| **DyCoke** | arXiv | 2024 | LLaVA-OV | l=3 p=0.7 k=0.7 | **53.36%** | +0.70 | 38.9 | 48.8 | 55.7 | 58.2 | 70.9 | 25.3 |
-| **HoliTom** | — | 2025 | LLaVA-OV | RETAIN=0.15 T=0.80 k=18 r=0.5 | **53.14%** | +0.47 | 40.8 | 49.6 | 52.6 | 57.0 | 71.4 | 27.3 |
-| **MDP3** | ICCV | 2025 | LLaVA-OV | pool=32 select=8 | **53.06%** | +0.40 | 40.5 | 49.6 | 53.5 | 56.8 | 71.6 | 26.5 |
-| **VideoITG** | — | 2025 | LLaVA-OV | 512 sampled / 32 selected | **52.86%** | +0.20 | 40.1 | 47.0 | 53.7 | 57.6 | 70.1 | 26.8 |
-| **AIM** | ICCV | 2025 | LLaVA-OV | 4-step bipartite merge + PageRank | **52.86%** | +0.20 | 41.4 | 48.1 | 54.2 | 57.0 | 71.9 | 22.3 |
-| **STTM** | — | 2025 | LLaVA-OV | thresh=0.85 temporal=0.65 root=1 | **51.72%** | −0.95 | 39.9 | 48.1 | 53.8 | 53.5 | 70.6 | 28.8 |
-| **DyTo**¹ | ICCV | 2025 | Vicuna-7B | spatial_tome_finch_dynamic | **42.06%** | — | 32.4 | 33.0 | 42.1 | 43.0 | 61.7 | 26.0 |
-| **VisionZip**² | — | 2024 | LLaVA-1.5-7B | dominant=54 contextual=10, 8f | **40.09%** | — | 33.7 | 33.0 | 37.2 | 41.1 | 57.4 | 25.8 |
-| **PruneVID**³ | — | 2024 | LLaVA-OV | cluster=0.50 seg=0.25 | **38.20%** | −14.46* | 32.0 | 34.8 | 35.5 | 38.4 | 52.9 | 27.3 |
-| **FastV**⁴ | arXiv | 2024 | LLaVA-OV | keep 15% | **36.78%** | −15.88* | 32.8 | 31.9 | 34.1 | 35.7 | 53.8 | 25.3 |
+| **FlashVID** | ICLR (Oral) | 2026 | LLaVA-OV-7B | retention=0.25 | **53.36%** | +0.70 | 42.2 | 47.5 | 55.1 | 57.5 | 71.9 | 23.8 |
+| **DyCoke** | arXiv | 2024 | LLaVA-OV-7B | l=3 p=0.7 k=0.7 | **53.36%** | +0.70 | 38.9 | 48.8 | 55.7 | 58.2 | 70.9 | 25.3 |
+| **STTM**¹ | — | 2025 | LLaVA-Video-7B | thresh=0.80 temporal=0.65 root=1 | **53.33%** | — | 40.3 | 48.8 | 57.3 | 57.5 | 68.8 | 27.0 |
+| **HoliTom** | — | 2025 | LLaVA-OV-7B | RETAIN=0.15 T=0.80 k=18 r=0.5 | **53.14%** | +0.47 | 40.8 | 49.6 | 52.6 | 57.0 | 71.4 | 27.3 |
+| **MDP3** | ICCV | 2025 | LLaVA-OV-7B | pool=32 select=8 | **53.06%** | +0.40 | 40.5 | 49.6 | 53.5 | 56.8 | 71.6 | 26.5 |
+| **VideoITG** | — | 2025 | LLaVA-OV-7B | 512 sampled / 32 selected | **52.86%** | +0.20 | 40.1 | 47.0 | 53.7 | 57.6 | 70.1 | 26.8 |
+| **AIM** | ICCV | 2025 | LLaVA-OV-7B | 4-step bipartite merge + PageRank | **52.86%** | +0.20 | 41.4 | 48.1 | 54.2 | 57.0 | 71.9 | 22.3 |
+| **PruneVID**² | — | 2024 | PLLaVA-7B | cluster=0.50 seg=0.25 alpha=0.4 tau=0.8 | **44.13%** | — | 35.6 | 33.0 | 41.0 | 47.0 | 63.3 | 26.5 |
+| **DyTo**³ | ICCV | 2025 | Vicuna-7B | spatial_tome_finch_dynamic | **42.06%** | — | 32.4 | 33.0 | 42.1 | 43.0 | 61.7 | 26.0 |
+| **VisionZip**⁴ | — | 2024 | LLaVA-1.5-7B | dominant=54 contextual=10, 8f | **40.09%** | — | 33.7 | 33.0 | 37.2 | 41.1 | 57.4 | 25.8 |
+| **FastV**⁵ | arXiv | 2024 | LLaVA-OV-7B | keep 15% | **36.78%** | −15.88* | 32.8 | 31.9 | 34.1 | 35.7 | 53.8 | 25.3 |
 
-¹ **DyTo** — native backbone; no baseline.  
-² **VisionZip** — native backbone.  
-³ **PruneVID** — collapses at the published default.  
-⁴ **FastV** — no video config released; see note.  
+¹ **STTM** — own backbone; no matched baseline.  
+² **PruneVID** — own backbone; no matched baseline.  
+³ **DyTo** — own backbone; no matched baseline; reconstructed.  
+⁴ **VisionZip** — own backbone; no matched baseline.  
+⁵ **FastV** — NOT a published setting — FastV released no video config, so this is our standardized 15%, shown for continuity with §2.  
 
 ## 2. LLaVA-OV-7B
 
@@ -117,8 +118,10 @@ comparable to the tables above.
 
 | Method | Venue | Year | Backbone | Setting | Overall | AO | CM | LM | MR | MO | RC |
 |---|:--:|:--:|---|---|---:|---:|---:|---:|---:|---:|---:|
-| VisionZip | — | 2024 | LLaVA-1.5-7B | 8 frames, dominant=54 contextual=10 | **40.09%** | 33.7 | 33.0 | 37.2 | 41.1 | 57.4 | 25.8 |
+| STTM | — | 2025 | LLaVA-Video-7B | thresh=0.80 temporal=0.65 root=1 | **53.33%** | 40.3 | 48.8 | 57.3 | 57.5 | 68.8 | 27.0 |
+| PruneVID | — | 2024 | PLLaVA-7B | cluster=0.50 seg=0.25 layer=10 alpha=0.4 tau=0.8 | **44.13%** | 35.6 | 33.0 | 41.0 | 47.0 | 63.3 | 26.5 |
 | DyTo | ICCV | 2025 | LLaVA-NeXT Vicuna-7B | reconstructed TW-FINCH | **42.06%** | 32.4 | 33.0 | 42.1 | 43.0 | 61.7 | 26.0 |
+| VisionZip | — | 2024 | LLaVA-1.5-7B | 8 frames, dominant=54 contextual=10 | **40.09%** | 33.7 | 33.0 | 37.2 | 41.1 | 57.4 | 25.8 |
 
 VisionZip patches `CLIPVisionTower`, which LLaVA-OV does not have, so its
 complete form runs only on LLaVA-1.5-7B and at 8 frames. DyTo is not

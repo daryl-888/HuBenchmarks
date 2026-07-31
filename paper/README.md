@@ -30,6 +30,8 @@ results cache lives elsewhere.
 
 ## Note on paper.pdf
 
-`paper.pdf` is committed for convenience but **no LaTeX toolchain is
-available in this environment**, so it can lag `paper.tex`. If the two
-disagree, `paper.tex` is correct. Rebuild before circulating the PDF.
+`paper.pdf` is committed as the shareable deliverable. There is no `pdflatex`
+on `PATH` in this shell, but the VS Code LaTeX Workshop extension builds it on
+save, so the committed PDF is normally current — check that its mtime is newer
+than `paper.tex` before circulating. If the two disagree, `paper.tex` is
+correct.

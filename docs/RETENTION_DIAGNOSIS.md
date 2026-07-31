@@ -6,8 +6,21 @@ Every method's configured parameters were read back from its run's
 a method underperforms, is that the method, our standardization, or our port?
 
 **Headline: only FastV breaks as a function of retention.** PruneVID-OV also
-collapses, but at the authors' own default setting, so retention is not the
-cause. Every other method ran at or inside its published configuration.
+collapses, but at the authors' own ratio *on a backbone that is not theirs* —
+so retention is not the cause there either. Every other method ran at or inside
+its published configuration.
+
+Two methods are commonly misread in this repo's own tables, so state them
+plainly:
+
+- **PruneVID's published backbone is PLLaVA-7B, not LLaVA-OV.** On PLLaVA it
+  scores **44.13%** (`w2_prunevid_run`, full 8,052-sample gated run). The
+  38.20% figure is our *port* to LLaVA-OV, which is a different object.
+- **STTM's published backbone is LLaVA-Video-7B**, where it scores **53.33%**
+  (`sttm_llavavid_t80_full`). The 51.72% figure is its LLaVA-OV port.
+
+Neither native backbone has a matched no-compression baseline run, so neither
+carries a Δ.
 
 ---
 
@@ -16,11 +29,11 @@ cause. Every other method ran at or inside its published configuration.
 | Method | Published operating point (source) | What we ran | Aligned |
 |---|---|---|:--:|
 | HoliTom | `RETAIN_RATIO=0.15 T=0.80 HOLITOM_k=18 HOLITOM_r=0.5` — `scripts/eval_ov-7b_holitom.sh` | identical | exact |
-| PruneVID | `cluster_ratio=0.5 temporal_segment_ratio=0.25` — `scripts/eval.sh` | identical | exact |
+| PruneVID | `cluster_ratio=0.5 temporal_segment_ratio=0.25` on **PLLaVA-7B** — `scripts/eval.sh` | identical ratio; PLLaVA **and** a LLaVA-OV port | exact on PLLaVA |
 | DyCoke | `l=3 p=0.7 k=0.7` | identical | exact |
 | FlashVID | `retention_ratio=0.25` — `configuration_flashvid.py` | 0.15 (standardized) | below default |
 | FastV | keep-fractions 12.5/25/50/75% of **576 single-image tokens**; only `eval_ocrvqa.sh` released | keep 15% of **6,273 video tokens** | fraction inside range, **regime untested upstream** |
-| STTM | — | LLaVA-OV: `thresh=.85 temporal=.65 root=1`; Qwen3-VL: `thresh=.85 temporal=-1.0 root=0` | **inconsistent across our own backbones** |
+| STTM | no eval script released; `train.py` defaults are all `-1.0` (disabled) | **LLaVA-Video-7B** (its own backbone): `thresh=.80 temporal=.65 root=1`; LLaVA-OV: `thresh=.85 temporal=.65 root=1`; Qwen3-VL: `thresh=.85 temporal=-1.0 root=0` | **three different configs across three runs** |
 | AIM | — | LLaVA-OV: fixed 4-step merge in patched `llava_arch.py`; Qwen3-VL: `prune_ratio=0.15` | **different mechanism per backbone** |
 | VisionZip | `dominant + contextual` | LLaVA-1.5 `dominant=54 contextual=10` @ 8f; Qwen3-VL contextual-only | partial on Qwen3-VL |
 | MDP3 | frame selection, no retention knob | `pool=32 select=8` | n/a |
@@ -47,8 +60,10 @@ Two consequences:
 - **Qwen3-VL PruneVID is monotonic**, not anomalous. Reported previously as a
   flagged non-monotonic cell (60.23 → 62.17 → 61.40), the ordering was an
   artefact of the label. Sorted by actual ratio it rises cleanly.
-- **LLaVA-OV PruneVID is flat at ~38% including at the authors' default.**
-  Retention is not the variable. The failure is backbone-specific.
+- **LLaVA-OV PruneVID is flat at ~38% including at the authors' ratio.**
+  Retention is not the variable. The failure is backbone-specific — and on the
+  backbone PruneVID was actually published for, PLLaVA-7B, the same ratio gives
+  **44.13%**.
 
 ## 3. Classification
 
@@ -60,8 +75,9 @@ tokens are kept, so this is a density threshold rather than a ranking failure
 lies between 25% and 100% and is not yet located. FastV's own 50% and 75%
 settings sit inside that unmeasured interval.
 
-**Broken independent of retention — PruneVID, LLaVA-OV only.**
-Flat at ~38% across 0.10/0.25/0.50 including the published default. Same
+**Broken independent of retention — the PruneVID *port* to LLaVA-OV only.**
+Flat at ~38% across 0.10/0.25/0.50 including the authors' ratio. On PruneVID's
+own backbone (PLLaVA-7B) the identical configuration scores 44.13%. Same
 answer-collapse signature as FastV (D-rate 46.1%). Because both LLaVA-OV ports
 express reduction through the same `PrunableDynamicCache.kv_cache` path, and
 that path is confirmed clean at 100% retention, the most likely account is the
@@ -76,10 +92,14 @@ portable methods behave smoothly on Qwen3-VL.
 
 ## 4. Confounds found that are ours, not the methods'
 
-- **STTM was run with different parameters on each backbone**
-  (`temporal_thresh` 0.65 vs −1.0, `root_level` 1 vs 0). Its cross-backbone
-  delta therefore mixes a parameter change with a backbone change and should
-  not be read as a backbone effect.
+- **STTM was run with different parameters on each of its three backbones**
+  (`tree_thresh` 0.80 on LLaVA-Video against 0.85 elsewhere; `temporal_thresh`
+  0.65 vs −1.0; `root_level` 1 vs 0). Its cross-backbone deltas therefore mix a
+  parameter change with a backbone change and must not be read as a backbone
+  effect. STTM's repo ships no eval script — only `train.py` defaults, which
+  are `-1.0`, i.e. the mechanism disabled — so there is no published operating
+  point to align to. Which of our three settings is closest to the authors'
+  intent is unresolved.
 - **AIM used a different mechanism on each backbone** — a fixed four-step
   merge baked into a patched `llava_arch.py` on LLaVA-OV against a
   configurable `prune_ratio=0.15` on Qwen3-VL. Same caveat.

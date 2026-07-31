@@ -65,23 +65,26 @@ STAGE3 = [("PruneVID", "w3_prunevid_run"), ("DyCoke", "w3_dycoke_run"),
           ("STTM", "w3_sttm_run"), ("FlashVID", "w3_flashvid_run"),
           ("VideoITG", "w3_videoitg_run"), ("AIM", "w3_aim_run")]
 
-NATIVE = [("VisionZip", "w2_visionzip_run", "LLaVA-1.5-7B", "8 frames, dominant=54 contextual=10"),
-          ("DyTo", "ob_dyto_run", "LLaVA-NeXT Vicuna-7B", "reconstructed TW-FINCH")]
+NATIVE = [("STTM", "sttm_llavavid_t80_full", "LLaVA-Video-7B", "thresh=0.80 temporal=0.65 root=1"),
+          ("PruneVID", "w2_prunevid_run", "PLLaVA-7B", "cluster=0.50 seg=0.25 layer=10 alpha=0.4 tau=0.8"),
+          ("DyTo", "ob_dyto_run", "LLaVA-NeXT Vicuna-7B", "reconstructed TW-FINCH"),
+          ("VisionZip", "w2_visionzip_run", "LLaVA-1.5-7B", "8 frames, dominant=54 contextual=10")]
 
 # Main table: each method at its ORIGINAL published configuration.
 # run, backbone, the setting that makes it "original", and any caveat.
 ORIGINAL = [
-    ("HoliTom",  "w2_holitom_run",     "LLaVA-OV",     "RETAIN=0.15 T=0.80 k=18 r=0.5", ""),
-    ("PruneVID", "w2_prunevid_ov_run", "LLaVA-OV",     "cluster=0.50 seg=0.25", "collapses at the published default"),
-    ("DyCoke",   "w2_dycoke_run",      "LLaVA-OV",     "l=3 p=0.7 k=0.7", ""),
-    ("FlashVID", "s1_flashvid_r25_run", "LLaVA-OV",    "retention=0.25", ""),
-    ("FastV",    "w2_fastv_run",       "LLaVA-OV",     "keep 15%", "no video config released; see note"),
-    ("MDP3",     "w2_mdp3_run",        "LLaVA-OV",     "pool=32 select=8", ""),
-    ("VideoITG", "w2_videoitg_run",    "LLaVA-OV",     "512 sampled / 32 selected", ""),
-    ("AIM",      "w2_aim_run",         "LLaVA-OV",     "4-step bipartite merge + PageRank", ""),
-    ("STTM",     "w2_sttm_run",        "LLaVA-OV",     "thresh=0.85 temporal=0.65 root=1", ""),
-    ("VisionZip", "w2_visionzip_run",  "LLaVA-1.5-7B", "dominant=54 contextual=10, 8f", "native backbone"),
-    ("DyTo",     "ob_dyto_run",        "Vicuna-7B",    "spatial_tome_finch_dynamic", "native backbone; no baseline"),
+    ("HoliTom",  "w2_holitom_run",      "LLaVA-OV-7B",     "RETAIN=0.15 T=0.80 k=18 r=0.5", ""),
+    ("DyCoke",   "w2_dycoke_run",       "LLaVA-OV-7B",     "l=3 p=0.7 k=0.7", ""),
+    ("FlashVID", "s1_flashvid_r25_run", "LLaVA-OV-7B",     "retention=0.25", ""),
+    ("MDP3",     "w2_mdp3_run",         "LLaVA-OV-7B",     "pool=32 select=8", ""),
+    ("VideoITG", "w2_videoitg_run",     "LLaVA-OV-7B",     "512 sampled / 32 selected", ""),
+    ("AIM",      "w2_aim_run",          "LLaVA-OV-7B",     "4-step bipartite merge + PageRank", ""),
+    # Bound to a backbone of their own -- these are the published pairings.
+    ("STTM",     "sttm_llavavid_t80_full", "LLaVA-Video-7B", "thresh=0.80 temporal=0.65 root=1", "own backbone; no matched baseline"),
+    ("PruneVID", "w2_prunevid_run",     "PLLaVA-7B",       "cluster=0.50 seg=0.25 alpha=0.4 tau=0.8", "own backbone; no matched baseline"),
+    ("DyTo",     "ob_dyto_run",         "Vicuna-7B",       "spatial_tome_finch_dynamic", "own backbone; no matched baseline; reconstructed"),
+    ("VisionZip", "w2_visionzip_run",   "LLaVA-1.5-7B",    "dominant=54 contextual=10, 8f", "own backbone; no matched baseline"),
+    ("FastV",    "w2_fastv_run",        "LLaVA-OV-7B",     "keep 15%", "NOT a published setting \u2014 FastV released no video config, so this is our standardized 15%, shown for continuity with \u00a72"),
 ]
 
 
@@ -149,7 +152,8 @@ def main():
         return 1
     aov, n_ov = acc(bov)
     aqw, _ = acc(bqw)
-    base = {"LLaVA-OV": aov, "Qwen3-VL": aqw}
+    base = {"LLaVA-OV": aov, "LLaVA-OV-7B": aov,
+            "Qwen3-VL": aqw, "Qwen3-VL-8B": aqw}
 
     O = []
     w = O.append
@@ -188,7 +192,7 @@ def main():
     for a, name, rr, bb, setting, note in sorted(rows_sorted, reverse=True):
         ven, yr = META.get(name, ("—", "—"))
         if bb in base:
-            _, sig = mcnemar(bov if bb == "LLaVA-OV" else bqw, rr)
+            _, sig = mcnemar(bov if bb.startswith("LLaVA-OV") else bqw, rr)
             d = delta(a - base[bb]) + ("*" if sig else "")
         else:
             d = "—"
