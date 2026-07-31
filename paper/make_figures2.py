@@ -18,8 +18,9 @@ plt.rcParams.update({
     "figure.dpi": 150,
 })
 
-D = json.load(open("/sessions/nice-zealous-archimedes/mnt/outputs/data.json"))
-FIG = "/sessions/nice-zealous-archimedes/mnt/outputs/paper/figures"
+_HERE = os.path.dirname(os.path.abspath(__file__))
+D = json.load(open(os.environ.get("HUVLLM_DATA", os.path.join(_HERE, "data.json"))))
+FIG = os.path.join(_HERE, "figures")
 os.makedirs(FIG, exist_ok=True)
 
 CATS = ["AO", "CM", "LM", "MR", "MO", "RC"]

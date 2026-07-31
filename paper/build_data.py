@@ -13,8 +13,12 @@ Emits data.json consumed by make_figures.py and gen_tables.py.
 import json, os
 from collections import defaultdict
 
-CACHE = "/sessions/nice-zealous-archimedes/mnt/HuBenchmarks/results-cache"
-OUT = "/sessions/nice-zealous-archimedes/mnt/outputs/data.json"
+# Repo-relative so this runs anywhere the repo is checked out. Override with
+# $HUVLLM_CACHE / $HUVLLM_DATA if the cache lives elsewhere.
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_ROOT = os.path.dirname(_HERE)
+CACHE = os.environ.get("HUVLLM_CACHE", os.path.join(_ROOT, "results-cache"))
+OUT = os.environ.get("HUVLLM_DATA", os.path.join(_HERE, "data.json"))
 
 CATS = ["Action Order", "Camera Motion", "Location-related Motion",
         "Motion Recognition", "Motion-related Objects", "Repetition Count"]
@@ -82,7 +86,9 @@ BASE_OV = "fastv_run1"          # bare LLaVA-OV backbone (the old FastV stub)
 BASE_QW = "qwen3vl_baseline_run1"
 
 STAGE1 = [("DyCoke", "w2_dycoke_run"), ("FlashVID", "w2_flashvid_run"),
-          ("HoliTom", "w2_holitom_run"), ("FastV", "w2_fastv_run"),
+          ("HoliTom", "w2_holitom_run"), ("MDP3", "w2_mdp3_run"),
+          ("VideoITG", "w2_videoitg_run"), ("AIM", "w2_aim_run"),
+          ("STTM", "w2_sttm_run"), ("FastV", "w2_fastv_run"),
           ("PruneVID-OV", "w2_prunevid_ov_run")]
 
 STAGE3 = [("PruneVID", "w3_prunevid_run"), ("DyCoke", "w3_dycoke_run"),

@@ -32,12 +32,18 @@ token-reduction methods on MotionBench (8{,}052 questions, 4{,}018
 scoreable), evaluated on two backbones at a standardized 32 frames and 15\%
 nominal token retention. Headline numbers: the Qwen3-VL-8B baseline reaches
 62.52\% against LLaVA-OV-7B's 52.66\%, a 9.86-point gap that holds across
-all six question categories. On LLaVA-OV no method differs from its backbone
-by more than the $\pm1.54$-point resolution floor except two that collapse
-to 36.78\% and 38.20\%. On Qwen3-VL, at identical settings, all ten portable
-methods lose accuracy, ranging from $-0.35$ to $-6.55$, and eight of those
-losses are statistically significant. Results are reported overall and by
-category; methodology, verification, and limitations are in the appendices.
+all six question categories. On LLaVA-OV seven of nine methods are
+accuracy-neutral, falling inside the $\pm1.54$-point resolution floor, while
+two collapse to 36.78\% and 38.20\%. On Qwen3-VL, at identical settings, all
+ten portable methods lose accuracy, ranging from $-0.35$ to $-6.55$, and
+eight of those losses are statistically significant --- so the ranking does
+not transfer between backbones. A controlled experiment on the two collapsed
+methods shows their loss does not depend on which tokens are kept: selecting
+by attention, at random, or evenly across all frames scores within 1.1
+points, while the same code path retaining every token recovers the
+baseline. On this backbone a 15\% budget costs roughly 15 points regardless
+of selection rule. Results are reported overall and by category;
+methodology, verification, and limitations are in the appendices.
 \end{abstract}
 
 \tableofcontents
@@ -87,9 +93,8 @@ recomputed from per-sample prediction records
   \centering
   \small
   \caption{All methods on both backbones, sorted by Qwen3-VL result.
-  $^{*}$ = significant vs.\ that backbone's baseline. Dashes mark cells not
-  independently recomputed for this report (see
-  Appendix~\ref{app:provenance}) or not applicable.}
+  $^{*}$ = significant vs.\ that backbone's baseline. The dash marks a cell
+  where the method is not implementable on that backbone.}
   \label{tab:summary}
   \begin{tabular}{lrrrr}
     \toprule
@@ -99,25 +104,21 @@ recomputed from per-sample prediction records
     \midrule
     \textit{Baseline} & \textit{52.66} & --- & \textit{62.52} & --- \\
     \midrule
-    PruneVID$^{\dagger}$ & 38.20 & --14.46$^{*}$ & 62.17 & --0.35 \\
+    PruneVID & 38.20 & --14.46$^{*}$ & 62.17 & --0.35 \\
     DyCoke & 53.36 & +0.70 & 61.85 & --0.67 \\
     HoliTom & 53.14 & +0.47 & 60.33 & --2.19$^{*}$ \\
-    MDP3 & --- & --- & 59.66 & --2.86$^{*}$ \\
-    FastV$^{\dagger}$ & 36.78 & --15.88$^{*}$ & 59.01 & --3.51$^{*}$ \\
+    MDP3 & 53.06 & +0.40 & 59.66 & --2.86$^{*}$ \\
+    FastV & 36.78 & --15.88$^{*}$ & 59.01 & --3.51$^{*}$ \\
     VisionZip (ctx.)$^{\ddagger}$ & --- & --- & 58.81 & --3.71$^{*}$ \\
-    STTM & --- & --- & 57.07 & --5.45$^{*}$ \\
+    STTM & 51.72 & --0.95 & 57.07 & --5.45$^{*}$ \\
     FlashVID & 53.31 & +0.65 & 56.65 & --5.87$^{*}$ \\
-    VideoITG & --- & --- & 56.35 & --6.17$^{*}$ \\
-    AIM & --- & --- & 55.97 & --6.55$^{*}$ \\
+    VideoITG & 52.86 & +0.20 & 56.35 & --6.17$^{*}$ \\
+    AIM & 52.86 & +0.20 & 55.97 & --6.55$^{*}$ \\
     \bottomrule
   \end{tabular}
 \end{table}
 
 \noindent\footnotesize
-$^{\dagger}$ These two LLaVA-OV results are under review: both collapse with
-matched signatures and share one code path, and a control experiment
-separating method from harness has not yet reported (\S\ref{sec:collapse},
-Appendix~\ref{app:open}). \quad
 $^{\ddagger}$ Contextual half only --- Qwen3-VL's vision tower has no CLS
 token, so VisionZip's dominant half is not implementable. Not the published
 method. VisionZip's complete form runs on LLaVA-1.5-7B
@@ -131,8 +132,9 @@ Table~\ref{tab:summary} contains the report's main observation. Reading
 across rows rather than down columns, the ordering does not survive the
 change of backbone: PruneVID is the worst result on LLaVA-OV and the best on
 Qwen3-VL; FlashVID is indistinguishable from the backbone on LLaVA-OV and
-loses 5.87 points on Qwen3-VL. Every Qwen3-VL delta is negative; three of
-five LLaVA-OV deltas are positive but none resolvably so.
+loses 5.87 points on Qwen3-VL. Every Qwen3-VL delta is negative; six of nine
+LLaVA-OV deltas are positive but none resolvably so. A ranking measured on
+one backbone does not transfer to the other.
 
 \subsection{Backbones}
 \label{sec:backbone}
@@ -184,10 +186,9 @@ and is not interpreted below.
 \begin{table}[H]
   \centering
   \small
-  \caption{LLaVA-OV-7B, 32 frames, 15\% nominal retention. Categories as in
-  Table~\ref{tab:baseline}. VisionZip runs on a different backbone
-  (Table~\ref{tab:native}); MDP3, AIM, VideoITG and STTM are not included
-  here (Appendix~\ref{app:provenance}).}
+  \caption{LLaVA-OV-7B, 32 frames, 15\% nominal retention. All nine methods
+  that run on this backbone. Categories as in Table~\ref{tab:baseline}.
+  VisionZip runs on a different backbone (Table~\ref{tab:native}).}
   \label{tab:llava}
   \begin{tabular}{lrrrrrrrr}
     \toprule
@@ -196,23 +197,29 @@ and is not interpreted below.
     DyCoke & 53.36 & +0.70 & 38.9 & 48.8 & 55.7 & 58.2 & 70.9 & 25.2 \\
     FlashVID & 53.31 & +0.65 & 39.9 & 45.7 & 53.8 & 58.0 & 71.7 & 28.2 \\
     HoliTom & 53.14 & +0.47 & 40.8 & 49.6 & 52.6 & 57.0 & 71.4 & 27.3 \\
+    MDP3 & 53.06 & +0.40 & 40.5 & 49.6 & 53.5 & 56.8 & 71.6 & 26.5 \\
+    VideoITG & 52.86 & +0.20 & 40.1 & 47.0 & 53.7 & 57.6 & 70.1 & 26.8 \\
+    AIM & 52.86 & +0.20 & 41.4 & 48.1 & 54.2 & 57.0 & 71.9 & 22.3 \\
     \textit{Baseline} & \textit{52.66} & --- & \textit{40.5} & \textit{45.2} & \textit{55.5} & \textit{57.0} & \textit{71.2} & \textit{23.8} \\
-    PruneVID-OV$^{*\dagger}$ & 38.20 & --14.46 & 32.0 & 34.8 & 35.5 & 38.4 & 52.9 & 27.3 \\
-    FastV$^{*\dagger}$ & 36.78 & --15.88 & 32.8 & 31.9 & 34.1 & 35.7 & 53.8 & 25.2 \\
+    STTM & 51.72 & --0.95 & 39.9 & 48.1 & 53.8 & 53.5 & 70.6 & 28.8 \\
+    PruneVID-OV$^{*}$ & 38.20 & --14.46 & 32.0 & 34.8 & 35.5 & 38.4 & 52.9 & 27.3 \\
+    FastV$^{*}$ & 36.78 & --15.88 & 32.8 & 31.9 & 34.1 & 35.7 & 53.8 & 25.2 \\
     \bottomrule
   \end{tabular}
 \end{table}
 
-DyCoke, FlashVID and HoliTom land within 0.70 points of the backbone, inside
-the $\pm1.54$-point floor, none significant (largest $\chi^2 = 2.34$ against
-a 3.84 threshold). They are statistically indistinguishable from the
+Seven of the nine methods land within 0.95 points of the backbone, inside
+the $\pm1.54$-point floor, and none is significant (largest $\chi^2 = 2.34$
+against a 3.84 threshold). They are statistically indistinguishable from the
 backbone and from each other; the ordering among them is not meaningful.
 Their category profiles track the backbone closely, with the largest
-deviations falling in the two smallest categories.
+deviations falling in the two smallest categories. At a 15\% budget on this
+backbone, seven of nine token-reduction methods are accuracy-neutral.
 
-FastV and PruneVID-OV lose more than 14 points each, significantly, and
-degrade in every category carrying above-chance backbone signal
-(\S\ref{sec:collapse}).
+FastV and PruneVID-OV are the exceptions, losing more than 14 points each,
+significantly, and degrading in every category carrying above-chance
+backbone signal. \S\ref{sec:collapse} establishes what separates them from
+the other seven, and \S\ref{sec:selection} isolates the cause by experiment.
 
 \subsection{Qwen3-VL-8B}
 \label{sec:qwen}
@@ -344,8 +351,11 @@ backbones.
 
 On LLaVA-OV the four methods sit in two flat regimes: FlashVID and HoliTom
 at the baseline at every setting, FastV and PruneVID roughly 15 points below
-it at every setting. What costs accuracy there is that those two prune at
-all, not how hard.
+it at every setting. Within this window, what costs accuracy is that those
+two discard tokens at all, not how hard. The window is bounded, however:
+\S\ref{sec:selection} shows the same code path at 100\% retention returns to
+the baseline, so the flatness across 10--25\% locates a threshold below that
+range rather than showing budget to be irrelevant outright.
 
 One cell is flagged rather than smoothed: PruneVID on Qwen3-VL is
 non-monotonic ($60.23 \to 62.17 \to 61.40$), its midpoint both its best
@@ -390,14 +400,80 @@ grounding on this backbone, though it does for the same algorithm on
 Qwen3-VL, where the answer distribution tracks the backbone within 1.5
 points at every budget.
 
-\paragraph{Caveat on these two rows.} FastV and PruneVID-OV are different
+\paragraph{Why two rows, not one.} FastV and PruneVID-OV are different
 algorithms at different layers with different selection rules, yet fail with
 signatures matching to about one point on accuracy, D-rate, broken/fixed
-ratio and flatness across retention. Both LLaVA-OV ports drive reduction
-through the same code path. A control experiment separating algorithm from
-harness is queued and has not reported; until it does, these two rows are
-reported as measurements of this harness and their attribution to the
-published methods is open (Appendix~\ref{app:open}).
+ratio and flatness across retention. Two unrelated algorithms do not
+normally fail identically, and both LLaVA-OV ports drive reduction through
+the same code path --- so the collapse could equally have been a property of
+that shared integration rather than of either method.
+\S\ref{sec:selection} settles this by experiment.
+
+\subsection{What causes the collapse}
+\label{sec:selection}
+
+Three explanations survived \S\ref{sec:collapse}: the shared code path is
+defective; FastV's attention ranking is uninformative at video scale; or the
+budget concentrates on too few frames. A four-arm experiment separates them.
+Each arm holds the backbone, prompt, frame count, budget and decoding fixed
+and varies only the token-selection rule applied at the pruning layer, on a
+986-question subset whose category mix matches the full benchmark within 1.5
+points (Table~\ref{tab:selection}).
+
+\begin{table}[H]
+  \centering
+  \small
+  \caption{Selection-rule experiment on LLaVA-OV-7B, 15\% budget except
+  where noted, $n=986$. \emph{Broke:fixed} is discordant pairs against the
+  backbone on the same subset.}
+  \label{tab:selection}
+  \begin{tabular}{llrrr}
+    \toprule
+    Arm & Selection rule & Overall & D-rate & Broke:fixed \\
+    \midrule
+    \textit{Baseline} & \textit{no reduction} & \textit{54.36} & \textit{20.7} & \textit{---} \\
+    \texttt{keepall} & same code path, discards nothing & \textbf{55.07} & 20.8 & 0.36 \\
+    \midrule
+    \texttt{attention} & FastV as published & 39.25 & 49.4 & 2.27 \\
+    \texttt{random} & uniformly at random & 38.74 & 47.2 & 2.43 \\
+    \texttt{uniform} & evenly spaced across all 32 frames & 38.13 & 49.9 & 2.43 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\textbf{The code path is sound.} \texttt{keepall} traverses the identical
+reduction machinery while discarding nothing and returns 55.07\% against a
+54.36\% subset baseline, with a near-baseline D-rate and a broke:fixed ratio
+below 1. The shared integration is not the cause, and both LLaVA-OV rows
+stand as measurements of the methods.
+
+\textbf{The attention ranking is inoperative.} \texttt{attention} and
+\texttt{random} differ by 0.51 points, $\chi^2 = 0.16$. FastV's layer-2
+ranking performs no better than discarding 85\% of visual tokens at random.
+
+\textbf{Frame coverage does not rescue it.} \texttt{uniform} guarantees
+every frame contributes equally and is statistically indistinguishable from
+both other arms ($\chi^2 = 1.54$ and $0.30$). Per-frame token histograms
+confirm the premise was wrong to begin with: every arm, \texttt{attention}
+included, touches all 32 frames on essentially every sample (mean 32.0 of
+32), with the busiest frame taking 10.5\% of \texttt{attention}'s budget
+against 3.1--4.2\% for the others --- far from concentration on a handful of
+frames.
+
+What remains is a threshold effect. At a 15\% budget on this backbone,
+discarding tokens costs about 15 points \emph{regardless of which tokens
+survive}; at 100\% the backbone is intact. Selection quality, and the
+temporal structure of the selection, stop mattering below that line. This is
+also the most economical account of why FastV and PruneVID-OV --- unrelated
+in design --- converge on nearly the same number: below the threshold there
+is nothing left for a selection rule to differentiate. Where exactly the
+threshold falls between 25\% and 100\% retention was not measured; the sweep
+in \S\ref{sec:retention} covers only 10--25\%, entirely below it
+(Appendix~\ref{app:open}).
+
+The fork used here reproduces the production FastV run exactly on the
+matched subset (0 of 986 predictions differ), so the experiment measures the
+same object as Table~\ref{tab:llava}.
 
 \subsection{Methods on non-standard backbones}
 \label{sec:native}
@@ -515,16 +591,22 @@ under an execution-log check alone.
 Every figure in the results tables and all four figures were recomputed for
 this report directly from each run's per-sample prediction records, not
 transcribed from prior documentation. Recomputed accuracy agreed with each
-run's stored summary to within 0.01 points across all 42 available run
+run's stored summary to within 0.01 points across all available run
 directories, and independently reproduced the documented divergence counts,
 paired win/loss counts and per-category figures.
 
-Four LLaVA-OV results --- MDP3 (53.06\%), AIM (52.86\%), VideoITG (52.86\%)
-and STTM (51.72\%) --- are omitted from Table~\ref{tab:llava} and all
-figures because their run directories were absent from the available cache;
-only non-comparable sampled-decoding variants were present. They appear as
-dashes in Table~\ref{tab:summary}. The DyTo token-matched control
-(\S\ref{sec:native}) is cited on the same basis.
+An earlier revision omitted four LLaVA-OV results --- MDP3, AIM, VideoITG
+and STTM --- because their run directories were absent from the local cache
+and only non-comparable sampled-decoding variants were present. Those four
+runs have since been retrieved and independently recomputed on the same
+basis as every other row; they now appear in Tables~\ref{tab:summary},
+\ref{tab:llava} and \ref{tab:verif}. The DyTo token-matched control
+(\S\ref{sec:native}) remains cited rather than recomputed, as no baseline
+run exists on its backbone.
+
+Two cells round on a tie. HoliTom and PruneVID-OV both score exactly
+109/400 = 27.25\% on Repetition Count; this report rounds half away from
+zero throughout, giving 27.3.
 
 \section{Paired-prediction statistics}
 \label{app:verification}
@@ -533,6 +615,14 @@ dashes in Table~\ref{tab:summary}. The DyTo token-matched control
 rows (accuracy uses the 4{,}018 scoreable subset); 0 would indicate a silent
 no-op. \emph{Fixed} and \emph{broke} are the McNemar discordant pairs on
 scoreable items.
+
+Divergence volume does not predict damage, and the two must not be conflated.
+STTM on LLaVA-OV changes 4{,}859 predictions --- more than FastV's 4{,}605
+--- yet loses 0.94 points and is not significant, because its changes fall
+almost evenly in both directions (329 fixed, 367 broken). FastV changes a
+comparable number destructively (475 fixed, 1{,}113 broken). Divergence
+establishes only that a method executed; the discordant pairs establish what
+it cost.
 
 \begin{table}[H]
   \centering
@@ -547,6 +637,10 @@ scoreable items.
     DyCoke & 1{,}031 & 170 & 142 & 2.34 & no \\
     FlashVID & 1{,}610 & 268 & 242 & 1.23 & no \\
     HoliTom & 1{,}838 & 299 & 280 & 0.56 & no \\
+    MDP3 & 1{,}452 & 246 & 230 & 0.47 & no \\
+    VideoITG & 1{,}193 & 192 & 184 & 0.13 & no \\
+    AIM & 1{,}406 & 227 & 219 & 0.11 & no \\
+    STTM & 4{,}859 & 329 & 367 & 1.97 & no \\
     PruneVID-OV & 4{,}536 & 473 & 1{,}054 & 220.30 & yes \\
     FastV & 4{,}605 & 475 & 1{,}113 & 255.52 & yes \\
     \midrule
@@ -606,15 +700,17 @@ the benchmark. Both are documented choices; neither has been ablated.
 \label{app:open}
 
 \begin{enumerate}
-\item \textbf{FastV and PruneVID-OV on LLaVA-OV: method or harness?} Both
-  drive reduction through the same code path and fail with matched
-  signatures. The decisive experiment is a \texttt{keepall} control that
-  traverses that path while discarding nothing; if it does not return
-  $\approx$52.66\%, both rows are harness artifacts and must be withdrawn
-  and re-run. Four arms are queued and have not reported. The
-  retention-invariance and answer-distribution evidence of
-  \S\ref{sec:collapse} stands either way --- what is open is whether it
-  describes the published methods or this integration of them.
+\item \textbf{Where the discard threshold falls.} \S\ref{sec:selection}
+  establishes that on LLaVA-OV a 15\% budget costs about 15 points
+  regardless of selection rule, while 100\% retention through the same code
+  path is intact. The transition between those two points was not measured.
+  FastV's own published default, $r=0.5$, sits inside the unmeasured
+  interval, so this report cannot say how the method behaves at its
+  specified operating point on this backbone.
+\item \textbf{Whether the threshold is backbone-specific.} No equivalent
+  selection experiment was run on Qwen3-VL, where the same methods respond
+  smoothly to budget (\S\ref{sec:retention}) and show no collapse. The
+  contrast is suggestive but untested.
 \item \textbf{Sampled-decoding answer distribution.} A companion study under
   $\text{temperature}=0.7$, $\text{top-}p=0.9$ (not comparable to any gated
   result, since sampling defeats the divergence check) is missing its
