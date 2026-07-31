@@ -6,16 +6,22 @@ Every method's configured parameters were read back from its run's
 a method underperforms, is that the method, our standardization, or our port?
 
 **Headline: only FastV breaks as a function of retention.** PruneVID-OV also
-collapses, but at the authors' own ratio *on a backbone that is not theirs* —
-so retention is not the cause there either. Every other method ran at or inside
-its published configuration.
+collapses, but at the authors' own ratio, so retention is not the cause there
+either. Every other method ran at or inside its published configuration —
+with the exceptions catalogued in
+[UPSTREAM_CROSSREF.md](UPSTREAM_CROSSREF.md), which cross-checks every method
+against its live GitHub repo and corrects eight citations, two backbone
+attributions and one off-spec configuration.
 
 Two methods are commonly misread in this repo's own tables, so state them
 plainly:
 
-- **PruneVID's published backbone is PLLaVA-7B, not LLaVA-OV.** On PLLaVA it
-  scores **44.13%** (`w2_prunevid_run`, full 8,052-sample gated run). The
-  38.20% figure is our *port* to LLaVA-OV, which is a different object.
+- **PruneVID's released code implements PLLaVA only.** The paper claims
+  PLLaVA, ST-LLM *and* LLaVA-OneVision, but `models/` contains `pllava` and
+  nothing else at current upstream HEAD. On PLLaVA it scores **44.13%**
+  (`w2_prunevid_run`, full 8,052-sample gated run). The 38.20% figure is our
+  own LLaVA-OV reimplementation with **no upstream reference to validate
+  against**.
 - **STTM's published backbone is LLaVA-Video-7B**, where it scores **53.33%**
   (`sttm_llavavid_t80_full`). The 51.72% figure is its LLaVA-OV port.
 
@@ -32,8 +38,8 @@ carries a Δ.
 | PruneVID | `cluster_ratio=0.5 temporal_segment_ratio=0.25` on **PLLaVA-7B** — `scripts/eval.sh` | identical ratio; PLLaVA **and** a LLaVA-OV port | exact on PLLaVA |
 | DyCoke | `l=3 p=0.7 k=0.7` | identical | exact |
 | FlashVID | `retention_ratio=0.25` — `configuration_flashvid.py` | 0.15 (standardized) | below default |
-| FastV | keep-fractions 12.5/25/50/75% of **576 single-image tokens**; only `eval_ocrvqa.sh` released | keep 15% of **6,273 video tokens** | fraction inside range, **regime untested upstream** |
-| STTM | no eval script released; `train.py` defaults are all `-1.0` (disabled) | **LLaVA-Video-7B** (its own backbone): `thresh=.80 temporal=.65 root=1`; LLaVA-OV: `thresh=.85 temporal=.65 root=1`; Qwen3-VL: `thresh=.85 temporal=-1.0 root=0` | **three different configs across three runs** |
+| FastV | official repo (`pkunlp-icler`) demonstrates **K=2, R=25–75%**, reports K=3/R=50% most; **no video eval in either repo** | keep 15% (R=85%) of **6,273 video tokens**, K=2 | **outside the official demonstrated range**; regime unreleased upstream |
+| STTM | per-benchmark **and** per-budget configs in `scripts/eval/run_vidqa.sh`; `root_level=1` for LLaVA, `2` for Qwen2VL | LLaVA-Video `.80/.65/1`; LLaVA-OV `.85/.65/1`; Qwen3-VL `.85/**-1.0**/**0**` | OV matches published `_50_vnb`; Qwen3-VL matches **no** published config |
 | AIM | — | LLaVA-OV: fixed 4-step merge in patched `llava_arch.py`; Qwen3-VL: `prune_ratio=0.15` | **different mechanism per backbone** |
 | VisionZip | `dominant + contextual` | LLaVA-1.5 `dominant=54 contextual=10` @ 8f; Qwen3-VL contextual-only | partial on Qwen3-VL |
 | MDP3 | frame selection, no retention knob | `pool=32 select=8` | n/a |
@@ -88,18 +94,22 @@ inference, not measurement — a `cluster_ratio=1.0` control is queued to test i
 
 **Not broken.** DyCoke, FlashVID, HoliTom, MDP3, AIM, VideoITG and STTM all
 land within the ±1.54-point floor of the LLaVA-OV backbone, and all ten
-portable methods behave smoothly on Qwen3-VL.
+portable methods behave smoothly on Qwen3-VL. Note separately that **VideoITG
+does not claim LLaVA-OneVision support at all** (its repo lists InternVL2.5/3.5,
+Qwen3-VL, LLaVA-Video and Eagle2.5), so its LLaVA-OV cell is a port to an
+unsupported backbone even though it is accuracy-neutral.
 
 ## 4. Confounds found that are ours, not the methods'
 
 - **STTM was run with different parameters on each of its three backbones**
-  (`tree_thresh` 0.80 on LLaVA-Video against 0.85 elsewhere; `temporal_thresh`
-  0.65 vs −1.0; `root_level` 1 vs 0). Its cross-backbone deltas therefore mix a
-  parameter change with a backbone change and must not be read as a backbone
-  effect. STTM's repo ships no eval script — only `train.py` defaults, which
-  are `-1.0`, i.e. the mechanism disabled — so there is no published operating
-  point to align to. Which of our three settings is closest to the authors'
-  intent is unresolved.
+  and one of them is off-spec. `scripts/eval/run_vidqa.sh` does define published
+  configs — keyed to benchmark *and* budget, with `root_level=1` for LLaVA
+  models and `2` for Qwen2VL. Our LLaVA-OV run (0.85/0.65/root 1) matches the
+  published `_50_vnb` LLaVA pairing. Our **Qwen3-VL run uses `root_level=0`,
+  which appears in no published config, with `temporal_thresh=-1.0` disabling
+  temporal merging entirely** — a spatial-only variant the authors never run.
+  That cell must not be compared against the LLaVA-OV STTM cell. See
+  [UPSTREAM_CROSSREF.md](UPSTREAM_CROSSREF.md) §3.
 - **AIM used a different mechanism on each backbone** — a fixed four-step
   merge baked into a patched `llava_arch.py` on LLaVA-OV against a
   configurable `prune_ratio=0.15` on Qwen3-VL. Same caveat.

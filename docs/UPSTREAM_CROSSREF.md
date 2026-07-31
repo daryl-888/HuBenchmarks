@@ -1,0 +1,158 @@
+# Upstream cross-reference: validity and accuracy audit
+
+Every method checked against its **live GitHub repository** (July 2026), not
+against our local clone or our own prior notes. Three classes of problem were
+found: wrong citation metadata, backbone claims that do not match released
+code, and configurations that match no published setting.
+
+Clone provenance was read from each repo on Carya
+(`git -C <repo> remote -v && git log -1`).
+
+---
+
+## 1. Citation metadata — 8 of 11 were wrong
+
+| Method | Recorded here | Correct | Source |
+|---|---|---|---|
+| DyCoke | arXiv 2024, `2411.14401` | **CVPR 2025**, arXiv **2411.15024** | [KD-TAO/DyCoke](https://github.com/KD-TAO/DyCoke) |
+| FastV | arXiv 2024 | **ECCV 2024 Oral** | [pkunlp-icler/FastV](https://github.com/pkunlp-icler/FastV) |
+| PruneVID | — 2024 | **ACL 2025** | [visual-ai/prunevid](https://github.com/visual-ai/prunevid) |
+| HoliTom | — 2025 | **NeurIPS 2025** | [cokeshao/HoliTom](https://github.com/cokeshao/HoliTom) |
+| STTM | — 2025 | **ICCV 2025** | [HYUNJS/STTM](https://github.com/HYUNJS/STTM) |
+| VideoITG | — 2025 | **CVPR 2026 Highlight** | [NVlabs/VideoITG](https://github.com/NVlabs/VideoITG) |
+| VisionZip | — 2024 | **CVPR 2025** | [dvlab-research/VisionZip](https://github.com/dvlab-research/VisionZip) |
+| MDP3 | **ICCV 2025** | **arXiv only**, `2501.02885` | [sunh-23/MDP3](https://github.com/sunh-23/MDP3) |
+| AIM | ICCV 2025 | ICCV 2025 — correct | [LaVi-Lab/AIM](https://github.com/LaVi-Lab/AIM) |
+| FlashVID | ICLR 2026 Oral | correct | [Fanziyang-v/FlashVID](https://github.com/Fanziyang-v/FlashVID) |
+| DyTo | ICCV 2025 | correct, arXiv `2411.14401` | [Jam1ezhang/DYTO](https://github.com/Jam1ezhang/DYTO) |
+
+Two are worth singling out:
+
+- **DyCoke was cited with DyTo's arXiv ID.** `2411.14401` is *Beyond Training:
+  Dynamic Token Merging* (DyTo). DyCoke is `2411.15024`. Both appear in this
+  project, so the collision propagated silently.
+- **MDP3 was promoted to ICCV 2025 without a source.** It is an arXiv preprint
+  (January 2025) with no venue on its repo or listing. Claiming a venue it does
+  not have is the most serious of these errors and is now corrected to arXiv.
+
+## 2. Backbone support vs released code
+
+| Method | Backbones the paper/repo claims | Ours | Verdict |
+|---|---|---|---|
+| PruneVID | PLLaVA, ST-LLM, **LLaVA-OneVision** | PLLaVA + our LLaVA-OV port | **released code ships only `models/pllava`** |
+| VideoITG | InternVL2.5/3.5, Qwen3-VL, LLaVA-Video, Eagle2.5 | LLaVA-OV + Qwen3-VL | LLaVA-OV is **not** a supported backbone |
+| VisionZip | LLaVA-1.5, Qwen2.5-VL | LLaVA-1.5 + Qwen3-VL partial | consistent; LLaVA-OV correctly excluded |
+| STTM | LLaVA-Video-7B/72B, LLaVA-OneVision-7B, Qwen2VL-7B | all three of ours | supported |
+| FlashVID | LLaVA-OV, LLaVA-Video, Qwen2.5-VL, **Qwen3-VL** | LLaVA-OV + our Qwen3-VL port | **upstream already supports Qwen3-VL** |
+| HoliTom | LLaVA-OneVision | LLaVA-OV + Qwen3-VL port | supported |
+| DyCoke | LLaVA-OV (+ community Gemma3, Qwen2.5-VL) | LLaVA-OV + Qwen3-VL port | supported |
+
+Three consequences:
+
+**PruneVID's LLaVA-OneVision results are not reproducible from released code.**
+The repo contains `models/pllava` and nothing else; the commit history ends at
+`b12600c` (2025-05-15) with no OneVision work at any point. Our LLaVA-OV number
+(38.20%) is therefore a reimplementation with **no upstream reference to check
+against** — which is precisely why it cannot be cited as PruneVID's LLaVA-OV
+performance. Its PLLaVA number (44.13%) is the reproducible one.
+
+**VideoITG on LLaVA-OV is off-spec.** The authors never claim that backbone. Our
+52.86% is a port to an unsupported model and should be labelled as such.
+
+**Our Qwen3-VL FlashVID port duplicates official support.** FlashVID lists
+Qwen3-VL among its backbones. We should re-run against the authors'
+implementation rather than our own before reporting that cell.
+
+## 3. Configurations that match no published setting
+
+### STTM — the published configs are per-benchmark *and* per-budget
+
+From `scripts/eval/run_vidqa.sh`:
+
+```
+sttm_llava_common_cfg   = --sa_start_layer_idx 2 --sa_tree_root_level 1
+sttm_qwen2vl_common_cfg = --sa_start_layer_idx 2 --sa_tree_root_level 2
+sttm_cfg_50_vnb_llavavideo_7b  = ... --sa_tree_thresh 0.85 --sa_tree_temporal_thresh 0.65
+sttm_cfg_30_vmme_llavavideo_7b = ... --sa_tree_thresh 0.80 --sa_tree_temporal_thresh 0.50
+```
+
+| Our run | thresh / temporal / root | Status |
+|---|---|---|
+| LLaVA-OV | 0.85 / 0.65 / 1 | matches the published `_50_vnb` LLaVA pairing |
+| LLaVA-Video | 0.80 / 0.65 / 1 | **mixes** the 50% (0.85/0.65) and 30% (0.80/0.60) configs |
+| Qwen3-VL | 0.85 / **−1.0** / **0** | **no published config uses `root_level=0`**; LLaVA uses 1, Qwen2VL uses 2. `temporal_thresh=−1.0` disables temporal merging entirely |
+
+The Qwen3-VL cell is the problem: it runs a spatial-only variant at a tree root
+level the authors never use. It should not be compared against the LLaVA-OV
+STTM cell, and the earlier note that STTM "has no published operating point" was
+wrong — it has many, keyed to benchmark and budget.
+
+### FastV — wrong repo, and outside the demonstrated range
+
+We cloned `chenllliang/FastV` (the first author's personal copy) at `f95102a`,
+**2024-03-20**. The official repo is `pkunlp-icler/FastV`.
+
+- **Neither repo ships a video evaluation.** The official one provides OCR-VQA,
+  AOKVQA, Nocaps, COCO-Cap, GQA, SEED-Bench, MMMU and MME — all single-image.
+  The earlier claim that FastV was never validated on video *in released code*
+  is confirmed against the official repo.
+- The paper itself does report video results (it names Video-LLaVA), so the
+  method is not untested on video in principle — only unreleased.
+- Demonstrated settings differ between the two repos: the official one shows
+  **K=2, R=25–75%** and reports K=3/R=50% most often; the personal fork sweeps
+  `rank_list=(72 144 288 432)` of 576, i.e. keep 12.5–75%.
+- **We ran K=2 at keep 15% (R=85%)** — outside the official repo's demonstrated
+  range, inside the personal fork's.
+
+## 4. Clone freshness
+
+| Repo | Our HEAD | Date | Note |
+|---|---|---|---|
+| FastV | `f95102a` | 2024-03-20 | **2.3 years stale, and the non-canonical repo** |
+| PruneVid | `b12600c` | 2025-05-15 | current upstream HEAD |
+| MDP3 | `4561680` | 2025-07-14 | |
+| VisionZip | `8f86b55` | 2025-07-21 | |
+| HoliTom | `e9b2972` | 2025-10-10 | |
+| DYTO | `570e977` | 2025-10-25 | |
+| FastVID | `a40a109` | 2025-11-10 | |
+| DyCoke | `dd74634` | 2025-11-22 | |
+| STTM | `336bf36` | 2026-01-25 | |
+| VideoITG | `50a60a8` | 2026-04-17 | |
+| FlashVID | `983cce6` | 2026-05-01 | |
+| **AIM** | — | — | **`git` refuses the repo (dubious ownership, another user's clone) — provenance unverifiable** |
+
+## 5. What this changes
+
+**Corrected, no re-run needed.** All venue and arXiv metadata; the STTM
+"no published operating point" claim; PruneVID's backbone attribution.
+
+**Labelling changes.** PruneVID-LLaVA-OV and VideoITG-LLaVA-OV must be labelled
+ports to unsupported/unreleased configurations, not method results.
+
+**Warrants a re-run.**
+
+| Item | Why |
+|---|---|
+| FlashVID on Qwen3-VL | upstream supports it natively; ours is a hand-written port |
+| STTM on Qwen3-VL | `root_level=0` matches no published config |
+| FastV | verify against `pkunlp-icler/FastV`, and at K=3/R=50% — the setting the official repo reports most |
+
+**Unresolvable.** PruneVID on LLaVA-OneVision has no released reference
+implementation, so our port cannot be validated against anything. AIM's clone
+provenance cannot be established without fixing repo ownership on Carya.
+
+---
+
+Sources: [DyCoke](https://github.com/KD-TAO/DyCoke) ·
+[FlashVID](https://github.com/Fanziyang-v/FlashVID) ·
+[HoliTom](https://github.com/cokeshao/HoliTom) ·
+[MDP3](https://github.com/sunh-23/MDP3) ·
+[AIM](https://github.com/LaVi-Lab/AIM) ·
+[VideoITG](https://github.com/NVlabs/VideoITG) ·
+[STTM](https://github.com/HYUNJS/STTM) ·
+[FastV](https://github.com/pkunlp-icler/FastV) ·
+[PruneVid](https://github.com/visual-ai/prunevid) ·
+[VisionZip](https://github.com/dvlab-research/VisionZip) ·
+[DYTO](https://github.com/Jam1ezhang/DYTO) ·
+[arXiv 2411.15024](https://arxiv.org/abs/2411.15024) ·
+[arXiv 2501.02885](https://arxiv.org/abs/2501.02885)

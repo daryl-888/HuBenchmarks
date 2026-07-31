@@ -13,6 +13,7 @@ This folder is the replication hub: start here, then follow the links.
 | [DETERMINISM_AND_VALIDITY.md](DETERMINISM_AND_VALIDITY.md) | Why re-runs reproduce exactly, what that proves — and where this methodology is **flawed** (incl. significance testing). |
 | [VALIDITY_ASSESSMENT.md](VALIDITY_ASSESSMENT.md) | Critical self-audit: honesty & scoring-accuracy ratings per layer, with the significance tests behind them. |
 | [UPSTREAM_DEFECTS.md](UPSTREAM_DEFECTS.md) | Defects found in the **authors' released code** — incl. why DyTo is not reproducible from its published artifacts. |
+| [UPSTREAM_CROSSREF.md](UPSTREAM_CROSSREF.md) | Validity audit against every method's **live GitHub repo**: corrected citations, backbone claims that don't match released code, and configurations matching no published setting. |
 | [RETENTION_DIAGNOSIS.md](RETENTION_DIAGNOSIS.md) | Every method's configured parameters vs the authors' released code: which methods break when retention changes, which were already broken, and which confounds are ours. |
 | [FASTV_COLLAPSE_ANALYSIS.md](FASTV_COLLAPSE_ANALYSIS.md) | Why FastV collapses on LLaVA-OV — a density threshold, not a ranking failure and not a bug. |
 | [FLASHVID_RERUN_ANALYSIS.md](FLASHVID_RERUN_ANALYSIS.md) | Why nominally identical FlashVID re-runs differed, and the divergence scale that separates code drift from a real hyperparameter change. |

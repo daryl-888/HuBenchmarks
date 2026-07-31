@@ -33,14 +33,22 @@ ABBR = ["AO", "CM", "LM", "MR", "MO", "RC"]
 BASE_OV = "fastv_run1"              # bare LLaVA-OV backbone (old FastV stub)
 BASE_QW = "qwen3vl_baseline_run1"
 
-# name -> (venue, year). "—" where the work has no venue on record.
+# name -> (venue, year). Verified against each method's live GitHub repo,
+# July 2026 -- see docs/UPSTREAM_CROSSREF.md. Eight of these were previously
+# wrong; MDP3 in particular had been credited with an ICCV acceptance it does
+# not have. Do not edit without a source.
 META = {
-    "DyCoke":    ("arXiv", 2024), "FlashVID": ("ICLR (Oral)", 2026),
-    "HoliTom":   ("—", 2025),     "MDP3":     ("ICCV", 2025),
-    "AIM":       ("ICCV", 2025),  "VideoITG": ("—", 2025),
-    "STTM":      ("—", 2025),     "FastV":    ("arXiv", 2024),
-    "PruneVID":  ("—", 2024),     "VisionZip": ("—", 2024),
-    "DyTo":      ("ICCV", 2025),
+    "DyCoke":    ("CVPR", 2025),        # arXiv 2411.15024 (NOT 2411.14401 = DyTo)
+    "FlashVID":  ("ICLR (Oral)", 2026),
+    "HoliTom":   ("NeurIPS", 2025),
+    "MDP3":      ("arXiv", 2025),       # 2501.02885 -- preprint, no venue
+    "AIM":       ("ICCV", 2025),
+    "VideoITG":  ("CVPR (Highlight)", 2026),
+    "STTM":      ("ICCV", 2025),
+    "FastV":     ("ECCV (Oral)", 2024),
+    "PruneVID":  ("ACL", 2025),
+    "VisionZip": ("CVPR", 2025),
+    "DyTo":      ("ICCV", 2025),        # arXiv 2411.14401
 }
 
 # Methods intact at 15% retention AND actually swept at 0.10/0.15/0.25.
