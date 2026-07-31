@@ -30,17 +30,18 @@ retention appear at 15%; others at their own default, stated per row.
 | **HoliTom** | NeurIPS | 2025 | LLaVA-OV-7B | RETAIN=0.15 T=0.80 k=18 r=0.5 | **53.14%** | +0.47 | 40.8 | 49.6 | 52.6 | 57.0 | 71.4 | 27.3 |
 | **MDP3** | arXiv | 2025 | LLaVA-OV-7B | pool=32 select=8 | **53.06%** | +0.40 | 40.5 | 49.6 | 53.5 | 56.8 | 71.6 | 26.5 |
 | **VideoITG** | CVPR (Highlight) | 2026 | LLaVA-OV-7B | 512 sampled / 32 selected | **52.86%** | +0.20 | 40.1 | 47.0 | 53.7 | 57.6 | 70.1 | 26.8 |
-| **AIM** | ICCV | 2025 | LLaVA-OV-7B | 4-step bipartite merge + PageRank | **52.86%** | +0.20 | 41.4 | 48.1 | 54.2 | 57.0 | 71.9 | 22.3 |
-| **PruneVID**² | ACL | 2025 | PLLaVA-7B | cluster=0.50 seg=0.25 alpha=0.4 tau=0.8 | **44.13%** | — | 35.6 | 33.0 | 41.0 | 47.0 | 63.3 | 26.5 |
-| **DyTo**³ | ICCV | 2025 | Vicuna-7B | spatial_tome_finch_dynamic | **42.06%** | — | 32.4 | 33.0 | 42.1 | 43.0 | 61.7 | 26.0 |
-| **VisionZip**⁴ | CVPR | 2025 | LLaVA-1.5-7B | dominant=54 contextual=10, 8f | **40.09%** | — | 33.7 | 33.0 | 37.2 | 41.1 | 57.4 | 25.8 |
-| **FastV**⁵ | ECCV (Oral) | 2024 | LLaVA-OV-7B | keep 15% | **36.78%** | −15.88* | 32.8 | 31.9 | 34.1 | 35.7 | 53.8 | 25.3 |
+| **AIM**² | ICCV | 2025 | LLaVA-OV-7B | 2-step bipartite merge (25% retain) + PageRank | **52.86%** | +0.20 | 41.4 | 48.1 | 54.2 | 57.0 | 71.9 | 22.3 |
+| **PruneVID**³ | ACL | 2025 | PLLaVA-7B | cluster=0.50 seg=0.25 alpha=0.4 tau=0.8 | **44.13%** | — | 35.6 | 33.0 | 41.0 | 47.0 | 63.3 | 26.5 |
+| **DyTo**⁴ | ICCV | 2025 | Vicuna-7B | spatial_tome_finch_dynamic | **42.06%** | — | 32.4 | 33.0 | 42.1 | 43.0 | 61.7 | 26.0 |
+| **VisionZip**⁵ | CVPR | 2025 | LLaVA-1.5-7B | dominant=54 contextual=10, 8f | **40.09%** | — | 33.7 | 33.0 | 37.2 | 41.1 | 57.4 | 25.8 |
+| **FastV**⁶ | ECCV (Oral) | 2024 | LLaVA-OV-7B | keep 15% | **36.78%** | −15.88* | 32.8 | 31.9 | 34.1 | 35.7 | 53.8 | 25.3 |
 
 ¹ **STTM** — own backbone; no matched baseline.  
-² **PruneVID** — own backbone; no matched baseline.  
-³ **DyTo** — own backbone; no matched baseline; reconstructed.  
-⁴ **VisionZip** — own backbone; no matched baseline.  
-⁵ **FastV** — NOT a published setting — FastV released no video config, so this is our standardized 15%, shown for continuity with §2.  
+² **AIM** — runs at 25% retention, not the standardized 15% -- upstream ships only two merge steps.  
+³ **PruneVID** — own backbone; no matched baseline.  
+⁴ **DyTo** — own backbone; no matched baseline; reconstructed.  
+⁵ **VisionZip** — own backbone; no matched baseline.  
+⁶ **FastV** — NOT a published setting — FastV released no video config, so this is our standardized 15%, shown for continuity with §2.  
 
 ## 2. LLaVA-OV-7B
 
@@ -54,15 +55,15 @@ exposes one; frame-selection methods keep their defaults.
 | HoliTom | NeurIPS | 2025 | **53.14%** | +0.47 | 40.8 | 49.6 | 52.6 | 57.0 | 71.4 | 27.3 |
 | MDP3 | arXiv | 2025 | **53.06%** | +0.40 | 40.5 | 49.6 | 53.5 | 56.8 | 71.6 | 26.5 |
 | VideoITG<sup>!</sup> | CVPR (Highlight) | 2026 | **52.86%** | +0.20 | 40.1 | 47.0 | 53.7 | 57.6 | 70.1 | 26.8 |
-| AIM | ICCV | 2025 | **52.86%** | +0.20 | 41.4 | 48.1 | 54.2 | 57.0 | 71.9 | 22.3 |
+| AIM<sup>!</sup> | ICCV | 2025 | **52.86%** | +0.20 | 41.4 | 48.1 | 54.2 | 57.0 | 71.9 | 22.3 |
 | *backbone* | — | — | *52.66%* | — | 40.5 | 45.2 | 55.5 | 57.0 | 71.2 | 23.8 |
 | STTM | ICCV | 2025 | **51.72%** | −0.95 | 39.9 | 48.1 | 53.8 | 53.5 | 70.6 | 28.8 |
 | PruneVID<sup>!</sup> | ACL | 2025 | **38.20%** | −14.46* | 32.0 | 34.8 | 35.5 | 38.4 | 52.9 | 27.3 |
 | FastV | ECCV (Oral) | 2024 | **36.78%** | −15.88* | 32.8 | 31.9 | 34.1 | 35.7 | 53.8 | 25.3 |
 
 <sup>!</sup> flagged by the upstream cross-reference — a port to a backbone
-the authors do not support, or a configuration matching no published
-setting. Not a method result as published; see
+the authors do not support, a configuration matching no published
+setting, or a budget that differs from the standardized 15%. See
 [UPSTREAM_CROSSREF.md](UPSTREAM_CROSSREF.md).
 
 ## 3. Qwen3-VL-8B
@@ -85,8 +86,8 @@ exposes one; frame-selection methods keep their defaults.
 | AIM<sup>!</sup> | ICCV | 2025 | **55.97%** | −6.55* | 45.9 | 56.6 | 59.5 | 58.3 | 72.2 | 27.0 |
 
 <sup>!</sup> flagged by the upstream cross-reference — a port to a backbone
-the authors do not support, or a configuration matching no published
-setting. Not a method result as published; see
+the authors do not support, a configuration matching no published
+setting, or a budget that differs from the standardized 15%. See
 [UPSTREAM_CROSSREF.md](UPSTREAM_CROSSREF.md).
 
 ## 4. Retention sweep — 0.10 / 0.15 / 0.25

@@ -93,22 +93,61 @@ level the authors never use. It should not be compared against the LLaVA-OV
 STTM cell, and the earlier note that STTM "has no published operating point" was
 wrong — it has many, keyed to benchmark and budget.
 
-### FastV — wrong repo, and outside the demonstrated range
+### FastV — non-canonical clone; the authors *do* state a video setting
 
 We cloned `chenllliang/FastV` (the first author's personal copy) at `f95102a`,
-**2024-03-20**. The official repo is `pkunlp-icler/FastV`.
+**2024-03-20**. The canonical repo is `pkunlp-icler/FastV` (ECCV 2024 Oral),
+pulled here at `d165972`, 2025-01-04.
 
-- **Neither repo ships a video evaluation.** The official one provides OCR-VQA,
-  AOKVQA, Nocaps, COCO-Cap, GQA, SEED-Bench, MMMU and MME — all single-image.
-  The earlier claim that FastV was never validated on video *in released code*
-  is confirmed against the official repo.
-- The paper itself does report video results (it names Video-LLaVA), so the
-  method is not untested on video in principle — only unreleased.
-- Demonstrated settings differ between the two repos: the official one shows
-  **K=2, R=25–75%** and reports K=3/R=50% most often; the personal fork sweeps
-  `rank_list=(72 144 288 432)` of 576, i.e. keep 12.5–75%.
-- **We ran K=2 at keep 15% (R=85%)** — outside the official repo's demonstrated
-  range, inside the personal fork's.
+**Correction to an earlier claim in this file.** It previously said our R=85%
+was "outside the official repo's demonstrated range". That was wrong — it came
+from a README summary rather than the scripts. Both official eval scripts sweep
+`rank_list=(72 144 288 432)` against 576 image tokens, i.e. keep 12.5–75%
+(R = 87.5% down to 25%). **Our R=85% (keep 15%) sits inside that range.**
+
+Note the two official scripts disagree in their own comments about the mapping:
+`eval_ocrvqa_*` annotates the list `R=(75% 50% 25% 12.5%)` while
+`eval_aokvqa_*` annotates it `R=(87.5% 75% 50% 25%)`. The second is the
+arithmetically correct one — `rank = (1-R)·576`, so rank 72 is R=87.5%.
+
+What the official repo *does* pin down:
+
+- **`Ks=(2)`** in both eval scripts; the README's results tables report K=2 at
+  R=25/50/75% and one K=3/R=50% FLOPs comparison.
+- **A stated video recommendation.** The README says that "in contexts
+  requiring video understanding, which involves around ten times image tokens,
+  the latency reduction achieved by fastv (with **K=2 and R=50%**) can reach up
+  to 25% without hurting the performance." That is the authors' own video
+  setting, and their "ten times image tokens" is exactly our regime
+  (6,273 vs 576).
+- **Still no video evaluation in either repo.** The official one ships OCR-VQA,
+  AOKVQA latency, and the LLaVA-1.5 image suite (GQA, SEED, MME, MMBench,
+  VizWiz, SQA). The video claim is made in prose, not in runnable code.
+
+So the accurate statement is: our keep-15% is a normal *fraction* for FastV, but
+the authors' stated video setting is **K=2, R=50%** — which is precisely job
+7951292 (`s1_fastv_r50_run`), with 7951362 covering the README's K=3/R=50% row.
+
+### AIM — faithful run, wrong recorded metadata
+
+Our `llava_arch.py` on Carya is **byte-identical** to
+[LaVi-Lab/AIM](https://github.com/LaVi-Lab/AIM) at `edc24e9` (verified by
+`diff`). The run is faithful. Two problems follow from that, not from it:
+
+- Upstream ships **two** active merge steps — `r=orig_num//2` then
+  `r=orig_num//4`, i.e. **25% retention**. The `//8`, `//16`, `//32`, `//64`
+  lines are commented out.
+- Our `summary.json` records `"merge": "bipartite_soft_matching, 4 steps
+  (50%/25%/12.5%/6.25%)"`. That string is **wrong**: only two steps ran.
+
+Consequence: **AIM's LLaVA-OV cell is at 25% retention, not the standardized
+15%**, so it is not budget-comparable with the other LLaVA-OV rows, and the
+appendix budget table that lists AIM at 15% is wrong for this backbone. The
+accuracy figure itself (52.86%) is unaffected — the run did what upstream does.
+
+AIM's published eval also requires `attn_implementation=eager`; ours sets it, so
+that is correct. It uses `conv_template=qwen_1_5` against our `qwen_2`, which
+render identical prompts on this build.
 
 ## 4. Clone freshness
 
@@ -125,15 +164,20 @@ We cloned `chenllliang/FastV` (the first author's personal copy) at `f95102a`,
 | STTM | `336bf36` | 2026-01-25 | |
 | VideoITG | `50a60a8` | 2026-04-17 | |
 | FlashVID | `983cce6` | 2026-05-01 | |
-| **AIM** | — | — | **`git` refuses the repo (dubious ownership, another user's clone) — provenance unverifiable** |
+| AIM | `edc24e9` (upstream) | 2025-10-09 | Carya clone is another user's and `git` refuses it, but its `llava_arch.py` **diffs clean against upstream** |
+| FastV (official) | `d165972` | 2025-01-04 | pulled for this audit into gitignored `upstream-refs/` |
 
 ## 5. What this changes
 
 **Corrected, no re-run needed.** All venue and arXiv metadata; the STTM
-"no published operating point" claim; PruneVID's backbone attribution.
+"no published operating point" claim; PruneVID's backbone attribution; the
+claim that FastV's R=85% was outside the official sweep (it is inside); AIM's
+recorded merge-step count.
 
 **Labelling changes.** PruneVID-LLaVA-OV and VideoITG-LLaVA-OV must be labelled
-ports to unsupported/unreleased configurations, not method results.
+ports to unsupported/unreleased configurations, not method results. **AIM on
+LLaVA-OV must be labelled 25% retention**, not 15% — it is not budget-comparable
+with the other rows on that backbone.
 
 **Warrants a re-run.**
 

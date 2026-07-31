@@ -19,3 +19,6 @@ config/paths.local.sh
 # Temp / editor
 git_status*.txt
 .vscode/
+
+# Upstream repos pulled for provenance cross-referencing (not our code)
+upstream-refs/

@@ -66,7 +66,7 @@ SWEEP = [
 # setting. See docs/UPSTREAM_CROSSREF.md.
 STAGE1 = [("DyCoke", "w2_dycoke_run"), ("FlashVID", "w2_flashvid_run"),
           ("HoliTom", "w2_holitom_run"), ("MDP3", "w2_mdp3_run"),
-          ("VideoITG!", "w2_videoitg_run"), ("AIM", "w2_aim_run"),
+          ("VideoITG!", "w2_videoitg_run"), ("AIM!", "w2_aim_run"),
           ("STTM", "w2_sttm_run"), ("PruneVID!", "w2_prunevid_ov_run"),
           ("FastV", "w2_fastv_run")]
 
@@ -89,7 +89,7 @@ ORIGINAL = [
     ("FlashVID", "s1_flashvid_r25_run", "LLaVA-OV-7B",     "retention=0.25", ""),
     ("MDP3",     "w2_mdp3_run",         "LLaVA-OV-7B",     "pool=32 select=8", ""),
     ("VideoITG", "w2_videoitg_run",     "LLaVA-OV-7B",     "512 sampled / 32 selected", ""),
-    ("AIM",      "w2_aim_run",          "LLaVA-OV-7B",     "4-step bipartite merge + PageRank", ""),
+    ("AIM",      "w2_aim_run",          "LLaVA-OV-7B",     "2-step bipartite merge (25% retain) + PageRank", "runs at 25% retention, not the standardized 15% -- upstream ships only two merge steps"),
     # Bound to a backbone of their own -- these are the published pairings.
     ("STTM",     "sttm_llavavid_t80_full", "LLaVA-Video-7B", "thresh=0.80 temporal=0.65 root=1", "own backbone; no matched baseline"),
     ("PruneVID", "w2_prunevid_run",     "PLLaVA-7B",       "cluster=0.50 seg=0.25 alpha=0.4 tau=0.8", "own backbone; no matched baseline"),
@@ -248,8 +248,8 @@ def main():
             w(f"| *backbone* | — | — | *{r2(base[bkey])}%* | — | {catcells(bl)} |")
         w("")
         w("<sup>!</sup> flagged by the upstream cross-reference — a port to a backbone")
-        w("the authors do not support, or a configuration matching no published")
-        w("setting. Not a method result as published; see")
+        w("the authors do not support, a configuration matching no published")
+        w("setting, or a budget that differs from the standardized 15%. See")
         w("[UPSTREAM_CROSSREF.md](UPSTREAM_CROSSREF.md).\n")
 
     # ---- 4. retention sweep ----------------------------------------------
