@@ -59,9 +59,15 @@ performance. Its PLLaVA number (44.13%) is the reproducible one.
 **VideoITG on LLaVA-OV is off-spec.** The authors never claim that backbone. Our
 52.86% is a port to an unsupported model and should be labelled as such.
 
-**Our Qwen3-VL FlashVID port duplicates official support.** FlashVID lists
-Qwen3-VL among its backbones. We should re-run against the authors'
-implementation rather than our own before reporting that cell.
+**Our Qwen3-VL FlashVID port is not FlashVID.** The repo ships
+`flashvid/modeling_qwen3_vl.py` and `scripts/qwen3_vl.sh`. Our port never
+imports the package — it hand-implements a scoring rule and omits, on Qwen3-VL:
+inner-LLM compression entirely (`pruning_layer=28`, `llm_retention_ratio=0.1`),
+`expansion=1.25`, `min_segment_num=4`, `complementary_segment`,
+`segment_threshold` and `token_selection_method=attn_div`. The 56.65% cell is
+our approximation of the method, not the method. Re-run queued
+(`s3_flashvid_official_run`, job 7951360) calling the authors' `flashvid()`
+with the settings from their script.
 
 ## 3. Configurations that match no published setting
 
@@ -131,11 +137,14 @@ ports to unsupported/unreleased configurations, not method results.
 
 **Warrants a re-run.**
 
-| Item | Why |
-|---|---|
-| FlashVID on Qwen3-VL | upstream supports it natively; ours is a hand-written port |
-| STTM on Qwen3-VL | `root_level=0` matches no published config |
-| FastV | verify against `pkunlp-icler/FastV`, and at K=3/R=50% — the setting the official repo reports most |
+| Job | Run dir | Why |
+|---|---|---|
+| 7951360 | `s3_flashvid_official_run` | calls the authors' `flashvid()` with `scripts/qwen3_vl.sh` settings, including the inner-LLM compression our port omits |
+| 7951361 | `s3_sttm_pub_run` | STTM at `root_level=2` (Qwen-family) with `temporal_thresh=0.65`, replacing the off-spec `root_level=0 / -1.0` |
+| 7951362 | `s1_fastv_k3r50_run` | FastV at K=3, R=50% — the setting the official repo reports most |
+
+Also in flight from the retention audit: 7951292 (`s1_fastv_r50_run`), 7951293
+(`s1_fastv_r75_run`), 7951294 (`s1_prunevid_c100_run`).
 
 **Unresolvable.** PruneVID on LLaVA-OneVision has no released reference
 implementation, so our port cannot be validated against anything. AIM's clone

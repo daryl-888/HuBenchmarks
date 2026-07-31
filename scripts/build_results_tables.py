@@ -61,17 +61,20 @@ SWEEP = [
     ("HoliTom",  "s3_holitom_r10_run",  "w3_holitom_run",  "s3_holitom_r25_run",  "Qwen3-VL"),
 ]
 
+# A trailing "!" marks a cell the upstream cross-reference flags: a port to a
+# backbone the authors do not support, or a configuration matching no published
+# setting. See docs/UPSTREAM_CROSSREF.md.
 STAGE1 = [("DyCoke", "w2_dycoke_run"), ("FlashVID", "w2_flashvid_run"),
           ("HoliTom", "w2_holitom_run"), ("MDP3", "w2_mdp3_run"),
-          ("VideoITG", "w2_videoitg_run"), ("AIM", "w2_aim_run"),
-          ("STTM", "w2_sttm_run"), ("PruneVID", "w2_prunevid_ov_run"),
+          ("VideoITG!", "w2_videoitg_run"), ("AIM", "w2_aim_run"),
+          ("STTM", "w2_sttm_run"), ("PruneVID!", "w2_prunevid_ov_run"),
           ("FastV", "w2_fastv_run")]
 
 STAGE3 = [("PruneVID", "w3_prunevid_run"), ("DyCoke", "w3_dycoke_run"),
           ("HoliTom", "w3_holitom_run"), ("MDP3", "w3_mdp3_run"),
-          ("FastV", "w3_fastv_run"), ("VisionZip", "w3_visionzip_run"),
-          ("STTM", "w3_sttm_run"), ("FlashVID", "w3_flashvid_run"),
-          ("VideoITG", "w3_videoitg_run"), ("AIM", "w3_aim_run")]
+          ("FastV", "w3_fastv_run"), ("VisionZip!", "w3_visionzip_run"),
+          ("STTM!", "w3_sttm_run"), ("FlashVID!", "w3_flashvid_run"),
+          ("VideoITG", "w3_videoitg_run"), ("AIM!", "w3_aim_run")]
 
 NATIVE = [("STTM", "sttm_llavavid_t80_full", "LLaVA-Video-7B", "thresh=0.80 temporal=0.65 root=1"),
           ("PruneVID", "w2_prunevid_run", "PLLaVA-7B", "cluster=0.50 seg=0.25 layer=10 alpha=0.4 tau=0.8"),
@@ -234,13 +237,20 @@ def main():
             if not placed and a < base[bkey]:
                 w(f"| *backbone* | — | — | *{r2(base[bkey])}%* | — | {catcells(bl)} |")
                 placed = True
-            ven, yr = META.get(name, ("—", "—"))
+            flag = name.endswith("!")
+            key = name.rstrip("!")
+            ven, yr = META.get(key, ("—", "—"))
             _, sig = mcnemar(bl, rr)
-            w(f"| {name} | {ven} | {yr} | **{r2(a)}%** | "
+            disp = key + ("<sup>!</sup>" if flag else "")
+            w(f"| {disp} | {ven} | {yr} | **{r2(a)}%** | "
               f"{delta(a - base[bkey])}{'*' if sig else ''} | {catcells(rr)} |")
         if not placed:
             w(f"| *backbone* | — | — | *{r2(base[bkey])}%* | — | {catcells(bl)} |")
         w("")
+        w("<sup>!</sup> flagged by the upstream cross-reference — a port to a backbone")
+        w("the authors do not support, or a configuration matching no published")
+        w("setting. Not a method result as published; see")
+        w("[UPSTREAM_CROSSREF.md](UPSTREAM_CROSSREF.md).\n")
 
     # ---- 4. retention sweep ----------------------------------------------
     w("## 4. Retention sweep — 0.10 / 0.15 / 0.25\n")

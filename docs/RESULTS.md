@@ -53,12 +53,17 @@ exposes one; frame-selection methods keep their defaults.
 | FlashVID | ICLR (Oral) | 2026 | **53.31%** | +0.65 | 39.9 | 45.7 | 53.8 | 58.0 | 71.7 | 28.3 |
 | HoliTom | NeurIPS | 2025 | **53.14%** | +0.47 | 40.8 | 49.6 | 52.6 | 57.0 | 71.4 | 27.3 |
 | MDP3 | arXiv | 2025 | **53.06%** | +0.40 | 40.5 | 49.6 | 53.5 | 56.8 | 71.6 | 26.5 |
-| VideoITG | CVPR (Highlight) | 2026 | **52.86%** | +0.20 | 40.1 | 47.0 | 53.7 | 57.6 | 70.1 | 26.8 |
+| VideoITG<sup>!</sup> | CVPR (Highlight) | 2026 | **52.86%** | +0.20 | 40.1 | 47.0 | 53.7 | 57.6 | 70.1 | 26.8 |
 | AIM | ICCV | 2025 | **52.86%** | +0.20 | 41.4 | 48.1 | 54.2 | 57.0 | 71.9 | 22.3 |
 | *backbone* | — | — | *52.66%* | — | 40.5 | 45.2 | 55.5 | 57.0 | 71.2 | 23.8 |
 | STTM | ICCV | 2025 | **51.72%** | −0.95 | 39.9 | 48.1 | 53.8 | 53.5 | 70.6 | 28.8 |
-| PruneVID | ACL | 2025 | **38.20%** | −14.46* | 32.0 | 34.8 | 35.5 | 38.4 | 52.9 | 27.3 |
+| PruneVID<sup>!</sup> | ACL | 2025 | **38.20%** | −14.46* | 32.0 | 34.8 | 35.5 | 38.4 | 52.9 | 27.3 |
 | FastV | ECCV (Oral) | 2024 | **36.78%** | −15.88* | 32.8 | 31.9 | 34.1 | 35.7 | 53.8 | 25.3 |
+
+<sup>!</sup> flagged by the upstream cross-reference — a port to a backbone
+the authors do not support, or a configuration matching no published
+setting. Not a method result as published; see
+[UPSTREAM_CROSSREF.md](UPSTREAM_CROSSREF.md).
 
 ## 3. Qwen3-VL-8B
 
@@ -73,11 +78,16 @@ exposes one; frame-selection methods keep their defaults.
 | HoliTom | NeurIPS | 2025 | **60.33%** | −2.19* | 44.7 | 61.3 | 61.0 | 66.4 | 76.2 | 29.0 |
 | MDP3 | arXiv | 2025 | **59.66%** | −2.86* | 44.9 | 64.7 | 62.8 | 64.0 | 77.4 | 23.0 |
 | FastV | ECCV (Oral) | 2024 | **59.01%** | −3.51* | 46.2 | 61.0 | 61.9 | 63.5 | 72.2 | 30.5 |
-| VisionZip | CVPR | 2025 | **58.81%** | −3.71* | 43.2 | 57.4 | 61.9 | 64.2 | 74.3 | 29.5 |
-| STTM | ICCV | 2025 | **57.07%** | −5.45* | 44.3 | 60.0 | 61.0 | 60.6 | 73.8 | 23.8 |
-| FlashVID | ICLR (Oral) | 2026 | **56.65%** | −5.87* | 43.4 | 57.9 | 57.1 | 61.2 | 73.0 | 27.0 |
+| VisionZip<sup>!</sup> | CVPR | 2025 | **58.81%** | −3.71* | 43.2 | 57.4 | 61.9 | 64.2 | 74.3 | 29.5 |
+| STTM<sup>!</sup> | ICCV | 2025 | **57.07%** | −5.45* | 44.3 | 60.0 | 61.0 | 60.6 | 73.8 | 23.8 |
+| FlashVID<sup>!</sup> | ICLR (Oral) | 2026 | **56.65%** | −5.87* | 43.4 | 57.9 | 57.1 | 61.2 | 73.0 | 27.0 |
 | VideoITG | CVPR (Highlight) | 2026 | **56.35%** | −6.17* | 45.3 | 53.5 | 59.3 | 60.2 | 75.4 | 22.3 |
-| AIM | ICCV | 2025 | **55.97%** | −6.55* | 45.9 | 56.6 | 59.5 | 58.3 | 72.2 | 27.0 |
+| AIM<sup>!</sup> | ICCV | 2025 | **55.97%** | −6.55* | 45.9 | 56.6 | 59.5 | 58.3 | 72.2 | 27.0 |
+
+<sup>!</sup> flagged by the upstream cross-reference — a port to a backbone
+the authors do not support, or a configuration matching no published
+setting. Not a method result as published; see
+[UPSTREAM_CROSSREF.md](UPSTREAM_CROSSREF.md).
 
 ## 4. Retention sweep — 0.10 / 0.15 / 0.25
 
