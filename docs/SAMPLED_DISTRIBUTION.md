@@ -12,6 +12,7 @@ Counts are over the 4,018 scoreable questions (NA excluded). *unparsed* = genera
 | *ground truth* | *25.4%* | *25.6%* | *25.5%* | *23.6%* | *—* | *—* |
 | **baseline** | 29.3% | 25.3% | 25.5% | 19.9% | 6 | A 29% |
 | **DyCoke** | 29.0% | 25.7% | 25.4% | 19.8% | 6 | A 29% |
+| **FlashVID** | 29.2% | 25.0% | 25.0% | 20.7% | 6 | A 29% |
 | **HoliTom** | 27.2% | 25.0% | 25.7% | 22.1% | 6 | A 27% |
 | **MDP3** | 28.9% | 24.7% | 25.9% | 20.4% | 3 | A 29% |
 | **AIM** | 29.6% | 24.7% | 25.9% | 19.7% | 6 | A 30% |
@@ -20,4 +21,4 @@ Counts are over the 4,018 scoreable questions (NA excluded). *unparsed* = genera
 
 ⚠️ = one letter takes >40% of answers, i.e. the model is leaning on a default rather than discriminating. Ground truth is near-uniform, so a healthy method should be too.
 
-*Not yet run: FlashVID.*
+All eight methods are now run. Every row, the plain baseline included, over-picks **A** and under-picks **D** against a near-uniform ground truth: the bias is the backbone's, not any method's. No method introduces it and none corrects it.

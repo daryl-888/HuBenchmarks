@@ -80,13 +80,12 @@ Only the retention knob varies; 32 frames and every other parameter held fixed. 
 | *ground truth* | *25.4%* | *25.6%* | *25.5%* | *23.6%* | *—* | *—* |
 | baseline | 29.3% | 25.3% | 25.5% | 19.9% | 6 | 52.26% |
 | DyCoke | 29.0% | 25.7% | 25.4% | 19.8% | 6 | 52.19% |
+| FlashVID | 29.2% | 25.0% | 25.0% | 20.7% | 6 | 50.45% |
 | HoliTom | 27.2% | 25.0% | 25.7% | 22.1% | 6 | 51.00% |
 | MDP3 | 28.9% | 24.7% | 25.9% | 20.4% | 3 | 50.67% |
 | AIM | 29.6% | 24.7% | 25.9% | 19.7% | 6 | 51.07% |
 | VideoITG | 28.9% | 25.1% | 25.1% | 20.8% | 2 | 51.34% |
 | STTM | 29.4% | 24.4% | 25.8% | 20.5% | 6 | 51.52% |
-
-*Pending: FlashVID.*
 
 > **The answer bias belongs to the backbone, not the methods.** Every row — including the plain baseline — over-picks **A** and under-picks **D**, against a near-uniform ground truth. No method introduces the bias and none corrects it; they inherit it.
 >
@@ -132,8 +131,6 @@ Every gated figure required **two** independent signals: an `ACTIVE` log proving
 | PruneVID (LLaVA-OV) | printed ACTIVE, 0/8052 divergence | mask hooks discarded; build prunes via `kv_cache` |
 | STTM (Qwen3-VL) | 0/8 divergence | visual span is not contiguous — Qwen3-VL interleaves timestamp tokens |
 | Vicuna baseline | completed, exit 0 | 4.5× context overflow; 73% empty output |
-
-A worked example of all of this — including a true re-run reproducing to 13/8,052, a 0.05-point gap concealing 1,123 changed predictions, and a run whose stored retention parameter is wrong — is in [FLASHVID_RERUN_ANALYSIS.md](FLASHVID_RERUN_ANALYSIS.md).
 
 Greedy decoding makes reruns bit-identical, which is what gives "0 predictions differ" its force as proof of a no-op. See [DETERMINISM_AND_VALIDITY.md](DETERMINISM_AND_VALIDITY.md) and [METHODOLOGY.md](METHODOLOGY.md).
 
