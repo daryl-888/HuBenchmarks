@@ -16,6 +16,7 @@ This folder is the replication hub: start here, then follow the links.
 | [UPSTREAM_CROSSREF.md](UPSTREAM_CROSSREF.md) | Validity audit against every method's **live GitHub repo**: corrected citations, backbone claims that don't match released code, and configurations matching no published setting. |
 | [RETENTION_DIAGNOSIS.md](RETENTION_DIAGNOSIS.md) | Every method's configured parameters vs the authors' released code: which methods break when retention changes, which were already broken, and which confounds are ours. |
 | [FASTV_COLLAPSE_ANALYSIS.md](FASTV_COLLAPSE_ANALYSIS.md) | Why FastV collapses on LLaVA-OV — a density threshold, not a ranking failure and not a bug. |
+| [DURATION_ANALYSIS.md](DURATION_ANALYSIS.md) | Whether the collapse depends on clip length — it does not, and why the naive short/long split says otherwise. |
 | [FLASHVID_RERUN_ANALYSIS.md](FLASHVID_RERUN_ANALYSIS.md) | Why nominally identical FlashVID re-runs differed, and the divergence scale that separates code drift from a real hyperparameter change. |
 | [backbones/](backbones/) | One page per backbone: architecture, which methods run on it, and per-category baseline. |
 | [methods/](methods/) | One page per method: the algorithm, our port, parameters, and how to reproduce it. |
