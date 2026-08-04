@@ -77,20 +77,22 @@ Two consequences:
 36.06 / 36.78 / 36.73 across keep 10/15/25%, recovering to 55.07% at keep
 100%. A controlled four-arm study shows the loss is independent of *which*
 tokens are kept, so this is a density threshold rather than a ranking failure
-(see [FASTV_COLLAPSE_ANALYSIS.md](FASTV_COLLAPSE_ANALYSIS.md)). The threshold
-lies between 25% and 100% and is not yet located. FastV's own 50% and 75%
-settings sit inside that unmeasured interval.
+(see [FASTV_COLLAPSE_ANALYSIS.md](FASTV_COLLAPSE_ANALYSIS.md)). **Closed:**
+keep 50% (the authors' K=2/R=50%, their own most-published setting), keep 75%,
+and K=3/R=50% all land at 35.7–36.8%, statistically indistinguishable from
+keep 10%. There is no threshold between 25% and 100% — the collapse is flat
+across the entire range FastV's authors validate, and recovery happens only
+at keep 100% (nothing discarded). Also closed: not a duration effect — see
+[DURATION_ANALYSIS.md](DURATION_ANALYSIS.md).
 
 **Broken independent of retention — the PruneVID *port* to LLaVA-OV only.**
 Flat at ~38% across 0.10/0.25/0.50 including the authors' ratio. On PruneVID's
 own backbone (PLLaVA-7B) the identical configuration scores 44.13%. Same
-answer-collapse signature as FastV (D-rate 46.1%). Because both LLaVA-OV ports
-express reduction through the same `PrunableDynamicCache.kv_cache` path, and
-that path is confirmed clean at 100% retention, the most likely account is the
-same density threshold reached by a different route: PruneVID's spatial merge
-at `cluster_ratio=0.5` operates *within* temporal segments covering a quarter
-of frames, so the effective visual budget is far below the nominal 50%. This is
-inference, not measurement — a `cluster_ratio=1.0` control is queued to test it.
+answer-collapse signature as FastV (D-rate 46.1%). **Closed:** `cluster_ratio=1.0`
+(disables spatial merge, keeps every token) scores 53.36%, +0.70 vs. the
+backbone and not significant (χ²=2.3) — the same recovery FastV's own
+`keepall` control shows. Same density threshold, reached by a different
+route.
 
 **Not broken.** DyCoke, FlashVID, HoliTom, MDP3, AIM, VideoITG and STTM all
 land within the ±1.54-point floor of the LLaVA-OV backbone, and all ten

@@ -1,10 +1,12 @@
 # FastV on LLaVA-OV: what breaks and why
 
-**Finding.** FastV loses 15.9 points on LLaVA-OV and the loss does not depend on
-which tokens it keeps. Selecting by attention, at random, or evenly across all
-32 frames scores within 1.1 points of each other. The same code path keeping
-every token recovers the backbone. This is a density threshold, not a ranking
-failure and not a bug.
+**Finding.** FastV loses 15.9 points on LLaVA-OV and the loss does not depend
+on which tokens it keeps, how much it keeps, or how long the source video is.
+Selecting by attention, at random, or evenly across all 32 frames scores
+within 1.1 points of each other. Keep 10% through keep 75% — including the
+authors' own K=2/R=50% setting — all land at 35.7–36.8%. Only keeping every
+token recovers the backbone, at every setting tried. This is a density
+threshold, not a ranking failure, not a duration effect, and not a bug.
 
 MotionBench, 4,018 scoreable, 32 frames, greedy. LLaVA-OV-7B baseline 52.66%,
 Qwen3-VL-8B baseline 62.52%. Resolution floor ±1.54 pt; McNemar χ² ≥ 3.84.
@@ -13,12 +15,23 @@ Qwen3-VL-8B baseline 62.52%. Resolution floor ±1.54 pt; McNemar χ² ≥ 3.84.
 
 ## 1. FastV across the board
 
-| Backbone | keep 10% | keep 15% | keep 25% | keep 100% | Span |
-|---|---:|---:|---:|---:|---:|
-| LLaVA-OV-7B | 36.06 | 36.78 | 36.73 | 55.07\* | **+0.67** |
-| Qwen3-VL-8B | 56.92 | 59.01 | 60.60 | 62.52 | **+3.68** |
+| Backbone | keep 10% | keep 15% | keep 25% | keep 50% | keep 75% | keep 100% |
+|---|---:|---:|---:|---:|---:|---:|
+| LLaVA-OV-7B | 36.06 | 36.78 | 36.73 | 36.34 | 35.69 | 55.07\* |
+| Qwen3-VL-8B | 56.92 | 59.01 | 60.60 | — | — | 62.52 |
 
-\*986-question subset, whose baseline is 54.36%. All other cells are full runs.
+\*986-question subset, whose baseline is 54.36%; `keepall` was only run there.
+All other LLaVA-OV cells are full 4,018-question runs. keep 50% is the
+authors' own K=2/R=50% setting; keep 75% is K=2/R=25%-drop. A K=3/R=50%
+variant scores 35.94 — the layer choice does not matter either.
+
+On LLaVA-OV the five discarding settings span **36.06 to 36.78**, a 0.72-point
+range from keep 10% to keep 75%. There is no threshold to locate between 25%
+and 100% — the collapse is flat across the entire range FastV's authors
+validate, and recovery happens only at keep 100%, where nothing is discarded
+at all. D-rate confirms it moves in lockstep: 46.2% at keep 50%, 45.7% at keep
+75%, against the collapse's usual ~47% (§2). Qwen3-VL, by contrast, responds
+to budget the whole way: +3.68 points from keep 10% to keep 25%.
 
 Per category at keep 15% (backbone in italics):
 
@@ -96,15 +109,24 @@ that we ran it in an untested *regime*: 6,273 visual tokens spanning 32 video
 frames, against 576 tokens of a single image. The keep-fraction transfers; the
 attention statistics it depends on evidently do not.
 
-## 5. Open
+## 5. PruneVID-OV shares the exact signature
 
-Where the threshold sits between 25% and 100% retention is not measured — the
-sweep covers 10–25%, entirely below it, and `keepall` is the only point above.
-FastV's own 50% and 75% settings fall in the untested interval. Jobs
-`s1_fastv_r50_run` and `s1_fastv_r75_run` are queued to locate it; see
-[RETENTION_DIAGNOSIS.md](RETENTION_DIAGNOSIS.md).
+`cluster_ratio=1.0` (`s1_prunevid_c100_run`) keeps every visual token through
+the same PruneVID code path that produces the 38.20% collapse at its default
+setting. Result: **53.36%, +0.70 vs. the backbone, χ² = 2.3 (not
+significant)** — the same recovery FastV's own `keepall` control showed. Two
+unrelated ports, on the same backbone, both intact with nothing discarded and
+both collapsed the moment anything is. The mechanism is not method-specific.
 
-## 6. Reproduce
+## 6. Closed
+
+The threshold question in the prior revision of this document is answered:
+there is no threshold between 25% and 100% to locate. FastV is flat at ~36%
+for every discarding setting from keep 10% to keep 75%, including its own
+published K=2/R=50% operating point, and recovers only when discarding stops
+entirely. The open item is retired.
+
+## 7. Reproduce
 
 ```bash
 cd analysis/fastv-selection-study
