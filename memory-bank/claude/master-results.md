@@ -124,7 +124,7 @@ Action Order 519 · Camera Motion 385 · Location-related Motion 546 · Motion R
 | "PruneVID (OV port)" | 52.66% | **0/8052** differ from the inert run. VTP never fired |
 | "VisionZip" (old) | 0.00% ×3 | Output-slicing bug (fixed) discarded every response |
 | "VideoITG (simplified)" | 34.89% | Single-stage, no grounding — not the method |
-| "FlashVID (qwen15)" | 51.22% | Ran at retention 0.10 with the wrong model class. **The `qwen15` label is a red herring** — `qwen_1_5` and `qwen_2` render byte-identical prompts, so the template explains none of the 2.14% gap ([analysis](../../docs/FLASHVID_RERUN_ANALYSIS.md)) |
+| "FlashVID (qwen15)" | 51.22% | Ran at retention 0.10 with the wrong model class. **The `qwen15` label is a red herring** — `qwen_1_5` and `qwen_2` render byte-identical prompts, so the template explains none of the 2.14% gap ([analysis](../../docs/FASTV_FLASHVID_ANALYSIS.md#22-why-the-poor-number-moved-before--reproducibility-forensics)) |
 
 **PruneVID** (real, on PLLaVA-7B) = **44.13%** — see §5 Other backbones.
 

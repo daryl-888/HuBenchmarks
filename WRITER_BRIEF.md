@@ -43,8 +43,7 @@ Start at [docs/README.md](docs/README.md). It is the hub and links everything.
 | [docs/DETERMINISM_AND_VALIDITY.md](docs/DETERMINISM_AND_VALIDITY.md) | Why re-runs reproduce exactly; where the methodology is weak |
 | [docs/VALIDITY_ASSESSMENT.md](docs/VALIDITY_ASSESSMENT.md) | Self-audit, honesty and scoring ratings per layer |
 | [docs/UPSTREAM_DEFECTS.md](docs/UPSTREAM_DEFECTS.md) | Defects found in the authors' released code |
-| [docs/FASTV_COLLAPSE_ANALYSIS.md](docs/FASTV_COLLAPSE_ANALYSIS.md) | Why FastV collapses on LLaVA-OV — resolved: a hard density floor at 15% retention, not a harness bug |
-| [docs/FLASHVID_RERUN_ANALYSIS.md](docs/FLASHVID_RERUN_ANALYSIS.md) | Why nominally identical FlashVID re-runs differed |
+| [docs/FASTV_FLASHVID_ANALYSIS.md](docs/FASTV_FLASHVID_ANALYSIS.md) | Why FastV collapses on LLaVA-OV (resolved: a hard density floor) and why FlashVID underperforms on Qwen3-VL (open: authors'-code re-run pending) |
 | [docs/RETENTION_TABLES.md](docs/RETENTION_TABLES.md) | 16-cell retention sweep, both backbones |
 | [docs/SAMPLED_DISTRIBUTION.md](docs/SAMPLED_DISTRIBUTION.md) | Answer distribution under sampling (NOT comparable to gated runs) |
 | [memory-bank/claude/master-results.md](memory-bank/claude/master-results.md) | Long-form running log; the most detailed per-method notes |
@@ -133,7 +132,7 @@ fetched or has not finished.** Do not infer its value. Ask for it.
   out to be no-ops, and analyses that remain open are the substance of this
   project, not blemishes on it.
 - Where a conclusion is not yet settled, mark it open and state what experiment
-  would settle it. `docs/FASTV_COLLAPSE_ANALYSIS.md` §7 is the model for this.
+  would settle it. `docs/FASTV_FLASHVID_ANALYSIS.md` §1.6 is the model for this.
 
 ## 7. House style
 
@@ -175,7 +174,7 @@ tokens evenly across every frame (χ²=1.54). **Both numbers are real.** The
 mechanism is a hard density floor: at 15% retention, discarding tokens on this
 backbone degrades to ~38% regardless of which tokens are kept — which is also
 why the two structurally unrelated methods land on the same number. Full
-writeup: [docs/FASTV_COLLAPSE_ANALYSIS.md](docs/FASTV_COLLAPSE_ANALYSIS.md) §7.
+writeup: [docs/FASTV_FLASHVID_ANALYSIS.md](docs/FASTV_FLASHVID_ANALYSIS.md) §1.2.
 
 This is safe to cite. It is **not** yet known where the recovery threshold sits
 between 25% and 100% retention — don't imply that's been located.
@@ -217,7 +216,7 @@ Non-negotiable constraints:
 - Don't soften negative results. No-op ports, methods that lost accuracy, and
   unresolved analyses are the substance of this project.
 - Mark open questions open and state what experiment would settle them.
-  docs/FASTV_COLLAPSE_ANALYSIS.md §7 is the model for this.
+  docs/FASTV_FLASHVID_ANALYSIS.md §1.6 is the model for this.
 
 One item is in flight and must stay marked open until it lands: samp_flashvid
 (job 7942019). A separate agent owns the cluster connection and will supply

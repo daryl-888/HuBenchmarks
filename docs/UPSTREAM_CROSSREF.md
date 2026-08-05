@@ -75,7 +75,7 @@ not installed in the `qwen3vl` env, and separately their patched
 `Qwen3VLVisionModel_forward` drops the `.to(hidden_states.dtype)` cast that
 stock `transformers` applies to interpolated position embeddings — a real
 regression in the released code, not an environment gap. Status and fix in
-progress; see [FLASHVID_OFFICIAL_RERUN.md](FLASHVID_OFFICIAL_RERUN.md).
+progress; see [FASTV_FLASHVID_ANALYSIS.md](FASTV_FLASHVID_ANALYSIS.md) §2.
 
 ## 3. Configurations that match no published setting
 
@@ -137,7 +137,7 @@ the authors' stated video setting is **K=2, R=50%**. Now run
 (`s1_fastv_r50_run`, and `s1_fastv_k3r50_run` for the README's K=3/R=50% row):
 **36.34% and 35.94%**, statistically indistinguishable from keep-15%'s 36.78%.
 The published operating point does not recover the collapse — see
-[FASTV_COLLAPSE_ANALYSIS.md](FASTV_COLLAPSE_ANALYSIS.md) §1.
+[FASTV_FLASHVID_ANALYSIS.md](FASTV_FLASHVID_ANALYSIS.md) §1.
 
 ### AIM — faithful run, wrong recorded metadata
 
@@ -195,10 +195,10 @@ with the other rows on that backbone.
 | Run dir | Result | Consequence |
 |---|---|---|
 | `s3_sttm_pub_run` | 61.60%, −0.92 vs Qwen3-VL backbone, not significant | replaces the off-spec `root_level=0 / -1.0` cell (−5.45); STTM is accuracy-neutral on Qwen3-VL at a published setting, matching its LLaVA-OV result |
-| `s1_fastv_r50_run`, `s1_fastv_k3r50_run` | 36.34%, 35.94% | published K=2/R=50% and K=3/R=50% land in the same collapse band as keep-15%; see [FASTV_COLLAPSE_ANALYSIS.md](FASTV_COLLAPSE_ANALYSIS.md) |
+| `s1_fastv_r50_run`, `s1_fastv_k3r50_run` | 36.34%, 35.94% | published K=2/R=50% and K=3/R=50% land in the same collapse band as keep-15%; see [FASTV_FLASHVID_ANALYSIS.md](FASTV_FLASHVID_ANALYSIS.md) |
 | `s1_fastv_r75_run` | 35.69% | keep-75% also collapses; the flat range now spans keep 10–75% |
 | `s1_prunevid_c100_run` | 53.36%, +0.70, not significant | `cluster_ratio=1.0` recovers, matching FastV's own `keepall` control — same density-threshold cause |
-| `s3_flashvid_official_run` | in progress | blocked twice: a dtype crash in the authors' code (fixed locally) then a hard FlashAttention-2 requirement with no matching prebuilt wheel on this cluster (building from source). See [FLASHVID_OFFICIAL_RERUN.md](FLASHVID_OFFICIAL_RERUN.md). |
+| `s3_flashvid_official_run` | in progress | blocked twice: a dtype crash in the authors' code (fixed locally) then a hard FlashAttention-2 requirement with no matching prebuilt wheel on this cluster (building from source). See [FASTV_FLASHVID_ANALYSIS.md](FASTV_FLASHVID_ANALYSIS.md) §2. |
 
 **Unresolvable.** PruneVID on LLaVA-OneVision has no released reference
 implementation, so our port cannot be validated against anything. AIM's clone

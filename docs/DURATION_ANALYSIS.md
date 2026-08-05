@@ -6,7 +6,7 @@ short-clip penalty; that appearance is entirely question-type mix and a floor
 effect. Once question type is held fixed the gap is **+0.09 points**.
 
 This closes a plausible alternative to the density-threshold explanation in
-[FASTV_COLLAPSE_ANALYSIS.md](FASTV_COLLAPSE_ANALYSIS.md).
+[FASTV_FLASHVID_ANALYSIS.md](FASTV_FLASHVID_ANALYSIS.md) §1.
 
 MotionBench durations come from `video_info.duration`, cached to
 `results-cache/_video_durations.json`. Median 5.76 s, range 0.60–49.96 s, so a

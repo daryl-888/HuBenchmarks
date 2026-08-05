@@ -77,7 +77,7 @@ Two consequences:
 36.06 / 36.78 / 36.73 across keep 10/15/25%, recovering to 55.07% at keep
 100%. A controlled four-arm study shows the loss is independent of *which*
 tokens are kept, so this is a density threshold rather than a ranking failure
-(see [FASTV_COLLAPSE_ANALYSIS.md](FASTV_COLLAPSE_ANALYSIS.md)). **Closed:**
+(see [FASTV_FLASHVID_ANALYSIS.md](FASTV_FLASHVID_ANALYSIS.md) §1). **Closed:**
 keep 50% (the authors' K=2/R=50%, their own most-published setting), keep 75%,
 and K=3/R=50% all land at 35.7–36.8%, statistically indistinguishable from
 keep 10%. There is no threshold between 25% and 100% — the collapse is flat
