@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH -J ovqwen2_flashvid_motionbench
-#SBATCH -o /project/rhu/dpalfaro/results/flashvid_%j.out
-#SBATCH -e /project/rhu/dpalfaro/results/flashvid_%j.err
+#SBATCH -J s1_flashvid_run
+#SBATCH -o /project/rhu/dpalfaro/results/s1_flashvid_run_%j.out
+#SBATCH -e /project/rhu/dpalfaro/results/s1_flashvid_run_%j.err
 #SBATCH -N 1
 #SBATCH -n 8
 #SBATCH --gpus=ada:1
@@ -33,8 +33,7 @@ cd /project/rhu/dpalfaro
     --num_frames 32 \
     --conv-template qwen_2 \
     --enable-flashvid \
-    --retention-ratio 0.25 \
+    --retention-ratio 0.15 \
     --alpha 0.7 \
     --temporal-threshold 0.8 \
-     \
     --max-new-tokens 16

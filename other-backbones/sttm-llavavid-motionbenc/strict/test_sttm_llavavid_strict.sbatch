@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH -J sttm_llavavid_test
-#SBATCH -o /project/rhu/dpalfaro/results/sttm_llavavid_test_%j.out
-#SBATCH -e /project/rhu/dpalfaro/results/sttm_llavavid_test_%j.err
+#SBATCH -J ob_sttm-llavavid_strict_sttm_llavavid_strict2
+#SBATCH -o /project/rhu/dpalfaro/results/ob_sttm-llavavid_strict_sttm_llavavid_strict2_%j.out
+#SBATCH -e /project/rhu/dpalfaro/results/ob_sttm-llavavid_strict_sttm_llavavid_strict2_%j.err
 #SBATCH -N 1
 #SBATCH -n 8
 #SBATCH --gpus=ada:1

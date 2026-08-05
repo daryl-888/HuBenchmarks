@@ -1,9 +1,9 @@
 #!/bin/bash
 # VideoITG Stage 2: LLaVA-OV-7B inference with VideoITG-selected frames.
 # Requires grounding.sbatch to have completed first.
-#SBATCH -J ovqwen2_videoitg_motionbench
-#SBATCH -o /project/rhu/dpalfaro/results/videoitg_%j.out
-#SBATCH -e /project/rhu/dpalfaro/results/videoitg_%j.err
+#SBATCH -J s1_videoitg_run
+#SBATCH -o /project/rhu/dpalfaro/results/s1_videoitg_run_%j.out
+#SBATCH -e /project/rhu/dpalfaro/results/s1_videoitg_run_%j.err
 #SBATCH -N 1
 #SBATCH -n 8
 #SBATCH --gpus=ada:1

@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH -J aim_test
-#SBATCH -o /project/rhu/dpalfaro/results/aim_test_%j.out
-#SBATCH -e /project/rhu/dpalfaro/results/aim_test_%j.err
+#SBATCH -J s3_aim_smoke
+#SBATCH -o /project/rhu/dpalfaro/results/s3_aim_smoke_%j.out
+#SBATCH -e /project/rhu/dpalfaro/results/s3_aim_smoke_%j.err
 #SBATCH -N 1
 #SBATCH -n 8
 #SBATCH --gpus=ada:1
@@ -37,10 +37,7 @@ cd /project/rhu/dpalfaro
     -m lmms_eval \
     --model llava_onevision \
     --model_args pretrained=/project/rhu/dpalfaro/weights/llava-ov-7b,conv_template=qwen_2,model_name=llava_qwen,attn_implementation=eager \
-     \
-     \
     --limit 50 \
-     \
     _suffix aim_test \
     --output_path /project/rhu/dpalfaro/results/aim_test_${SLURM_JOB_ID} \
     

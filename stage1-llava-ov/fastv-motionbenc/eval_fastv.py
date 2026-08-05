@@ -37,34 +37,259 @@ import torch
 from tqdm import tqdm
 
 
-VIDEO_BASE  = "/project/rhu/MotionBench_Data/MotionBench"
+# Dataset root. Override with $MOTIONBENCH (see config/paths.sh)
+VIDEO_BASE = os.environ.get("MOTIONBENCH", "/project/rhu/MotionBench_Data/MotionBench")
 POST_PROMPT = "\nAnswer with the option's letter from the given choices directly."
 
 
 # ---------------------------------------------------------------------------
-# FastV porting target
+# FastV — paper-exact port of the authors' attention-rerank pruning to Qwen2
 # ---------------------------------------------------------------------------
+#
+# Faithful to the reference implementation:
+#   FastV/src/transformers/src/transformers/models/llama/modeling_llama.py
+# (the decoder-loop "Attention Rerank" block). FastV's real mechanism is NOT
+# KV-cache index-dropping — it is ATTENTION MASKING:
+#
+#   Params (paper naming): SYS_LENGTH (prefix before image block),
+#     IMAGE_TOKEN_LENGTH, ATTENTION_RANK (# image tokens to KEEP), AGG_LAYER (=K).
+#   - layers < K: normal causal mask.
+#   - at layer K: take the PREVIOUS layer's attention (layer_outputs[1]), average
+#     over heads, take the LAST query row, slice the image span, topk(ATTENTION_RANK)
+#     to pick the kept image tokens, then build a boolean keep-mask that sets every
+#     OTHER image token to False. Pruned tokens stay in the sequence but every
+#     layer >= K ignores them.
+#   - layers > K: reuse that same generated mask.
+#
+# We reproduce this exactly by wrapping Qwen2Model.forward. The image span is the
+# authoritative [SYS_LENGTH : SYS_LENGTH + IMAGE_TOKEN_LENGTH], where
+# IMAGE_TOKEN_LENGTH is the real vision-token count LLaVA-OV computes per sample
+# (self.model.lengeh_vision_token, set in prepare_inputs_labels_for_multimodal;
+# see llava_arch.py). SYS_LENGTH = 14 (qwen_1_5 preamble).
+#
+# The paper expresses the drop as ATTENTION_RANK (keep count); our CLI takes
+# fastv_r (drop fraction) for consistency with the sbatch, and converts:
+#   ATTENTION_RANK = round(IMAGE_TOKEN_LENGTH * (1 - fastv_r)).
+
+IMAGE_TOKEN_START_INDEX = 14  # SYS_LENGTH: qwen_1_5 preamble before the image block
+
+
 def apply_fastv(model, fastv_k: int, fastv_r: float):
     """
-    Wrap model with FastV attention-based token pruning.
+    Install FastV attention-rerank pruning on this LLaVA-OV Qwen2 model by
+    wrapping Qwen2Model.forward. Reproduces the authors' modeling_llama.py block.
 
-    fastv_k: LLM layer index at which to prune (0-indexed). FastV paper uses k=2.
-    fastv_r: fraction of image tokens to DROP. 0.5 drops the least-attended 50%.
+    fastv_k: AGG_LAYER — layer index at which to rerank/prune (paper default: 2).
+    fastv_r: fraction of image tokens to DROP (paper default: 0.5).
 
-    PORT NEEDED: Implement Qwen2 forward-pass pruning here.
-    Reference:   FastV/src/FastV/llava-hf/transformers/.../modeling_llama.py
-    Steps:
-      - Patch model.model.forward() (Qwen2Model.forward) to intercept after layer k.
-      - Use register_forward_hook on model.model.layers[fastv_k] to capture attn weights.
-      - After hook fires: identify image token indices, rank by received attention,
-        remove bottom fastv_r fraction from hidden_states and update attention_mask.
-      - The tricky part: KV cache and position_ids for layers k+1 onward must be sliced.
-      - Requires attn_implementation="eager" (FlashAttention doesn't expose attn weights).
+    Requires attn_implementation="eager" (needs per-layer attention weights).
     """
-    raise NotImplementedError(
-        "FastV requires porting to LLaVA-OV's Qwen1.5 backbone. "
-        "See the docstring above for the algorithm and reference files."
-    )
+    import types
+    import torch as _torch
+
+    inner = model.model  # Qwen2Model
+    orig_forward = inner.forward
+
+    def fastv_forward(self, *args, **kwargs):
+        if not getattr(self, "_fastv_entered", False):
+            import logging
+            def _d(x):
+                return (f"T{tuple(x.shape)}{'f' if x.is_floating_point() else 'i'}"
+                        if isinstance(x, _torch.Tensor) else type(x).__name__)
+            logging.warning("FastV: ENTERED args=[%s] kwargs={%s}",
+                            ", ".join(_d(a) for a in args),
+                            ", ".join(f"{k}:{_d(v)}" for k, v in kwargs.items()))
+            self._fastv_entered = True
+        # Normalize call to kwargs so we can read/inspect uniformly.
+        # LlavaQwenForCausalLM calls self.model(...) with keyword args.
+        inputs_embeds = kwargs.get("inputs_embeds", None)
+        input_ids = kwargs.get("input_ids", None)
+
+        # LLaVA may pass these POSITIONALLY (Qwen2Model.forward signature starts
+        # input_ids, attention_mask, position_ids, past_key_values, inputs_embeds).
+        # Relying on kwargs alone left seq_len=None, so the wrapper always bailed
+        # at the prefill check and never pruned. Scan args for the first 3-D float
+        # tensor (inputs_embeds) or 2-D long tensor (input_ids).
+        if inputs_embeds is None and input_ids is None:
+            for a in args:
+                if not isinstance(a, _torch.Tensor):
+                    continue
+                if a.dim() == 3 and a.is_floating_point() and inputs_embeds is None:
+                    inputs_embeds = a
+                elif a.dim() == 2 and not a.is_floating_point() and input_ids is None:
+                    input_ids = a
+
+        seq_len = None
+        if inputs_embeds is not None:
+            seq_len = inputs_embeds.shape[1]
+        elif input_ids is not None:
+            seq_len = input_ids.shape[1]
+
+        # Only rerank on the prefill pass (seq > 1). Decode steps are untouched.
+        if seq_len is None or seq_len <= 1:
+            return orig_forward(*args, **kwargs)
+
+        # The vision-token count is stashed by prepare_inputs_labels_for_multimodal.
+        # It may live on the inner Qwen2Model (self) OR on the outer
+        # LlavaQwenForCausalLM, and DyCoke also mirrors it onto DycokeConfig.
+        # It also arrives as an explicit KWARG on this build (seen in the trace),
+        # though LLaVA passes None when it didn't compute one.
+        img_len = kwargs.get("lengeh_vision_token", None)
+        if img_len is None:
+            img_len = getattr(self, "lengeh_vision_token", None)
+        if img_len is None:
+            img_len = getattr(model, "lengeh_vision_token", None)
+        if img_len is None:
+            cfg = getattr(self, "DycokeConfig", None)
+            img_len = getattr(cfg, "image_token_length", None) if cfg else None
+        if isinstance(img_len, _torch.Tensor):
+            img_len = int(img_len.item())
+        if img_len is not None:
+            img_len = int(img_len)
+        if (img_len is None or img_len <= 0) and seq_len is not None:
+            # Fallback: LLaVA-OV expands the single <image> placeholder into the
+            # visual embeddings, so the prefill sequence is (text prompt tokens)
+            # + (vision tokens). The text tail after the image block is short and
+            # fixed by the template; derive the image span from the prefill length
+            # minus the preamble and the tokenized question tail.
+            tail = getattr(self, "_fastv_text_tail", None)
+            if tail is not None and seq_len - IMAGE_TOKEN_START_INDEX - tail > 0:
+                img_len = seq_len - IMAGE_TOKEN_START_INDEX - tail
+        if img_len is None or img_len <= 0:
+            # No vision tokens located -> cannot prune. Report exactly WHY so this
+            # is diagnosable from one run instead of another guess-and-submit cycle.
+            if not getattr(self, "_fastv_warned", False):
+                import logging
+                cfg = getattr(self, "DycokeConfig", None)
+                logging.warning(
+                    "FastV UNPRUNED: seq_len=%s inner.lengeh=%r outer.lengeh=%r "
+                    "DycokeConfig=%r cfg.image_token_length=%r text_tail=%r "
+                    "cache=%s",
+                    seq_len,
+                    getattr(self, "lengeh_vision_token", "ABSENT"),
+                    getattr(model, "lengeh_vision_token", "ABSENT"),
+                    "present" if cfg else "ABSENT",
+                    getattr(cfg, "image_token_length", "ABSENT") if cfg else "n/a",
+                    getattr(self, "_fastv_text_tail", "ABSENT"),
+                    type(kwargs.get("past_key_values", None)).__name__,
+                )
+                self._fastv_warned = True
+            return orig_forward(*args, **kwargs)
+
+        sys_len = IMAGE_TOKEN_START_INDEX
+        keep = max(1, int(round(img_len * (1 - fastv_r))))
+
+        # IMPORTANT — why this uses the KV-cache route, not an attention mask:
+        # this LLaVA build's patched Qwen2Model.forward calls every decoder layer
+        # with attention_mask=None (DyCoke relies on cache-index pruning instead).
+        # An additive-mask hook is therefore silently dropped, and forcing
+        # output_attentions=True also shifts the layer_outputs tuple layout that
+        # `next_decoder_cache = layer_outputs[2 if output_attentions else 1]`
+        # depends on — which produced empty generations. So we express FastV's
+        # policy through the mechanism this build actually honours:
+        # PrunableDynamicCache.kv_cache — the list of kept token indices. Setting
+        # it once makes update() gather only those tokens for all later layers and
+        # every decode step, which is exactly FastV's "prune once at layer K".
+        #
+        # We capture layer K's attention with a hook (so we do NOT have to enable
+        # output_attentions globally) and then set kv_cache.
+        state = {"done": False}
+
+        def _capture(module, args_, kwargs_, output):
+            # Runs after layer fastv_k's self-attn. Under eager attention the
+            # module returns (attn_output, attn_weights, past_kv).
+            if state["done"]:
+                return output
+            attn = output[1] if isinstance(output, tuple) and len(output) > 1 else None
+            if attn is None:
+                return output
+            # past_key_values is None on the PREFILL call (trace confirmed) — the
+            # PrunableDynamicCache is created inside Qwen2Model.forward. So look
+            # for it where it actually exists at this moment: on the attention
+            # module itself, on the owning layer, or in the call's own kwargs.
+            cache = None
+            for cand in (kwargs.get("past_key_values", None),
+                         getattr(module, "past_key_value", None),
+                         kwargs_.get("past_key_value", None) if isinstance(kwargs_, dict) else None):
+                if cand is not None and hasattr(cand, "kv_cache"):
+                    cache = cand
+                    break
+            if cache is None:
+                for a in list(args) + list(args_ or ()):
+                    if hasattr(a, "kv_cache"):
+                        cache = a
+                        break
+            if cache is None:
+                if not getattr(self, "_fastv_nocache", False):
+                    import logging
+                    logging.warning("FastV: no PrunableDynamicCache reachable at layer %d "
+                                    "(module=%s) — cannot prune", fastv_k, type(module).__name__)
+                    self._fastv_nocache = True
+                return output
+            # FastV ranking: average over heads, take the LAST query row, slice the
+            # image span, keep the top-`keep` (== ATTENTION_RANK) image tokens.
+            avg_last = attn.mean(dim=1)[0, -1]                 # (kv_len,)
+            img_scores = avg_last[sys_len:sys_len + img_len]
+            top = (img_scores.topk(keep).indices + sys_len).sort()[0]
+            total = avg_last.shape[0]
+            full = _torch.arange(total, device=attn.device)
+            keep_idx = _torch.cat([full[:sys_len], top, full[sys_len + img_len:]])
+            cache.kv_cache = keep_idx.tolist()
+            state["done"] = True
+            if not getattr(self, "_fastv_logged", False):
+                import logging
+                logging.warning(
+                    "FastV ACTIVE: img_len=%d keep=%d (dropped %d) seq=%d",
+                    img_len, keep, img_len - keep, total)
+                self._fastv_logged = True
+            self._fastv_pruned_tokens = img_len - keep
+            return output
+
+        # Only layer K needs real attention weights. Loading the WHOLE model as
+        # eager breaks generation on this build (A/B job 7769959 -> empty output),
+        # so we temporarily route just this one module through the eager forward
+        # and restore it immediately afterwards.
+        target = self.layers[fastv_k].self_attn
+        h_cap = target.register_forward_hook(_capture, with_kwargs=True)
+
+        def _want_attn(module, args_, kwargs_):
+            kw = dict(kwargs_)
+            kw["output_attentions"] = True
+            return (args_, kw)
+
+        h_pre = target.register_forward_pre_hook(_want_attn, with_kwargs=True)
+
+        # Swap this module's class to the eager implementation for the call.
+        prev_cls = type(target)
+        eager_cls = None
+        try:
+            from transformers.models.qwen2 import modeling_qwen2 as _mq
+            eager_cls = getattr(_mq, "Qwen2Attention", None)
+        except Exception:
+            eager_cls = None
+        swapped = False
+        if eager_cls is not None and prev_cls is not eager_cls:
+            try:
+                target.__class__ = eager_cls
+                swapped = True
+            except Exception:
+                swapped = False
+        try:
+            return orig_forward(*args, **kwargs)
+        finally:
+            if swapped:
+                target.__class__ = prev_cls
+            h_cap.remove()
+            h_pre.remove()
+
+    import logging as _lg
+    _lg.warning("FastV: installing wrapper on %s (k=%d, r=%.2f)",
+                type(inner).__name__, fastv_k, fastv_r)
+    inner.forward = types.MethodType(fastv_forward, inner)
+    model.config._fastv_enabled = True
+    model.config._fastv_k = fastv_k
+    model.config._fastv_r = fastv_r
+    return model
 
 
 # ---------------------------------------------------------------------------
@@ -73,8 +298,13 @@ def apply_fastv(model, fastv_k: int, fastv_r: float):
 def load_model(model_path: str, fastv_k: int, fastv_r: float, enable_fastv: bool):
     from llava.model.builder import load_pretrained_model
 
-    # FastV requires eager attention so attn weights are accessible
-    attn_impl = "eager" if enable_fastv else "sdpa"
+    # NOTE: do NOT load the whole model with attn_implementation="eager".
+    # Verified by A/B test (job 7769959): loading this LLaVA-OV build with eager
+    # attention produces EMPTY generations for every sample, while sdpa produces
+    # correct output — independently of FastV. FastV instead flips only layer K's
+    # attention module to eager at runtime (see apply_fastv), so the rest of the
+    # model keeps the working sdpa path.
+    attn_impl = "sdpa"
     tokenizer, model, image_processor, _ = load_pretrained_model(
         model_path, None, "llava_qwen",
         attn_implementation=attn_impl,
@@ -129,13 +359,14 @@ def load_frames(video_path: str, num_frames: int):
 # Inference
 # ---------------------------------------------------------------------------
 @torch.inference_mode()
-def run_inference(tokenizer, model, image_processor, frames, question):
+def run_inference(tokenizer, model, image_processor, frames, question,
+                  conv_template: str = "qwen_2"):
     from llava.mm_utils import tokenizer_image_token
     from llava.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN
     from llava.conversation import conv_templates
 
     user_msg = DEFAULT_IMAGE_TOKEN + "\n" + question + POST_PROMPT
-    conv = conv_templates["qwen_1_5"].copy()
+    conv = conv_templates[conv_template].copy()
     conv.append_message(conv.roles[0], user_msg)
     conv.append_message(conv.roles[1], None)
     prompt_str = conv.get_prompt()
@@ -143,6 +374,17 @@ def run_inference(tokenizer, model, image_processor, frames, question):
     input_ids = tokenizer_image_token(
         prompt_str, tokenizer, IMAGE_TOKEN_INDEX, return_tensors="pt"
     ).unsqueeze(0).cuda()
+
+    # Tell FastV how many TEXT tokens follow the image block, so it can locate the
+    # visual span even when lengeh_vision_token isn't populated. input_ids holds
+    # the prompt with a single IMAGE_TOKEN_INDEX placeholder; everything after it
+    # is the question + assistant tag.
+    try:
+        ids = input_ids[0].tolist()
+        img_pos = ids.index(IMAGE_TOKEN_INDEX)
+        model.model._fastv_text_tail = len(ids) - img_pos - 1
+    except (ValueError, AttributeError):
+        pass
 
     images = image_processor.preprocess(frames, return_tensors="pt")["pixel_values"]
     images = images.to(dtype=model.dtype, device="cuda")
@@ -193,6 +435,8 @@ def main():
     parser.add_argument("--meta_path", required=True)
     parser.add_argument("--output_dir", required=True)
     parser.add_argument("--num_frames", type=int, default=32)
+    parser.add_argument("--conv_template", default="qwen_2",
+                        help="must match the backbone (DyCoke uses qwen_2)")
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--fastv", action="store_true",
                         help="Apply FastV pruning (requires Qwen port — see apply_fastv())")
@@ -237,7 +481,8 @@ def main():
         else:
             try:
                 frames     = load_frames(video_path, args.num_frames)
-                prediction = run_inference(tokenizer, model, image_processor, frames, question)
+                prediction = run_inference(tokenizer, model, image_processor, frames, question,
+                                           conv_template=args.conv_template)
             except Exception as e:
                 print(f"  [WARN] sample {i} ({sample['video_path']}): {e}", file=sys.stderr)
                 prediction = ""

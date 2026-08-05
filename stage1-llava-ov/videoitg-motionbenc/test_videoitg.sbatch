@@ -1,9 +1,9 @@
 #!/bin/bash
 # VideoITG Stage 2 test — 50 samples. Run after test_grounding.sbatch.
 # Update GROUNDING_JSONL with the job ID from the grounding step.
-#SBATCH -J ovqwen2_videoitg_test
-#SBATCH -o /project/rhu/dpalfaro/results/videoitg_test_%j.out
-#SBATCH -e /project/rhu/dpalfaro/results/videoitg_test_%j.err
+#SBATCH -J s1_videoitg_smoke2
+#SBATCH -o /project/rhu/dpalfaro/results/s1_videoitg_smoke2_%j.out
+#SBATCH -e /project/rhu/dpalfaro/results/s1_videoitg_smoke2_%j.err
 #SBATCH -N 1
 #SBATCH -n 8
 #SBATCH --gpus=ada:1
@@ -36,3 +36,10 @@ GROUNDING_JSONL=/project/rhu/dpalfaro/results/videoitg_test_grounding_${GROUNDIN
     --output_dir      /project/rhu/dpalfaro/results/videoitg_test_${SLURM_JOB_ID} \
     --num_frames      32 \
     --limit 50
+
+OUTDIR=/project/rhu/dpalfaro/results/videoitg_test_${SLURM_JOB_ID}
+
+echo "=== GATE: did the method actually engage? ==="
+python3 /project/rhu/dpalfaro/code/HuVLLM_scripts/check_run.py "${OUTDIR}" \
+    --expect-method videoitg \
+    --vs-baseline /project/rhu/dpalfaro/results/fastv_run1 --smoke || echo "GATE FAILED - do not record this run"

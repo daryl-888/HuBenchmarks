@@ -1,8 +1,8 @@
 #!/bin/bash
 # VideoITG Stage 1 test — 50 samples
-#SBATCH -J videoitg_test_grounding
-#SBATCH -o /project/rhu/dpalfaro/results/videoitg_test_grounding_%j.out
-#SBATCH -e /project/rhu/dpalfaro/results/videoitg_test_grounding_%j.err
+#SBATCH -J s3_videoitg_strict_grounding_strict2
+#SBATCH -o /project/rhu/dpalfaro/results/s3_videoitg_strict_grounding_strict2_%j.out
+#SBATCH -e /project/rhu/dpalfaro/results/s3_videoitg_strict_grounding_strict2_%j.err
 #SBATCH -N 1
 #SBATCH -n 8
 #SBATCH --gpus=ada:1

@@ -1,4 +1,10 @@
-# HuBenchMarks
+# HuBenchMarks — internal cluster-ops runbook
+
+> **New here? Start at [docs/README.md](docs/README.md), not this file.** This is the
+> internal operations runbook for our specific UH Carya environment (SLURM commands,
+> exact cluster paths, patch application, env quirks). It is kept for provenance and
+> for anyone reproducing on a similar HPC setup. The replication documentation lives
+> in [`docs/`](docs/).
 
 Evaluating video LLMs on MotionBench on UH Carya. Each subdirectory is one model.
 

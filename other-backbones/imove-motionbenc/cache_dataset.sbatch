@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH -J cache_motionbench
-#SBATCH -o /project/rhu/dpalfaro/results/cache_%j.out
-#SBATCH -e /project/rhu/dpalfaro/results/cache_%j.err
+#SBATCH -J ob_imove_run_cache_dataset
+#SBATCH -o /project/rhu/dpalfaro/results/ob_imove_run_cache_dataset_%j.out
+#SBATCH -e /project/rhu/dpalfaro/results/ob_imove_run_cache_dataset_%j.err
 #SBATCH -N 1
 #SBATCH -n 8
 #SBATCH --mem=32G

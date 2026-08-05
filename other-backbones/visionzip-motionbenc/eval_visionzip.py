@@ -38,7 +38,8 @@ import torch
 from tqdm import tqdm
 
 
-VIDEO_BASE  = "/project/rhu/MotionBench_Data/MotionBench"
+# Dataset root. Override with $MOTIONBENCH (see config/paths.sh)
+VIDEO_BASE = os.environ.get("MOTIONBENCH", "/project/rhu/MotionBench_Data/MotionBench")
 POST_PROMPT = "\nAnswer with the option's letter from the given choices directly."
 
 
@@ -133,9 +134,17 @@ def run_inference(tokenizer, model, image_processor, conv_template, frames, ques
         use_cache=True,
     )
 
-    # Slice off the input tokens so we only decode the newly generated response.
-    new_tokens = output_ids[:, input_ids.shape[1]:]
-    return tokenizer.batch_decode(new_tokens, skip_special_tokens=True)[0].strip()
+    # NOTE: LLaVA-1.5's generate() returns ONLY the newly generated tokens — the
+    # prompt is not prepended (the <image> placeholder is expanded into visual
+    # embeddings internally, so input_ids.shape[1] does not correspond to the
+    # output's prefix length at all). Slicing by input_ids.shape[1] therefore
+    # discarded the entire response and produced 100% EMPTY predictions.
+    # Decode output_ids directly, exactly as the working DyCoke/FastV evals do.
+    # Guard anyway in case a future version starts echoing the prompt.
+    if output_ids.shape[1] > input_ids.shape[1] and \
+            torch.equal(output_ids[:, :input_ids.shape[1]], input_ids):
+        output_ids = output_ids[:, input_ids.shape[1]:]
+    return tokenizer.batch_decode(output_ids, skip_special_tokens=True)[0].strip()
 
 
 # ---------------------------------------------------------------------------
@@ -252,6 +261,7 @@ def main():
         "total_samples":    len(results),
         "model":            args.model_path,
         "visionzip_params": {
+            "enabled": True,
             "dominant":    args.dominant,
             "contextual":  args.contextual,
             "num_frames":  args.num_frames,

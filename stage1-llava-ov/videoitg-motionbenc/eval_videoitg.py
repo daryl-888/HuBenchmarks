@@ -17,14 +17,15 @@ PYTHONPATH: /project/rhu/dpalfaro/code/DyCoke
 import argparse, json, os, re, sys
 import torch
 from tqdm import tqdm
-VIDEO_BASE="/project/rhu/MotionBench_Data/MotionBench"
+# Dataset root. Override with $MOTIONBENCH (see config/paths.sh)
+VIDEO_BASE = os.environ.get("MOTIONBENCH", "/project/rhu/MotionBench_Data/MotionBench")
 POST_PROMPT="\nAnswer with the option's letter from the given choices directly."
 
 def load_model(model_path):
     import sys as _sys
     _sys.path.insert(0,"/project/rhu/dpalfaro/code/DyCoke")
     from llava.model.builder import load_pretrained_model
-    t,m,ip,_=load_pretrained_model(model_path,None,"llava_qwen")
+    t,m,ip,_=load_pretrained_model(model_path,None,"llava_qwen", attn_implementation="sdpa")
     m=m.cuda(); m.eval()
     return t,m,ip
 

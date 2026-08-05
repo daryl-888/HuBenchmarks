@@ -1,0 +1,42 @@
+{
+  "accuracy": 0.6184668989547039,
+  "correct": 2485,
+  "total_scoreable": 4018,
+  "total_na_skipped": 4034,
+  "total_samples": 8052,
+  "dycoke_params": {
+    "enabled": true,
+    "l": 3,
+    "p": 0.7,
+    "k": 0.7
+  },
+  "model": "Qwen/Qwen3-VL-8B-Instruct",
+  "num_frames": 32,
+  "note": "DyCoke on Qwen3-VL \u2014 temporal merge (k) + attention prune (p) at layer l",
+  "per_category": {
+    "Action Order": {
+      "correct": 234,
+      "total": 519
+    },
+    "Motion-related Objects": {
+      "correct": 541,
+      "total": 690
+    },
+    "Repetition Count": {
+      "correct": 138,
+      "total": 400
+    },
+    "Location-related Motion": {
+      "correct": 349,
+      "total": 546
+    },
+    "Camera Motion": {
+      "correct": 241,
+      "total": 385
+    },
+    "Motion Recognition": {
+      "correct": 982,
+      "total": 1478
+    }
+  }
+}

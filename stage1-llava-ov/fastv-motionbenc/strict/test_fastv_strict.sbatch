@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH -J fastv_test
-#SBATCH -o /project/rhu/dpalfaro/results/fastv_test_%j.out
-#SBATCH -e /project/rhu/dpalfaro/results/fastv_test_%j.err
+#SBATCH -J s1_fastv_strict2
+#SBATCH -o /project/rhu/dpalfaro/results/s1_fastv_strict2_%j.out
+#SBATCH -e /project/rhu/dpalfaro/results/s1_fastv_strict2_%j.err
 #SBATCH -N 1
 #SBATCH -n 8
 #SBATCH --gpus=ada:1
@@ -25,7 +25,7 @@ cd /project/rhu/dpalfaro
 
 # Run without --fastv first to verify model loads and baseline inference works.
 # Add --fastv once apply_fastv() is ported to Qwen2.
-/project/rhu/dpalfaro/conda/envs/fastv/bin/python3 \
+/project/rhu/dpalfaro/conda/envs/dycoke11/bin/python3 \
     /project/rhu/dpalfaro/code/fastv-motionbenc/eval_fastv.py \
     --model_path /project/rhu/dpalfaro/weights/llava-ov-7b \
     --meta_path  /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \

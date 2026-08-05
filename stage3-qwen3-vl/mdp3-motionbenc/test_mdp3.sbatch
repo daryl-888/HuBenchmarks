@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH -J mdp3_test
-#SBATCH -o /project/rhu/dpalfaro/results/mdp3_test_%j.out
-#SBATCH -e /project/rhu/dpalfaro/results/mdp3_test_%j.err
+#SBATCH -J s3_mdp3_smoke
+#SBATCH -o /project/rhu/dpalfaro/results/s3_mdp3_smoke_%j.out
+#SBATCH -e /project/rhu/dpalfaro/results/s3_mdp3_smoke_%j.err
 #SBATCH -N 1
 #SBATCH -n 8
 #SBATCH --gpus=ada:1
@@ -26,7 +26,7 @@ export WORLD_SIZE=1
 # LD_LIBRARY_PATH: torch's .so files (libcublas, libcudart) live in mdp3_pkgs/torch/lib/
 # and need to be on the dynamic linker path.
 export PYTHONPATH=/project/rhu/dpalfaro/mdp3_pkgs:/project/rhu/dpalfaro/code/MDP3:/project/rhu/dpalfaro/code/HoliTom/LLaVA-NeXT:${PYTHONPATH:-}
-export LD_LIBRARY_PATH=/project/rhu/dpalfaro/mdp3_pkgs/torch/lib:${LD_LIBRARY_PATH:-}
+export LD_LIBRARY_PATH=/project/rhu/dpalfaro/conda/envs/mdp3/lib/python3.11/site-packages/nvidia/nccl/lib:/project/rhu/dpalfaro/mdp3_pkgs/torch/lib:${LD_LIBRARY_PATH:-}
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
 export TRANSFORMERS_OFFLINE=1
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True

@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH -J holitom_motionbench
-#SBATCH -o /project/rhu/dpalfaro/results/holitom_%j.out
-#SBATCH -e /project/rhu/dpalfaro/results/holitom_%j.err
+#SBATCH -J s3_holitom_strict
+#SBATCH -o /project/rhu/dpalfaro/results/s3_holitom_strict_%j.out
+#SBATCH -e /project/rhu/dpalfaro/results/s3_holitom_strict_%j.err
 #SBATCH -N 1
 #SBATCH -n 8
 #SBATCH --gpus=ada:1

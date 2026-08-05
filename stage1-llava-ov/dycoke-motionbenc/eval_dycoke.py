@@ -27,7 +27,8 @@ import torch
 from tqdm import tqdm
 
 
-VIDEO_BASE = "/project/rhu/MotionBench_Data/MotionBench"
+# Dataset root. Override with $MOTIONBENCH (see config/paths.sh)
+VIDEO_BASE = os.environ.get("MOTIONBENCH", "/project/rhu/MotionBench_Data/MotionBench")
 POST_PROMPT = "\nAnswer with the option's letter from the given choices directly."
 
 
@@ -45,8 +46,12 @@ def load_model(model_path: str):
 
     from llava.model.builder import load_pretrained_model
 
+    # The builder defaults to flash_attention_2, which is NOT installed in the
+    # dycoke11 env (ImportError: "flash_attn seems to be not installed"). sdpa is
+    # the working path on this build — verified during the FastV port.
     tokenizer, model, image_processor, _ = load_pretrained_model(
         model_path, None, "llava_qwen",
+        attn_implementation="sdpa",
         dycoke=True,
         dycoke_l=3,
         dycoke_p=0.7,
@@ -244,7 +249,8 @@ def main():
         "model": args.model_path,
         "num_frames": args.num_frames,
         "conv_template": args.conv_template,
-        "dycoke_params": {"dycoke": True, "l": 3, "p": 0.7, "k": 0.7},
+        "dycoke_params": {
+            "enabled": True,"dycoke": True, "l": 3, "p": 0.7, "k": 0.7},
         "per_category": per_category,
     }
     print(

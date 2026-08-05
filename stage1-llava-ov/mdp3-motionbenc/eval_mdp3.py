@@ -316,6 +316,9 @@ def main():
         "model":            args.model_path,
         "conv_template":    args.conv_template,
         "mdp3_params": {
+            # `enabled` lets scripts/check_run.py verify the method actually ran
+            # rather than silently degrading to the plain backbone.
+            "enabled":       True,
             "pool_frames":   args.pool_frames,
             "select_frames": args.select_frames,
         },

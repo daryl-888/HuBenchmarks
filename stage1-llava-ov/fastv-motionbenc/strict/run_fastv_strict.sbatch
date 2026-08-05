@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH -J fastv_motionbench
-#SBATCH -o /project/rhu/dpalfaro/results/fastv_%j.out
-#SBATCH -e /project/rhu/dpalfaro/results/fastv_%j.err
+#SBATCH -J s1_fastv_strict
+#SBATCH -o /project/rhu/dpalfaro/results/s1_fastv_strict_%j.out
+#SBATCH -e /project/rhu/dpalfaro/results/s1_fastv_strict_%j.err
 #SBATCH -N 1
 #SBATCH -n 8
 #SBATCH --gpus=ada:1
@@ -27,7 +27,7 @@ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
 cd /project/rhu/dpalfaro
 
-/project/rhu/dpalfaro/conda/envs/fastv/bin/python3 \
+/project/rhu/dpalfaro/conda/envs/dycoke11/bin/python3 \
     /project/rhu/dpalfaro/code/fastv-motionbenc/eval_fastv.py \
     --model_path /project/rhu/dpalfaro/weights/llava-ov-7b \
     --meta_path  /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \

@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH -J visionzip_32f_motionbench
-#SBATCH -o /project/rhu/dpalfaro/results/visionzip_%j.out
-#SBATCH -e /project/rhu/dpalfaro/results/visionzip_%j.err
+#SBATCH -J ob_visionzip_run_32f
+#SBATCH -o /project/rhu/dpalfaro/results/ob_visionzip_run_32f_%j.out
+#SBATCH -e /project/rhu/dpalfaro/results/ob_visionzip_run_32f_%j.err
 #SBATCH -N 1
 #SBATCH -n 8
 #SBATCH --gpus=ada:1
@@ -28,7 +28,7 @@ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 cd /project/rhu/dpalfaro
 
 /project/rhu/dpalfaro/conda/envs/visionzip/bin/python3 \
-    /project/rhu/dpalfaro/code/visionzip-motionbenc/eval_visionzip.py \
+    /project/rhu/dpalfaro/code/other-backbones/visionzip-motionbenc/eval_visionzip.py \
     --model_path   /project/rhu/dpalfaro/weights/llava-v1.5-7b \
     --model_name   llava_v1.5_7b \
     --conv_template llava_v1 \

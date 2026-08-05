@@ -1,0 +1,142 @@
+# scripts/
+
+## deploy.sh — local → Carya sync (kills the "stale sbatch" trap)
+
+`git push` does **not** update Carya. Every time you edit an sbatch / utils.py /
+eval script locally, you must push it to the cluster or the job runs the OLD file
+and fails identically. This script does that push in one command.
+
+```bash
+scripts/deploy.sh                    # dry run — show what would change, touch nothing
+scripts/deploy.sh --push             # sync all four wrapper trees
+scripts/deploy.sh --push stage1-llava-ov               # one tree
+scripts/deploy.sh --push stage1-llava-ov/dycoke-motionbenc   # one wrapper
+```
+
+**Workflow rule:** after ANY local edit to a wrapper, run
+`scripts/deploy.sh --push <that wrapper>` *before* `sbatch`. If in doubt, dry-run
+first — it lists exactly which files differ.
+
+### What it does / doesn't touch
+
+- Syncs only: `stage1-llava-ov/`, `stage2-llava-video/`, `stage3-qwen3-vl/`,
+  `other-backbones/` — the eval wrappers, mapped 1:1 to the same names under
+  `/project/rhu/dpalfaro/code/`.
+- **Never** touches the method source forks (`DyCoke/`, `HoliTom/`, `MDP3/`,
+  `LLaVA/`, …) or `weights/`. Those are hand-managed and often contain
+  Carya-only patches (e.g. the NFS `load_video` fix in CLAUDE.md).
+- Uses `rsync` if present locally; otherwise falls back to a `tar | ssh` pipe
+  (Linux Mint often ships no rsync). Install rsync for true mirroring incl.
+  deletion: `sudo apt install rsync`.
+
+## check_run.py — sanity gate (turns silent-wrong into loud FAIL)
+
+The most expensive failure mode here is a run that *completes and lies* — a
+plausible accuracy from a method that never actually engaged. Real cases this
+project hit: FastV ran as a pure baseline (`enabled: false`) but was recorded as
+"FastV"; VisionZip produced 0% empty predictions; PruneVID dropped weights and
+scored 44%. Each looked like data, not a bug.
+
+`check_run.py` reads the two files every eval writes (`summary.json`,
+`results.jsonl`) and FAILs on any known silent-failure signature: truncated run,
+NA-count drift, accuracy outside [0.40, 0.95], empty/constant predictions, or a
+`*_params.enabled == false` method-no-op.
+
+```bash
+python scripts/check_run.py <run_dir> [--expect-method NAME] [--strict]
+# on Carya:
+python code/HuVLLM_scripts/check_run.py /project/rhu/dpalfaro/results/<run> --expect-method dycoke
+```
+
+Exit 0 = trustworthy; non-zero = do not record. `--strict` also fails on warnings.
+
+**`--vs-baseline <run_dir>`** catches the subtlest silent failure: a method whose
+predictions are *identical* to the plain backbone, i.e. it never engaged. This is
+the only check that exposed the PruneVID LLaVA-OV port and the FastV stub — both
+passed every other gate but produced 0/8052 differing predictions vs. the inert
+baseline. Always run new method ports with `--vs-baseline` against a known
+backbone run:
+
+```bash
+python scripts/check_run.py results/<new_method> --vs-baseline results/fastv_run1
+```
+
+**Automate it:** paste `gate_snippet.sh` at the end of each eval sbatch (after the
+python eval call). It runs the gate and renames the output dir to
+`*.FAILED_GATE` if the run is untrustworthy, so a bad run can never be silently
+mistaken for a good one.
+
+### Known second half of the trap: leftover flat dirs
+
+Carya still has the **pre-restructure flat wrappers** alongside the new stage
+layout, e.g. `/code/dycoke-motionbenc/` next to
+`/code/stage1-llava-ov/dycoke-motionbenc/`. Some sbatch files still `cd` into the
+flat path. If a job ignores your edits, check which path its sbatch actually
+references — you may be editing the stage copy while the job runs the flat copy.
+Long-term fix: repoint all sbatch files at the stage paths and delete the flat
+dirs on Carya.
+
+## show_examples.py — qualitative spot-check
+
+Every recorded number is an aggregate. This prints the samples underneath one:
+the video path, the question with its options, the ground truth, and what the
+model actually answered. Default is **3 incorrect + 2 correct**.
+
+```bash
+# 3 wrong + 2 right (deterministic — seed=0 picks the same samples every time)
+python3 scripts/show_examples.py $HUVLLM_RESULTS/ob_dyto_run
+
+# focus a weak category, only failures
+python3 scripts/show_examples.py $HUVLLM_RESULTS/w3_sttm_run \
+    --category "Repetition Count" --wrong 5 --right 0
+
+# machine-readable
+python3 scripts/show_examples.py $HUVLLM_RESULTS/w3_aim_run --json
+```
+
+The run's `results.jsonl` stores only `video_path` / `ground_truth` /
+`prediction` / `correct`, so this joins against MotionBench's
+`video_info.meta.jsonl` on `video_path` to recover the question text. It skips NA
+samples (`correct: null`), which are unanswerable and excluded from scoring.
+
+**Why it earns its place:** `check_run.py` proves a run is *structurally* sound;
+this shows whether the answers are *plausible*. Both silent failures this project
+hit — VisionZip returning empty strings and DyTo emitting captions instead of
+letters — would have been obvious in one glance at this output.
+
+## Retrieving and rendering results
+
+Two commands. Neither needs you to be on Carya, and both are safe to re-run
+while jobs are still landing.
+
+```bash
+scripts/fetch_results.sh                    # pull summary.json + results.jsonl
+python3 scripts/build_retention_tables.py --local > docs/RETENTION_TABLES.md
+```
+
+`fetch_results.sh` copies only the two small JSON files per run (never videos or
+weights) into `results-cache/`, which is gitignored. Runs that are queued or
+in flight are skipped and reported as `· not finished`, so partial state renders
+fine — finished cells fill in, pending ones show 🔄.
+
+```bash
+scripts/fetch_results.sh --status   # what's done, what's still queued
+scripts/fetch_results.sh --sweep    # only the retention-sweep runs
+```
+
+`build_retention_tables.py` emits, in order:
+
+| Section | Contents |
+|---|---|
+| 6 sweep tables | LLaVA-OV × {0.10, 0.15, 0.25}, then Qwen3-VL × the same. Each row: accuracy, Δ vs baseline, divergence, W/L, χ², significance, all six subcategories |
+| Cross-retention summary | one row per method, retention across the columns, with a trend verdict — the sweep's actual question |
+| No-knob table | the six methods with no retention parameter, and why |
+| Other backbones | each method on its own native model (PruneVID/PLLaVA, DyTo/Vicuna, …) |
+
+Drop `--local` to run it directly on Carya against `$HUVLLM_RESULTS`.
+
+**Only four methods have a retention knob** — FastV, FlashVID, HoliTom,
+PruneVID. FastV's `--fastv_r` is the *drop* fraction, so retention 0.10 maps to
+`--fastv_r 0.9`. The others (DyCoke, AIM, MDP3, VideoITG, STTM, VisionZip) fix
+their budget internally or select frames rather than tokens, so they appear once
+rather than being padded into every table.

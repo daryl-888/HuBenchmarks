@@ -1,8 +1,8 @@
 #!/bin/bash
 # PLLaVA-7B baseline — no PruneVid pruning, same backbone as PruneVid run.
-#SBATCH -J pllava_baseline
-#SBATCH -o /project/rhu/dpalfaro/results/pllava_baseline_%j.out
-#SBATCH -e /project/rhu/dpalfaro/results/pllava_baseline_%j.err
+#SBATCH -J ob_prunevid_strict_baseline_strict
+#SBATCH -o /project/rhu/dpalfaro/results/ob_prunevid_strict_baseline_strict_%j.out
+#SBATCH -e /project/rhu/dpalfaro/results/ob_prunevid_strict_baseline_strict_%j.err
 #SBATCH -N 1
 #SBATCH -n 8
 #SBATCH --gpus=ada:1

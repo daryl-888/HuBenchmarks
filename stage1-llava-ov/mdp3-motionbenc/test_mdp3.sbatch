@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH -J ovqwen15_mdp3_motionbench
-#SBATCH -o /project/rhu/dpalfaro/results/mdp3_test_%j.out
-#SBATCH -e /project/rhu/dpalfaro/results/mdp3_test_%j.err
+#SBATCH -J s1_mdp3_smoke
+#SBATCH -o /project/rhu/dpalfaro/results/s1_mdp3_smoke_%j.out
+#SBATCH -e /project/rhu/dpalfaro/results/s1_mdp3_smoke_%j.err
 #SBATCH -N 1
 #SBATCH -n 8
 #SBATCH --gpus=ada:1
@@ -26,7 +26,7 @@ export WORLD_SIZE=1
 # LD_LIBRARY_PATH: torch's .so files (libcublas, libcudart) live in mdp3_pkgs/torch/lib/
 # and need to be on the dynamic linker path.
 export PYTHONPATH=/project/rhu/dpalfaro/mdp3_pkgs:/project/rhu/dpalfaro/code/MDP3:/project/rhu/dpalfaro/code/HoliTom/LLaVA-NeXT:${PYTHONPATH:-}
-export LD_LIBRARY_PATH=/project/rhu/dpalfaro/mdp3_pkgs/torch/lib:${LD_LIBRARY_PATH:-}
+export LD_LIBRARY_PATH=/project/rhu/dpalfaro/conda/envs/mdp3/lib/python3.11/site-packages/nvidia/nccl/lib:/project/rhu/dpalfaro/mdp3_pkgs/torch/lib:${LD_LIBRARY_PATH:-}
 export HF_HOME=/project/rhu/dpalfaro/cache/huggingface
 export TRANSFORMERS_OFFLINE=1
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
@@ -34,8 +34,8 @@ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 cd /project/rhu/dpalfaro
 
 /project/rhu/dpalfaro/conda/envs/mdp3/bin/python3 \
-    /project/rhu/dpalfaro/code/mdp3-motionbenc/eval_mdp3.py \
-    --meta-file    /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl --num_frames 32 \
+    /project/rhu/dpalfaro/code/stage1-llava-ov/mdp3-motionbenc/eval_mdp3.py \
+    --meta-file    /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
     --video-roots  /project/rhu/MotionBench_Data/MotionBench \
     --model-path   /project/rhu/dpalfaro/weights/llava-ov-7b \
     --output-dir   /project/rhu/dpalfaro/results/mdp3_test_${SLURM_JOB_ID} \
@@ -43,3 +43,9 @@ cd /project/rhu/dpalfaro
     --pool-frames  32 \
     --select-frames 8 \
     --limit 50
+
+OUTDIR=/project/rhu/dpalfaro/results/mdp3_test_${SLURM_JOB_ID}
+echo "=== GATE: did the method actually engage? ==="
+python3 /project/rhu/dpalfaro/code/HuVLLM_scripts/check_run.py "${OUTDIR}" \
+    --expect-method mdp3 \
+    --vs-baseline /project/rhu/dpalfaro/results/fastv_run1 --smoke || echo "GATE FAILED - do not record this run"

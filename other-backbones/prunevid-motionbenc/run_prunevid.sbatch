@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH -J prunevid_motionbench
-#SBATCH -o /project/rhu/dpalfaro/results/prunevid_%j.out
-#SBATCH -e /project/rhu/dpalfaro/results/prunevid_%j.err
+#SBATCH -J ob_prunevid_run
+#SBATCH -o /project/rhu/dpalfaro/results/ob_prunevid_run_%j.out
+#SBATCH -e /project/rhu/dpalfaro/results/ob_prunevid_run_%j.err
 #SBATCH -N 1
 #SBATCH -n 8
 #SBATCH --gpus=ada:1

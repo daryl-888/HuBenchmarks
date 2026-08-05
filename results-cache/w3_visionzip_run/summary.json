@@ -1,0 +1,42 @@
+{
+  "accuracy": 0.5881035340965655,
+  "correct": 2363,
+  "total_scoreable": 4018,
+  "total_na_skipped": 4034,
+  "total_samples": 8052,
+  "visionzip_params": {
+    "enabled": true,
+    "variant": "contextual-only",
+    "contextual_num": 1750,
+    "note": "PARTIAL: dominant half needs a CLS token Qwen3-VL lacks"
+  },
+  "model": "Qwen/Qwen3-VL-8B-Instruct",
+  "num_frames": 32,
+  "note": "Qwen3-VL baseline \u2014 no compression applied (INTENTIONAL: this is the reference run)",
+  "per_category": {
+    "Action Order": {
+      "correct": 224,
+      "total": 519
+    },
+    "Motion-related Objects": {
+      "correct": 513,
+      "total": 690
+    },
+    "Repetition Count": {
+      "correct": 118,
+      "total": 400
+    },
+    "Location-related Motion": {
+      "correct": 338,
+      "total": 546
+    },
+    "Camera Motion": {
+      "correct": 221,
+      "total": 385
+    },
+    "Motion Recognition": {
+      "correct": 949,
+      "total": 1478
+    }
+  }
+}

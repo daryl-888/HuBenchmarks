@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH -J ovqwen3_flashvid_motionbench
-#SBATCH -o /project/rhu/dpalfaro/results/flashvid_%j.out
-#SBATCH -e /project/rhu/dpalfaro/results/flashvid_%j.err
+#SBATCH -J s3_flashvid_run
+#SBATCH -o /project/rhu/dpalfaro/results/s3_flashvid_run_%j.out
+#SBATCH -e /project/rhu/dpalfaro/results/s3_flashvid_run_%j.err
 #SBATCH -N 1
 #SBATCH -n 8
 #SBATCH --gpus=ada:1
@@ -31,10 +31,8 @@ cd /project/rhu/dpalfaro
     --model-path   /project/rhu/dpalfaro/weights/qwen3-vl-8b \
     --output-dir   /project/rhu/dpalfaro/results/flashvid_run4 \
     --num_frames 32 \
-     \
     --enable-flashvid \
     --retention-ratio 0.25 \
     --alpha 0.7 \
     --temporal-threshold 0.8 \
-     \
     --max-new-tokens 16

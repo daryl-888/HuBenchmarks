@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH -J ovqwen15_sttm_motionbench
-#SBATCH -o /project/rhu/dpalfaro/results/sttm_v2_test_%j.out
-#SBATCH -e /project/rhu/dpalfaro/results/sttm_v2_test_%j.err
+#SBATCH -J s1_sttm_smoke_v2
+#SBATCH -o /project/rhu/dpalfaro/results/s1_sttm_smoke_v2_%j.out
+#SBATCH -e /project/rhu/dpalfaro/results/s1_sttm_smoke_v2_%j.err
 #SBATCH -N 1
 #SBATCH -n 8
 #SBATCH --gpus=ada:1
@@ -35,3 +35,10 @@ cd /project/rhu/dpalfaro
     --sa_tree_thresh          0.85 \
     --sa_tree_temporal_thresh 0.65 \
     --sa_tree_root_level      1
+
+OUTDIR=/project/rhu/dpalfaro/results/sttm_v2_test_${SLURM_JOB_ID}
+
+echo "=== GATE: did the method actually engage? ==="
+python3 /project/rhu/dpalfaro/code/HuVLLM_scripts/check_run.py "${OUTDIR}" \
+    --expect-method sttm \
+    --vs-baseline /project/rhu/dpalfaro/results/fastv_run1 --smoke || echo "GATE FAILED - do not record this run"

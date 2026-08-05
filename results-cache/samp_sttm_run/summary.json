@@ -1,0 +1,13 @@
+{
+  "accuracy": 0.5151816824290691,
+  "correct": 2070,
+  "total_scoreable": 4018,
+  "total_na_skipped": 4034,
+  "total_samples": 8052,
+  "sttm_params": {
+    "sa_start_layer_idx": 2,
+    "sa_tree_thresh": 0.85,
+    "sa_tree_temporal_thresh": 0.65,
+    "sa_tree_root_level": 1
+  }
+}

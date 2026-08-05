@@ -1,0 +1,140 @@
+diff --git a/LLaVA-NeXT/llava/__init__.py b/LLaVA-NeXT/llava/__init__.py
+index 4d1f016..6bfd6aa 100755
+--- a/LLaVA-NeXT/llava/__init__.py
++++ b/LLaVA-NeXT/llava/__init__.py
+@@ -1 +1,4 @@
+-from .model import LlavaLlamaForCausalLM
++try:
++    from .model import LlavaLlamaForCausalLM
++except ImportError:
++    pass
+diff --git a/LLaVA-NeXT/llava/model/multimodal_encoder/siglip_encoder.py b/LLaVA-NeXT/llava/model/multimodal_encoder/siglip_encoder.py
+index 8a3fe5d..25fb1b0 100755
+--- a/LLaVA-NeXT/llava/model/multimodal_encoder/siglip_encoder.py
++++ b/LLaVA-NeXT/llava/model/multimodal_encoder/siglip_encoder.py
+@@ -590,7 +590,7 @@ def load_model(self, device_map=None):
+             rank0_print("{} is already loaded, `load_model` called again, skipping.".format(self.vision_tower_name))
+             return
+ 
+-        self.vision_tower = SigLipVisionModel.from_pretrained(self.vision_tower_name, device_map=device_map)
++        self.vision_tower = SigLipVisionModel.from_pretrained(self.vision_tower_name)
+ 
+         del self.vision_tower.vision_model.encoder.layers[-1:]
+         self.vision_tower.vision_model.head = nn.Identity()
+diff --git a/LLaVA-NeXT/llava/model/multimodal_resampler/qformer.py b/LLaVA-NeXT/llava/model/multimodal_resampler/qformer.py
+index b86754c..cf56085 100755
+--- a/LLaVA-NeXT/llava/model/multimodal_resampler/qformer.py
++++ b/LLaVA-NeXT/llava/model/multimodal_resampler/qformer.py
+@@ -36,12 +36,18 @@
+     SequenceClassifierOutput,
+     TokenClassifierOutput,
+ )
+-from transformers.modeling_utils import (
+-    PreTrainedModel,
+-    apply_chunking_to_forward,
+-    find_pruneable_heads_and_indices,
+-    prune_linear_layer,
+-)
++from transformers.modeling_utils import PreTrainedModel
++try:
++    from transformers.modeling_utils import apply_chunking_to_forward, find_pruneable_heads_and_indices, prune_linear_layer
++except ImportError:
++    try:
++        from transformers.pytorch_utils import find_pruneable_heads_and_indices, prune_linear_layer
++    except ImportError:
++        find_pruneable_heads_and_indices = None
++        prune_linear_layer = None
++    def apply_chunking_to_forward(forward_fn, chunk_size, chunk_dim, *input_tensors):
++        return forward_fn(*input_tensors)
++
+ from transformers.utils import logging
+ from transformers.models.bert.configuration_bert import BertConfig
+ 
+diff --git a/holitom/modeling_qwen2.py b/holitom/modeling_qwen2.py
+index 4583cb7..e346a0a 100644
+--- a/holitom/modeling_qwen2.py
++++ b/holitom/modeling_qwen2.py
+@@ -5,10 +5,18 @@ import torch
+ from torch import nn
+ 
+ from transformers.activations import ACT2FN
+-from transformers.cache_utils import Cache, DynamicCache, SlidingWindowCache, StaticCache
++from transformers.cache_utils import Cache, DynamicCache
++try:
++    from transformers.cache_utils import SlidingWindowCache, StaticCache
++except ImportError:
++    class SlidingWindowCache(Cache): pass
++    class StaticCache(Cache): pass
+ from transformers.generation import GenerationMixin
+ from transformers.modeling_attn_mask_utils import AttentionMaskConverter
+-from transformers.modeling_flash_attention_utils import FlashAttentionKwargs
++try:
++    from transformers.modeling_flash_attention_utils import FlashAttentionKwargs
++except ImportError:
++    FlashAttentionKwargs = dict
+ from transformers.modeling_outputs import (
+     BaseModelOutputWithPast,
+     CausalLMOutputWithPast,
+@@ -16,22 +24,41 @@ from transformers.modeling_outputs import (
+     SequenceClassifierOutputWithPast,
+     TokenClassifierOutput,
+ )
+-from transformers.modeling_rope_utils import ROPE_INIT_FUNCTIONS, dynamic_rope_update
+-from transformers.modeling_utils import ALL_ATTENTION_FUNCTIONS, PreTrainedModel
+-from transformers.processing_utils import Unpack
++from transformers.modeling_rope_utils import ROPE_INIT_FUNCTIONS
++try:
++    from transformers.modeling_rope_utils import dynamic_rope_update
++except ImportError:
++    def dynamic_rope_update(func): return func
++from transformers.modeling_utils import PreTrainedModel
++try:
++    from transformers.modeling_utils import ALL_ATTENTION_FUNCTIONS
++except ImportError:
++    ALL_ATTENTION_FUNCTIONS = {}
++try:
++    from transformers.processing_utils import Unpack
++except ImportError:
++    from typing import Unpack
++try:
++    from transformers.utils import LossKwargs
++except ImportError:
++    from typing import TypedDict
++    class LossKwargs(TypedDict, total=False):
++        pass
+ from transformers.utils import (
+-    LossKwargs,
+     add_code_sample_docstrings,
+     add_start_docstrings,
+     add_start_docstrings_to_model_forward,
+-    can_return_tuple,
+     logging,
+-    replace_return_docstrings,
+ )
+-from transformers.utils.deprecation import deprecate_kwarg
++try:
++    from transformers.utils.deprecation import deprecate_kwarg
++except ImportError:
++    def deprecate_kwarg(*a, **kw): return lambda f: f
+ from transformers.models.qwen2.configuration_qwen2 import Qwen2Config
+ 
+-from transformers.models.qwen2.modeling_qwen2 import Qwen2PreTrainedModel, Qwen2DecoderLayer, Qwen2RMSNorm, Qwen2RotaryEmbedding, logger
++from transformers.models.qwen2.modeling_qwen2 import Qwen2PreTrainedModel, Qwen2DecoderLayer, Qwen2RMSNorm, Qwen2RotaryEmbedding
++from transformers.utils import logging as _holitom_logging
++logger = _holitom_logging.get_logger(__name__)
+ 
+ class Qwen2Model_holitom(Qwen2PreTrainedModel):
+     """
+@@ -325,3 +352,12 @@ class Qwen2Model_holitom(Qwen2PreTrainedModel):
+ 
+         return causal_mask
+ 
++
++try:
++    from transformers.utils import can_return_tuple
++except ImportError:
++    def can_return_tuple(f): return f
++try:
++    from transformers.utils import replace_return_docstrings
++except ImportError:
++    def replace_return_docstrings(*a, **kw): return lambda f: f

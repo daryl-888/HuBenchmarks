@@ -15,16 +15,22 @@ PYTHONPATH: /project/rhu/dpalfaro/code/FlashVID
 import argparse, json, os, re, sys
 import torch
 from tqdm import tqdm
-VIDEO_BASE="/project/rhu/MotionBench_Data/MotionBench"
+# Dataset root. Override with $MOTIONBENCH (see config/paths.sh)
+VIDEO_BASE = os.environ.get("MOTIONBENCH", "/project/rhu/MotionBench_Data/MotionBench")
 POST_PROMPT="\nAnswer with the option's letter from the given choices directly."
 
-def load_model(model_path):
+def load_model(model_path, retention_ratio=0.15, alpha=0.7, temporal_threshold=0.8):
     import sys as _sys
     _sys.path.insert(0,"/project/rhu/dpalfaro/code/FlashVID")
     from llava.model.builder import load_pretrained_model
     from flashvid import flashvid as apply_flashvid
-    t,m,ip,_=load_pretrained_model(model_path,None,"llava_qwen")
-    m=apply_flashvid(m,retention_ratio=0.25,alpha=0.7,temporal_threshold=0.8,do_segment=True)
+    # attn_implementation="sdpa" is REQUIRED: the builder defaults to
+    # flash_attention_2, which is not installed in this env (ImportError:
+    # "flash_attn seems to be not installed"). sdpa is the verified-working path.
+    t,m,ip,_=load_pretrained_model(model_path,None,"llava_qwen",
+                                   attn_implementation="sdpa")
+    m=apply_flashvid(m,retention_ratio=retention_ratio,alpha=alpha,
+                     temporal_threshold=temporal_threshold,do_segment=True)
     m=m.cuda(); m.eval()
     return t,m,ip
 
@@ -72,8 +78,16 @@ def main():
     p=argparse.ArgumentParser(); p.add_argument("--model_path",required=True); p.add_argument("--meta_path",required=True)
     p.add_argument("--output_dir",required=True); p.add_argument("--num_frames",type=int,default=32)
     p.add_argument("--limit",type=int,default=None); p.add_argument("--conv_template",default="qwen_2")
+    # accept both spellings: the sbatch historically passed --retention-ratio
+    p.add_argument("--retention_ratio","--retention-ratio",type=float,default=0.15,
+                   dest="retention_ratio",
+                   help="fraction of visual tokens to KEEP (standardized: 0.15)")
+    p.add_argument("--alpha",type=float,default=0.7)
+    p.add_argument("--temporal_threshold",type=float,default=0.8)
     a=p.parse_args(); os.makedirs(a.output_dir,exist_ok=True)
-    print("Loading...",flush=True); tok,model,ip=load_model(a.model_path)
+    print("Loading...",flush=True)
+    tok,model,ip=load_model(a.model_path,retention_ratio=a.retention_ratio,
+                            alpha=a.alpha,temporal_threshold=a.temporal_threshold)
     samples=[json.loads(l) for l in open(a.meta_path) if l.strip()]
     if a.limit: samples=samples[:a.limit]
     print(f"Evaluating {len(samples)} samples",flush=True)
@@ -93,7 +107,7 @@ def main():
     with open(os.path.join(a.output_dir,"results.jsonl"),"w") as f:
         for r in results: f.write(json.dumps(r)+"\n")
     total=len(scores); correct=sum(scores); na=len(results)-total; acc=correct/total if total>0 else 0.0
-    summary={"accuracy":acc,"correct":correct,"total_scoreable":total,"total_na_skipped":na,"total_samples":len(results),"model":a.model_path,"num_frames":a.num_frames,"conv_template":a.conv_template,"flashvid_params":{"retention_ratio":0.25,"alpha":0.7,"temporal_threshold":0.8},"per_category":pc}
+    summary={"accuracy":acc,"correct":correct,"total_scoreable":total,"total_na_skipped":na,"total_samples":len(results),"model":a.model_path,"num_frames":a.num_frames,"conv_template":a.conv_template,"flashvid_params":{"enabled":True,"retention_ratio":a.retention_ratio,"alpha":a.alpha,"temporal_threshold":a.temporal_threshold},"per_category":pc}
     print(f"\nAccuracy: {correct}/{total}={acc:.4f} ({na} NA)",flush=True)
     for c in sorted(pc): print(f"  {c}: {pc[c]['correct']}/{pc[c]['total']}={pc[c]['correct']/pc[c]['total']:.4f}",flush=True)
     with open(os.path.join(a.output_dir,"summary.json"),"w") as f: json.dump(summary,f,indent=2)
