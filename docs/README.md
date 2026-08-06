@@ -17,6 +17,7 @@ This folder is the replication hub: start here, then follow the links.
 | [RETENTION_DIAGNOSIS.md](RETENTION_DIAGNOSIS.md) | Every method's configured parameters vs the authors' released code: which methods break when retention changes, which were already broken, and which confounds are ours. |
 | [FASTV_FLASHVID_ANALYSIS.md](FASTV_FLASHVID_ANALYSIS.md) | Why FastV collapses on LLaVA-OV (closed: a density threshold) and why FlashVID underperforms on Qwen3-VL (open: authors'-code re-run pending, plus two real upstream bugs found along the way). |
 | [DURATION_ANALYSIS.md](DURATION_ANALYSIS.md) | Whether the collapse depends on clip length — it does not, and why the naive short/long split says otherwise. |
+| [RETENTION_20PCT_AUDIT.md](RETENTION_20PCT_AUDIT.md) | Which methods can honestly be run at 20% retention per their own published sweeps, and which can't. |
 | [backbones/](backbones/) | One page per backbone: architecture, which methods run on it, and per-category baseline. |
 | [methods/](methods/) | One page per method: the algorithm, our port, parameters, and how to reproduce it. |
 
