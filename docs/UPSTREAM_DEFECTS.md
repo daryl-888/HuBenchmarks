@@ -102,6 +102,27 @@ tracebacks and real letter predictions. What is *not* available is DyTo-as-publi
 — that remains impossible, because the authors never released the FINCH
 modification their code calls.
 
+**Re-verification against the pristine tree (no patches).** An unmodified-upstream
+verification run lives in `analysis/upstream-faithful/dyto-official/`. It clones
+the released repo unchanged, converts MotionBench data to DyTo's GT-JSON schema,
+and launches DyTo's *own* `run_inference.py` without editing a single DyTo file.
+The defect analysis above predicts the run terminates at §1.1 or §1.2 with a real
+traceback; that failure is the verification. See that folder's `README.md`.
+
+**Consensus on incorrect-vs-intentional (re-verified 2026-08-05).** The upstream
+git history + committed bytecode settle the question. Both published revisions
+call a function that never returns a value from its source definition:
+`2c6d0f7` calls `self.finch_clusterv2(...)` (never defined → `NameError`), and
+`ae46634` renamed the call to the return-less `finch_cluster` (`NoneType` crash).
+But the repo accidentally commits `dyto/llava/model/__pycache__/llava_arch.cpython-310.pyc`,
+whose code object is **`LlavaMetaForCausalLM.finch_clusterv2` ending in
+`RETURN_VALUE`** — i.e. the working copy the authors actually ran. The official
+7B config also points at `bash scripts/run_eval_*.sh`, but no `scripts/` dir is
+in the repo at all. **Verdict:** the released source is genuinely non-runnable
+as-published (incorrect snapshot), but the bytecode proves a working private
+tree produced the numbers — a release-hygiene / dirty-commit failure, not a
+deliberate misstatement.
+
 ---
 
 ## 2. Non-blocking defects and incompatibilities
