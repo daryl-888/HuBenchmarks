@@ -85,15 +85,57 @@ stops mattering below the line.
 
 ### 1.3 Not a regime we invented
 
-Checked against the authors' code at `/project/rhu/dpalfaro/code/FastV`: the
-released sweep is `rank_list=(72 144 288 432)` against
-`--fast-v-image-token-length 576`, i.e. keep-fractions of 12.5/25/50/75%; our
-15% sits inside that range. But the **only** released evaluation is
-`eval_ocrvqa.sh` — single-image OCR-VQA, 576 tokens. There is no video
-configuration in the released code. So the discrepancy isn't an untested
-*fraction*, it's an untested *regime*: 6,273 visual tokens spanning 32 video
-frames, against 576 tokens of one image. The keep-fraction transfers; the
-attention statistics it depends on don't.
+Checked against the authors' code at `/project/rhu/dpalfaro/code/FastV`. The
+entire `FastV/inference/` directory is four files:
+
+```
+eval_ocrvqa.sh  inference_ocrvqa.py  plot_inefficient_attention.py  visualization.sh
+```
+
+One eval script, and it runs **OCR-VQA** — reading text out of static images —
+on **LLaVA-v1.5-7B**. Grepping their whole source tree for "video" or "frame"
+returns zero matches; the concept does not appear anywhere in their code, not
+as a buried flag or a TODO. The sweep itself:
+
+```bash
+model_path=llava-v1.5-7b
+rank_list=(72 144 288 432)   # keep 12.5% / 25% / 50% / 75% of 576 tokens
+Ks=(1 2 5 10 15 20)          # layer to prune at
+--fast-v-image-token-length 576
+--fast-v-sys-length 36
+```
+
+`576` is fixed because LLaVA-1.5's CLIP-ViT-L/14 encoder produces exactly 576
+patch tokens for one image at one resolution — no other value is possible in
+their setup. `--fast-v-sys-length 36` hardcodes LLaVA-1.5's specific
+system-prompt token count, so the released code even assumes a fixed offset
+for where image tokens begin in the sequence.
+
+Our released sweep's keep-fractions (12.5/25/50/75%) match theirs; our 15%
+sits inside that range. But what we ran it on — **LLaVA-OneVision-7B** (a
+SigLIP vision tower, not CLIP), 32 video frames, **6,273 visual tokens** (11×
+their token count), motion/temporal-reasoning questions instead of
+static-text reading — differs on four axes at once: backbone, modality, token
+count, and task. The keep-*fraction* transfers as a number; the *regime* it
+was validated in does not.
+
+**Why that gap is the likely mechanism.** FastV's whole method is: look at
+layer-2 attention, find which image tokens the model is actually attending
+to, keep those. For one photo and a question about text in it, that's a
+well-posed target — attention concentrates on one image. For 32 frames sampled
+at ~1 fps, most near-duplicates of their neighbors, "which tokens does layer 2
+attend to" has to encode both *where in a frame* and *which frame*, and for
+motion questions the relevant signal is often a *difference across frames*,
+not a salient region in any single one — a much harder statistic to extract
+at one early layer. This is the reasonable mechanistic account, not something
+verified layer-by-layer; what §1.2's four-arm study directly measured is the
+*consequence* (ranking scores no better than random at this budget, χ²=0.16),
+not the cause.
+
+This isn't "we chose a harsh keep-fraction they never intended," either: §1
+already showed their own most-published single-image setting (K=2, R=50%)
+collapses identically (36.34%) when transplanted into the video regime. The
+setting isn't the problem; the regime is.
 
 ### 1.4 Not duration-dependent
 
