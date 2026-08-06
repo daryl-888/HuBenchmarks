@@ -1,9 +1,8 @@
 # FastV and FlashVID: why they underperform
 
-Two methods, two different failure modes. **FastV collapses on LLaVA-OV — closed,
-fully explained, not a bug.** **FlashVID underperforms on Qwen3-VL — open, pending
-a re-run against the authors' own code**, because the number currently in the
-results tables is our reimplementation, not their released mechanism.
+**FastV collapses on LLaVA-OV — closed, not a bug.** **FlashVID underperforms
+on Qwen3-VL — the reimplementation number is unverified; the authors'-code
+re-run is in flight** with all three blocking bugs now fixed.
 
 MotionBench, 4,018 scoreable questions, 32 frames, greedy decoding. LLaVA-OV-7B
 baseline 52.66%, Qwen3-VL-8B baseline 62.52%. Resolution floor ±1.54 pt;
@@ -13,166 +12,96 @@ McNemar significance threshold χ² ≥ 3.84.
 
 ## Part 1 — FastV on LLaVA-OV: closed
 
-**Finding.** FastV loses 15.9 points on LLaVA-OV and the loss does not depend
-on which tokens it keeps, how much it keeps, or how long the source video is.
-Selecting by attention, at random, or evenly across all 32 frames score within
-1.1 points of each other. Keep 10% through keep 75% — including the authors'
-own K=2/R=50% setting — all land at 35.7–36.8%. Only keeping every token
-recovers the backbone. This is a **density threshold**, not a ranking failure,
-not a duration effect, and not a bug.
+FastV loses 15.9 points on LLaVA-OV, and the loss depends on none of the
+obvious variables: not which tokens survive, not how many, not clip length.
+This is a **density threshold**, not a ranking failure and not a bug.
 
-### 1.1 Across the retention range
+### The retention range is flat
 
 | Backbone | keep 10% | keep 15% | keep 25% | keep 50% | keep 75% | keep 100% |
 |---|---:|---:|---:|---:|---:|---:|
 | LLaVA-OV-7B | 36.06 | 36.78 | 36.73 | 36.34 | 35.69 | 55.07\* |
 | Qwen3-VL-8B | 56.92 | 59.01 | 60.60 | — | — | 62.52 |
 
-\*986-question subset (baseline 54.36%); `keepall` was only run there. keep
-50% is the authors' own K=2/R=50% setting; keep 75% is K=2/R=25%-drop. A
-K=3/R=50% variant scores 35.94 — layer choice doesn't matter either.
+\*986-question subset (baseline 54.36%), `keepall` only. Keep 50% is the
+authors' own K=2/R=50% setting; keep 75% is K=2/R=25%; K=3/R=50% scores 35.94
+(layer choice doesn't matter either).
 
-LLaVA-OV spans **36.06–36.78** across the entire discarding range: a
-0.72-point spread from keep 10% to keep 75%. There is no threshold to locate
-between 25% and 100% — the collapse is flat across the whole range FastV's
-authors validate, and recovery happens only at keep 100%, where nothing is
-discarded. Qwen3-VL, by contrast, responds to budget the whole way: +3.68
-points from keep 10% to keep 25%.
+LLaVA-OV spans 36.06–36.78 across the *entire* discarding range — a
+0.72-point spread from keep 10% to keep 75% — and recovers only at keep 100%,
+where nothing is discarded. Qwen3-VL, same code, responds to budget the whole
+way (+3.68 from keep 10% to keep 25%), so this isn't an artifact of the
+harness. At keep 15%, FastV answers **D** on ~47% of LLaVA-OV questions
+against a 23.6% ground-truth rate — the signature of a model with the prompt
+but no usable visual evidence. Paired against the backbone, 4,605 of 8,052
+predictions differ, 1,113 broken against 475 fixed (χ² = 255.5).
 
-Per category at keep 15% (backbone in italics):
+### A four-arm study finds the cause
 
-| Backbone | Overall | Action Order | Camera Motion | Location | Motion Recog. | Motion Objects | Repetition |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| *LLaVA-OV baseline* | *52.66* | *40.5* | *45.2* | *55.5* | *57.0* | *71.2* | *23.8* |
-| LLaVA-OV FastV | 36.78 | 32.8 | 31.9 | 34.1 | 35.7 | 53.8 | 25.2 |
-| *Qwen3-VL baseline* | *62.52* | *46.1* | *63.1* | *65.0* | *67.3* | *79.0* | *33.8* |
-| Qwen3-VL FastV | 59.01 | 46.2 | 61.0 | 61.9 | 63.5 | 72.2 | 30.5 |
+Identical backbone/prompt/frames/budget/decoding; only the token-selection
+rule at the pruning layer varies (986-question subset):
 
-Paired against the LLaVA-OV backbone: 4,605 of 8,052 predictions differ, 1,113
-broken against 475 fixed (χ² = 255.5) — the changes are overwhelmingly
-destructive, not merely numerous. FastV answers **D** on ~47% of questions at
-every LLaVA-OV budget tried, against a 23.6% ground-truth rate — the signature
-of a model with the prompt but no usable visual evidence.
+| Arm | Rule | Overall | D-rate |
+|---|---|---:|---:|
+| *baseline* | *no reduction* | *54.36* | *20.7* |
+| `keepall` | same path, discards nothing | **55.07** | 20.8 |
+| `attention` | FastV as published | 39.25 | 49.4 |
+| `random` | uniformly at random | 38.74 | 47.2 |
+| `uniform` | evenly spread over 32 frames | 38.13 | 49.9 |
 
-### 1.2 What causes it — a controlled four-arm study
+None of the three discarding arms differ significantly (χ² 0.16–1.54 pairwise).
+Three conclusions: **not our code** (`keepall` returns the backbone exactly);
+**not the ranking** (attention scores no better than random); **not frame
+collapse** (`uniform` guarantees full coverage and doesn't help — every arm
+touches all 32 frames on ~every sample). What remains is a threshold: below
+it, discarding costs ~15 points regardless of which tokens survive; at 100%
+the backbone is intact.
 
-Identical backbone, prompt, frames, budget, decoding; only the token-selection
-rule at the pruning layer varies (986-question subset, category mix matches
-the full benchmark within 1.5 points):
+### Not a regime FastV was ever tested in
 
-| Arm | Rule | Overall | D-rate | Broke:fixed |
-|---|---|---:|---:|---:|
-| *baseline* | *no reduction* | *54.36* | *20.7* | — |
-| `keepall` | same path, discards nothing | **55.07** | 20.8 | 0.36 |
-| `attention` | FastV as published | 39.25 | 49.4 | 2.27 |
-| `random` | uniformly at random | 38.74 | 47.2 | 2.43 |
-| `uniform` | evenly spread over 32 frames | 38.13 | 49.9 | 2.43 |
-
-McNemar between arms: attention vs random χ² = 0.16; attention vs uniform
-χ² = 1.54; random vs uniform χ² = 0.30 — none significant. Three conclusions:
-
-1. **Not our code.** `keepall` traverses the identical pruning path while
-   discarding nothing and returns the backbone.
-2. **Not the ranking.** FastV's layer-2 attention scores no better than
-   random — the ranking is inoperative at this budget, not merely weak.
-3. **Not frame collapse.** `uniform` guarantees equal frame coverage and
-   doesn't help. Every arm — `attention` included — touches all 32 frames on
-   essentially every sample (mean 32.0 of 32).
-
-What remains is a threshold. Below it, discarding costs ~15 points regardless
-of which tokens survive; at 100% the backbone is intact. Selection quality
-stops mattering below the line.
-
-### 1.3 Not a regime we invented
-
-Checked against the authors' code at `/project/rhu/dpalfaro/code/FastV`. The
-entire `FastV/inference/` directory is four files:
-
-```
-eval_ocrvqa.sh  inference_ocrvqa.py  plot_inefficient_attention.py  visualization.sh
-```
-
-One eval script, and it runs **OCR-VQA** — reading text out of static images —
-on **LLaVA-v1.5-7B**. Grepping their whole source tree for "video" or "frame"
-returns zero matches; the concept does not appear anywhere in their code, not
-as a buried flag or a TODO. The sweep itself:
+FastV's released repo (`/project/rhu/dpalfaro/code/FastV`) has exactly one
+eval script, `eval_ocrvqa.sh` — static-image OCR-VQA on LLaVA-v1.5-7B.
+Grepping their source for "video" or "frame" returns nothing. Their sweep:
 
 ```bash
 model_path=llava-v1.5-7b
 rank_list=(72 144 288 432)   # keep 12.5% / 25% / 50% / 75% of 576 tokens
 Ks=(1 2 5 10 15 20)          # layer to prune at
---fast-v-image-token-length 576
---fast-v-sys-length 36
+--fast-v-image-token-length 576   # fixed: CLIP-ViT-L/14, one image
+--fast-v-sys-length 36            # hardcoded LLaVA-1.5 prompt offset
 ```
 
-`576` is fixed because LLaVA-1.5's CLIP-ViT-L/14 encoder produces exactly 576
-patch tokens for one image at one resolution — no other value is possible in
-their setup. `--fast-v-sys-length 36` hardcodes LLaVA-1.5's specific
-system-prompt token count, so the released code even assumes a fixed offset
-for where image tokens begin in the sequence.
+Our keep-fractions match theirs; the *regime* doesn't. We ran LLaVA-OneVision
+(SigLIP, not CLIP), 32 video frames, 6,273 visual tokens (11× their count),
+motion questions instead of text-reading — four axes of difference at once.
+Likely mechanism: FastV ranks tokens by layer-2 attention, which is a
+well-posed target for one image but has to encode both *where* and *which
+frame* across 32 near-duplicates, and motion signal is often a difference
+across frames rather than a salient region in any one — a hard statistic to
+extract that early. (This is the reasonable account, not something verified
+layer-by-layer; the four-arm study above measured the consequence, not the
+cause.) Their own most-published setting, K=2/R=50%, collapses identically
+(36.34%) once transplanted into video — so it's the regime, not the setting.
 
-Our released sweep's keep-fractions (12.5/25/50/75%) match theirs; our 15%
-sits inside that range. But what we ran it on — **LLaVA-OneVision-7B** (a
-SigLIP vision tower, not CLIP), 32 video frames, **6,273 visual tokens** (11×
-their token count), motion/temporal-reasoning questions instead of
-static-text reading — differs on four axes at once: backbone, modality, token
-count, and task. The keep-*fraction* transfers as a number; the *regime* it
-was validated in does not.
+### Two more checks, both negative
 
-**Why that gap is the likely mechanism.** FastV's whole method is: look at
-layer-2 attention, find which image tokens the model is actually attending
-to, keep those. For one photo and a question about text in it, that's a
-well-posed target — attention concentrates on one image. For 32 frames sampled
-at ~1 fps, most near-duplicates of their neighbors, "which tokens does layer 2
-attend to" has to encode both *where in a frame* and *which frame*, and for
-motion questions the relevant signal is often a *difference across frames*,
-not a salient region in any single one — a much harder statistic to extract
-at one early layer. This is the reasonable mechanistic account, not something
-verified layer-by-layer; what §1.2's four-arm study directly measured is the
-*consequence* (ranking scores no better than random at this budget, χ²=0.16),
-not the cause.
+- **Duration.** A naive 3s split looks significant (asymmetry −5.20, χ²=16.28)
+  but is doubly confounded: short clips are 33.7% Motion-related-Objects vs.
+  11.7% long (category mix), and the backbone itself scores 62.5 short vs.
+  49.4 long (floor effect). D-rate — immune to both confounds — moves the
+  *opposite* direction (44.6% short vs. 47.8% long). Controlling for question
+  type, the asymmetry drops to +0.09 (noise). Full derivation:
+  `analysis/duration-split/`.
+- **PruneVID-OV shares the signature.** `cluster_ratio=1.0` (keeps every
+  token) scores 53.36%, +0.70 vs. backbone, not significant — the same
+  recovery FastV's `keepall` shows. Two unrelated methods, same backbone,
+  both intact at 100% and both collapsed the moment anything is discarded:
+  this is a property of LLaVA-OV, not either port.
 
-This isn't "we chose a harsh keep-fraction they never intended," either: §1
-already showed their own most-published single-image setting (K=2, R=50%)
-collapses identically (36.34%) when transplanted into the video regime. The
-setting isn't the problem; the regime is.
-
-### 1.4 Not duration-dependent
-
-At a fixed 32 frames, a short clip is oversampled relative to a long one, so a
-plausible alternative hypothesis was that the collapse hits short clips
-harder. A naive 3s split *appears* to confirm this (FastV asymmetry −5.20,
-χ²=16.28 significant) — but it's confounded twice over:
-
-- **Category mix**: Motion-related Objects (the category FastV retains most
-  of) is 33.7% of short clips vs 11.7% of long ones.
-- **Floor effect**: the backbone itself scores 62.5 on short clips vs 49.4 on
-  long, so any method degenerating toward a fixed answer loses more wherever
-  the baseline was better — no duration mechanism required.
-
-D-rate (collapse signature, not sensitive to baseline skill) moves in the
-*opposite* direction: 44.6% short vs 47.8% long at keep 10%. Holding question
-type fixed and re-splitting at 5s, the asymmetry collapses to **+0.09**
-(noise); the one cell that still looks like an effect (Camera Motion, −11.16)
-tests as not significant (χ²=2.41 vs 3.84 threshold). Full derivation:
-`analysis/duration-split/`.
-
-### 1.5 PruneVID-OV shares the exact signature
-
-`cluster_ratio=1.0` (`s1_prunevid_c100_run`, disables PruneVID's spatial
-merge, keeps every token) scores **53.36%, +0.70 vs. the backbone, χ² = 2.3
-(not significant)** — the same recovery FastV's own `keepall` control shows.
-Two unrelated ports, on the same backbone, both intact with nothing discarded
-and both collapsed the moment anything is. The mechanism is not
-method-specific — it's a property of LLaVA-OV below some retained-token
-density, independent of which method is doing the discarding.
-
-### 1.6 Closed
-
-No threshold to locate between 25% and 100% — FastV is flat at ~36% for every
-discarding setting from keep 10% to keep 75%, including its own published
-K=2/R=50% operating point, and recovers only when discarding stops entirely.
-Not duration-dependent. Not a harness bug. The open item is retired.
+**Closed.** No threshold between 25% and 100% to locate — flat at ~36%
+across the entire discarding range, including the authors' own operating
+point, recovering only when nothing is discarded. Not duration-dependent.
+Not a harness bug.
 
 **Reproduce:**
 
@@ -182,135 +111,91 @@ sbatch --export=ALL,SELECT=attention                          run_selection_stud
 sbatch --export=ALL,SELECT=random                             run_selection_study.sbatch
 sbatch --export=ALL,SELECT=uniform                             run_selection_study.sbatch
 sbatch --export=ALL,SELECT=attention,FASTV_R=0.00,TAG=keepall run_selection_study.sbatch
-
 python3 analysis/duration-split/split_by_duration.py --cut 3 --cut 5 --cut 10
 python3 analysis/duration-split/duration_within_category.py --cut 5
 ```
 
-Runs: `w2_fastv_run`, `s1_fastv_r10_run`, `s1_fastv_r25_run`,
-`s1_fastv_r50_run`, `s1_fastv_r75_run`, `s1_fastv_k3r50_run`, `fastv_run1`
-(backbone), `w3_fastv_run`, `s3_fastv_r10_run`, `s3_fastv_r25_run`,
+Runs: `w2_fastv_run`, `s1_fastv_r{10,25,50,75}_run`, `s1_fastv_k3r50_run`,
+`fastv_run1` (backbone), `w3_fastv_run`, `s3_fastv_r{10,25}_run`,
 `qwen3vl_baseline_run1`, `fv_sel_{attention,random,uniform,keepall}`,
 `s1_prunevid_c100_run`.
 
 ---
 
-## Part 2 — FlashVID on Qwen3-VL: open
+## Part 2 — FlashVID on Qwen3-VL: authors'-code re-run in flight
 
-**Status: the poor number is not verified against the real method yet.**
-`w3_flashvid_run` — the 56.65% in the results tables, −5.87 vs. the 62.52%
-baseline — **never imports FlashVID's own package**. It's a reimplementation
-that omits inner-LLM compression (`pruning_layer=28`, `llm_retention_ratio=0.1`),
-`expansion=1.25`, `min_segment_num=4`, `complementary_segment`,
-`segment_threshold`, and `token_selection_method=attn_div`. FlashVID ships
-native Qwen3-VL support (`flashvid/modeling_qwen3_vl.py`,
-`scripts/qwen3_vl.sh`), so the honest question — is FlashVID actually this
-weak on Qwen3-VL, or is that our port — is still unanswered. On **LLaVA-OV**,
-by contrast, FlashVID is accuracy-neutral (53.31–53.36% at every retention
-tried, no collapse) — the underperformance is specific to Qwen3-VL and
-specific to the un-verified reimplementation.
-
-### 2.1 The authors'-code re-run hit two real upstream bugs
-
-`analysis/upstream-faithful/eval_flashvid_qwen3vl_official.py` calls the
-authors' `flashvid()` directly, at their published setting
+`w3_flashvid_run` — the 56.65% in the results tables (−5.87 vs. baseline) —
+**never imports FlashVID's package**. It's a reimplementation missing
+inner-LLM compression (`pruning_layer`, `llm_retention_ratio`), `expansion`,
+segment scoring, and `attn_div` selection. Whether FlashVID is actually this
+weak on Qwen3-VL, or that's our port, was unanswered — hence the re-run
+against `flashvid()` directly, at the authors' published setting
 (`retention_ratio=0.15, alpha=0.7, temporal_threshold=0.8,
 token_selection_method=attn_div, min_segment_num=4, segment_threshold=0.9,
-expansion=1.25, pruning_layer=28, llm_retention_ratio=0.1`).
+expansion=1.25, pruning_layer=28, llm_retention_ratio=0.1`). On **LLaVA-OV**,
+by contrast, our port does call the real `flashvid()`, its omitted params
+default to the authors' own published LLaVA-OV values, and the code fails
+loudly (not silently) if misconfigured — accuracy-neutral there (53.31–53.36%)
+is trustworthy.
 
-**Bug 1 — dtype crash, a regression in FlashVID's own release.** First
-attempt (job 7961637): 0.00% accuracy, 100% empty predictions,
-`expected scalar type Float but found BFloat16` on 8,044/8,052 samples. The
-gate caught it correctly (`RESULT: FAIL`). Traced to
-`flashvid/modeling_qwen3_vl.py`'s vision forward:
+### Three bugs found getting the authors' Qwen3-VL code to run
 
-```python
-hidden_states = hidden_states + pos_embeds          # no dtype cast
-```
+1. **Dtype crash — a regression in their release.** `modeling_qwen3_vl.py`'s
+   vision forward does `hidden_states + pos_embeds` with no dtype cast;
+   stock `transformers` casts `pos_embeds.to(hidden_states.dtype)` first.
+   `fast_pos_embed_interpolate` returns float32 against a bf16 model → crash
+   on 8,044/8,052 samples (0.00% accuracy, gate correctly failed it). Fixed
+   with the one-line cast, confirmed by diffing against the stock code it was
+   patched from.
 
-against stock `transformers`:
+2. **Hard FlashAttention-2 dependency, no working build on the cluster.**
+   Their vision attention has no sdpa/eager fallback. A prebuilt wheel
+   matching torch/CUDA/Python installed but failed on import (ABI mismatch).
+   A "from source" `pip install` silently re-downloaded the same broken wheel
+   — flash-attn's `setup.py` guesses a wheel URL and skips compiling unless
+   `FLASH_ATTENTION_FORCE_BUILD=TRUE`. Forcing a real compile produced a
+   genuinely different, working `flash_attn-2.8.3.post1`.
 
-```python
-hidden_states = hidden_states + pos_embeds.to(hidden_states.dtype)
-```
+3. **`cache_position=None` crash — an environment mismatch, not a code bug.**
+   Official FlashVID pins `transformers==4.57.3`; Carya's shared `qwen3vl` env
+   runs `5.14.1`. In 5.14.1, `Qwen3VLModel.forward()` no longer takes
+   `cache_position` as an explicit argument — it's folded into
+   `**kwargs`, and can arrive `None`. FlashVID's LLM-pruning stage slices it
+   unconditionally (`cache_position[keep_global_indexes]`) → crash, past both
+   fixes above. **Fix:** a dedicated `flashvid_qwen3vl_official` env, cloned
+   from `qwen3vl` and pinned to `transformers==4.57.3` per FlashVID's own
+   `pyproject.toml`. (Cloning briefly dropped free disk on the shared
+   `/project/rhu` volume from 12G to 7.6G — the same pressure that caused an
+   earlier six-job outage — aborted and cleaned up once, then re-run
+   successfully once the actual footprint was known to fit.) Two rounds of
+   pip leaving stale, inconsistent `dist-info` metadata behind (`tokenizers`,
+   `huggingface-hub` — real package files at one version, leftover metadata
+   at another, because the clone's files were hardlinked from the original
+   env's package cache) needed manual cleanup before the version pin actually
+   took effect.
 
-`fast_pos_embed_interpolate` returns float32; with the model in bf16 the
-unguarded add fails outright. Confirmed a bug in the released code (not our
-harness) by diffing against the stock implementation it was patched from.
-Fixed with the one-line cast, on the vendored clone, original backed up.
+Debug run against the fixed env produced a real prediction (`'B'`) with no
+crash — first clean execution of the authors' actual mechanism. Full
+8,052-question run is submitted; once it gates (`check_run.py --vs-baseline
+qwen3vl_baseline_run1`), this section closes with a real number to compare
+against the reimplementation's −5.87.
 
-**Bug 2 — hard FlashAttention-2 dependency, no matching build on the
-cluster.** With bug 1 fixed, every sample still failed silently:
-
-```python
-assert self.config._attn_implementation == "flash_attention_2"
-```
-
-FlashVID's vision attention has no sdpa/eager fallback. A prebuilt wheel
-matching the exact torch/CUDA/Python build installed but failed on import
-(`undefined symbol` — a libtorch C++ ABI mismatch not captured by the wheel's
-coarse version tag). A "from source" `pip install` then silently
-re-downloaded the same broken wheel — flash-attn's `setup.py` guesses a
-prebuilt-wheel URL and skips compiling unless `FLASH_ATTENTION_FORCE_BUILD=TRUE`
-is set; caught by comparing wheel sizes (256MB fake vs. a genuine compile).
-Forcing the real build (`FLASH_ATTENTION_FORCE_BUILD=TRUE`, matching CUDA
-module) produced a genuine 112,864,959-byte wheel (`flash_attn-2.8.3.post1`)
-that imports cleanly.
-
-Neither bug is ours — both are defects in the released FlashVID
-package/environment assumptions, found only because we tried to run their
-actual code instead of trusting our port.
-
-### 2.2 Why the "poor" number moved before — reproducibility forensics
-
-Before the authors'-code effort, two nominally-identical FlashVID re-runs
-disagreed by 2.14% (53.36% vs 51.22%) and looked like a prompt-template
-effect (`qwen_1_5` vs `qwen_2`). It wasn't — the two templates render
-byte-identical strings. The real cause: the lower run used the **wrong model
-class** (`LlavaLlamaForCausalLM` instead of LLaVA-OneVision) and **retention
-0.10, not 0.15** as its filename claimed — two unrelated misconfigurations,
-neither about the prompt.
-
-That investigation also established a general calibration for this project:
-a genuinely identical re-run diverges by **zero** predictions (verified on
-three independent pairs), so any nonzero divergence is signal, not noise.
-Divergence scale by cause:
-
-| Cause | Predictions changed (of 8,052) |
-|---|:---:|
-| Nothing — identical re-run | 0 |
-| Code-version drift | 13–23 |
-| Retention 0.15 ↔ 0.25 | ~1,120 |
-| Retention 0.10 ↔ 0.25 | ~1,507 |
-
-This scale is what let a mislabelled run (`flashvid_qwen2_v2`, recorded
-retention 0.25, `summary.json` and git both agreeing) be proven to have
-actually *executed* at 0.15 — its divergence from known 0.15 and 0.25 runs
-matched the 0.15 bucket, not the 0.25 one it claimed. Lesson carried forward:
-a run's stored parameter is not proof of what it executed; behavioural
-divergence is a more reliable witness than either `summary.json` or git
-history.
-
-### 2.3 What's still open
-
-**Job `s3_flashvid_official_run` (7985110)** — full 8,052-question run, both
-bugs fixed, authors' published Qwen3-VL config — is queued
-(`PENDING (Priority)`, GPU-partition contention from other users, no
-confirmed start estimate) on Carya as of this writing. Once it lands and
-gates clean (`check_run.py --vs-baseline qwen3vl_baseline_run1`), this
-section closes with a real accuracy number to compare against the
-reimplementation's −5.87.
+**Reproducibility note carried from earlier re-runs:** a genuinely identical
+run diverges by exactly 0 predictions; two runs that looked identical but
+differed by 2.14% turned out to differ in model class and retention, not
+prompt template as first suspected. Lesson: a run's stored parameter is not
+proof of what it executed — behavioral divergence is the more reliable
+witness. (Divergence scale, for calibration: 0 for nothing changed, 13–23 for
+code-version drift, ~1,100+ for an actual retention change.)
 
 **Reproduce:**
 
 ```bash
-# the fixes (already applied on Carya)
 diff /project/rhu/dpalfaro/code/FlashVID/flashvid/modeling_qwen3_vl.py.bak \
      /project/rhu/dpalfaro/code/FlashVID/flashvid/modeling_qwen3_vl.py
-
 sbatch analysis/upstream-faithful/build_flash_attn.sbatch
-sbatch analysis/upstream-faithful/run_flashvid_qwen3vl_official.sbatch
+sbatch analysis/upstream-faithful/run_flashvid_qwen3vl_official_v2.sbatch
 ```
 
-Runs: `w2_flashvid_run`, `s1_flashvid_r10_run`, `s1_flashvid_r25_run`,
-`w3_flashvid_run`, `s3_flashvid_official_run` (pending).
+Runs: `w2_flashvid_run`, `s1_flashvid_r{10,25}_run`, `w3_flashvid_run`,
+`s3_flashvid_official_run` (in flight, job 7987340).
