@@ -22,19 +22,22 @@ MotionBench, 32 frames, greedy decoding. LLaVA-OV-7B baseline 52.66%, Qwen3-VL-8
 
 Reproduce: `analysis/fastv-selection-study/`, `analysis/duration-split/`.
 
-## FlashVID on Qwen3-VL — unverified, authors'-code re-run in flight
+## FlashVID on Qwen3-VL — closed: the reimplementation understated it
 
-- The reported 56.65% (−5.87 vs. baseline) never imports FlashVID's own
-  package — it's a reimplementation missing inner-LLM compression and other
+- The old reported 56.65% (−5.87 vs. baseline) never imported FlashVID's own
+  package — a reimplementation missing inner-LLM compression and other
   published parameters. Invalid as a measurement of the method.
-- The LLaVA-OV number (53.31–53.36%, accuracy-neutral) *does* call FlashVID's
-  real function with the authors' own default parameters — that one's valid.
-- Running the authors' actual Qwen3-VL code took three fixes: a dtype-cast
-  bug in their release, a FlashAttention-2 build issue, and a
-  `cache_position` crash from a `transformers` version mismatch (they pin
-  4.57.3; the shared env ran 5.14.1).
-- Debug run against the fixed env now produces real predictions. Full run
-  in flight (`s3_flashvid_official_run`, job 7987340) — closes once gated
-  against `qwen3vl_baseline_run1`.
+- The **authors' actual code, run for real** (`s3_flashvid_official_run`, job
+  7987340): **59.36%** (−3.16 vs. the 62.52% baseline) — 2.71 points better
+  than the reimplementation suggested. Gate: PASS (2,069/8,052 predictions
+  differ from baseline, accuracy in-band, params confirmed live).
+- Getting there took three fixes: a dtype-cast bug in their release, a
+  FlashAttention-2 build issue, and a `cache_position` crash from a
+  `transformers` version mismatch (they pin 4.57.3; the shared env ran
+  5.14.1) — fixed via a dedicated pinned env.
+- On LLaVA-OV, FlashVID holds steady across the authors' full published
+  sweep: 53.31% (0.15) / 53.71% (0.20, χ²=3.91, marginally significant) /
+  53.36% (0.25) against a 52.66% baseline — never worse, and at 0.20 a small
+  real gain rather than pure noise.
 
 Reproduce: `analysis/upstream-faithful/run_flashvid_qwen3vl_official_v2.sbatch`.

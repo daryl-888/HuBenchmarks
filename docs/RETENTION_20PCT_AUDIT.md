@@ -4,8 +4,8 @@ Checked each method's own published sweep before running anything.
 
 | Method | 20% status | Action |
 |---|---|---|
-| FlashVID | Authors' exact published point — `RETENTION_RATIOS=(0.10 0.15 0.20 0.25)` on all four of their backbone scripts | Ran (`s1_flashvid_r20_run`, job 7987557) |
-| HoliTom | Authors' exact published point — `RETAIN_RATIO=0.20` line in `eval_ov-7b_holitom.sh` | Ran (`s1_holitom_r20_run`, job 7987556) |
+| FlashVID | Authors' exact published point — `RETENTION_RATIOS=(0.10 0.15 0.20 0.25)` on all four of their backbone scripts | **53.71%** vs. 52.66% baseline — χ²=3.91, marginally significant (236 fixed vs. 194 broke). Gate PASS (`s1_flashvid_r20_run`, job 7987557) |
+| HoliTom | Authors' exact published point — `RETAIN_RATIO=0.20` line in `eval_ov-7b_holitom.sh` | **53.06%** vs. 52.66% baseline — χ²=0.43, not significant. Gate PASS (`s1_holitom_r20_run`, job 7987556) |
 | FastV | Free parameter, but authors only publish 12.5/25/50/75%; 20% interpolates, and already sits inside our fully-characterized flat-collapse range (10–75%) | Skipped — redundant |
 | PruneVID | Authors publish exactly one `cluster_ratio` value, `0.5`, no sweep at all | Skipped — no authors' basis for 0.2 |
 | DyCoke | No single retention knob — authors publish one fixed recipe (`l=3, p=0.7, k=0.7`), not a percentage | Skipped — undefined mapping |
