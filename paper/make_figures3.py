@@ -130,19 +130,26 @@ LEVELS = {
 
 fig, axes = plt.subplots(1, 2, figsize=(8.4, 3.3))
 for ax, backbone, base in [(axes[0], "LLaVA-OV", ov_base), (axes[1], "Qwen3-VL", qw_base)]:
+    # Categorical (evenly-spaced) x positions, not raw retention values: FastV's
+    # range extends to 50/75% while FlashVID/HoliTom stop at 25%, so a true
+    # linear axis squeezes 10/15/20/25% into a sliver of the plot width and
+    # their tick labels collide. Index position preserves order, not magnitude.
+    all_levels = sorted(set(l for m in methods for l in LEVELS[m][backbone]))
+    level_to_x = {lvl: i for i, lvl in enumerate(all_levels)}
     for m in methods:
         levels = LEVELS[m][backbone]
+        xs = [level_to_x[r] for r in levels]
         ys = [D["retention"][f"{backbone}|{m}|{r:.2f}"]["overall"] for r in levels]
-        ax.plot(levels, ys, marker=markers[m], linestyle="-", label=m,
+        ax.plot(xs, ys, marker=markers[m], linestyle="-", label=m,
                 color=mcolor[m], linewidth=1.6, markersize=6.5,
                 markerfacecolor=mcolor[m], markeredgecolor=INK, markeredgewidth=0.6)
     ax.axhline(base["overall"], color=INK, linestyle=(0, (1, 1)), linewidth=1)
     off = 1.3 if backbone == "LLaVA-OV" else 0.6
-    ax.text(0.098, base["overall"] + off, f"baseline {base['overall']:.2f}%",
+    ax.text(0.05, base["overall"] + off, f"baseline {base['overall']:.2f}%",
             fontsize=7, ha="left", style="italic", color=MUTED)
-    all_levels = sorted(set(l for m in methods for l in LEVELS[m][backbone]))
-    ax.set_xticks(all_levels)
+    ax.set_xticks(range(len(all_levels)))
     ax.set_xticklabels([f"{int(r*100)}%" for r in all_levels])
+    ax.set_xlim(-0.3, len(all_levels) - 0.7)
     ax.set_xlabel("Nominal token retention")
     ax.set_ylabel("Accuracy (%)")
     ax.set_title(f"{backbone}-7B" if backbone == "LLaVA-OV" else f"{backbone}-8B", fontsize=9)

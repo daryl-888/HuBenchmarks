@@ -9,7 +9,6 @@
 \usepackage{float}
 \usepackage{array}
 \usepackage{longtable}
-\usepackage{pdflscape}
 \usepackage[hidelinks]{hyperref}
 \hypersetup{pdftitle={Training-Free Token Reduction on MotionBench: Results},
             pdfauthor={HuVLLM Project}}
@@ -66,61 +65,62 @@ ships two active merge steps, so its LLaVA-OV cell runs at 25\% retention,
 not 15\%. Rounding is half away from zero throughout (see note,
 Table~\ref{tab:master} caption).
 
-\begin{landscape}
-\begin{longtable}{llllrrrrrrrr}
+\small
+\begin{longtable}{lrrrrrrrrr}
   \caption{Master results table: every method at its standardized or default
-  setting. AO = Action Order, CM = Camera Motion, LM = Location-related
-  Motion, MR = Motion Recognition, MO = Motion-related Objects, RC =
-  Repetition Count (\% correct within category, chance = 25\%). $\Delta$ is
-  vs.\ that row's backbone baseline. $^{*}$ = significant. $^{\dagger}$
-  PruneVID's only published operating point is \texttt{cluster\_ratio=0.5};
-  this row is that 50\% cell, not a 15\% run --- it was never run at 15\% on
-  either backbone. Six Repetition Count cells land on an exact x.25 rounding
-  tie (e.g.\ 101/400); this table rounds half away from zero, matching
-  \texttt{paper.tex} --- naive recomputation with default rounding disagrees
-  on these cells by 0.1 point.}
+  setting, grouped by backbone (no separate Backbone column --- see the
+  section divider rows). AO = Action Order, CM = Camera Motion, LM =
+  Location-related Motion, MR = Motion Recognition, MO = Motion-related
+  Objects, RC = Repetition Count (\% correct within category, chance =
+  25\%). $\Delta$ is vs.\ that row's backbone baseline. $^{*}$ = significant.
+  $^{\dagger}$ PruneVID's only published operating point is
+  \texttt{cluster\_ratio=0.5}; this row is that 50\% cell, not a 15\% run
+  --- it was never run at 15\% on either backbone. Six Repetition Count
+  cells land on an exact x.25 rounding tie (e.g.\ 101/400); this table
+  rounds half away from zero, matching \texttt{paper.tex} --- naive
+  recomputation with default rounding disagrees on these cells by 0.1
+  point.}
   \label{tab:master} \\
   \toprule
-  Method & Backbone & Retention & Overall & $\Delta$ & AO & CM & LM & MR & MO & RC \\
+  Method & Retention & Overall & $\Delta$ & AO & CM & LM & MR & MO & RC \\
   \midrule
   \endfirsthead
-  \multicolumn{11}{c}{\tablename\ \thetable{} (continued)} \\
+  \multicolumn{10}{c}{\tablename\ \thetable{} (continued)} \\
   \toprule
-  Method & Backbone & Retention & Overall & $\Delta$ & AO & CM & LM & MR & MO & RC \\
+  Method & Retention & Overall & $\Delta$ & AO & CM & LM & MR & MO & RC \\
   \midrule
   \endhead
-  \midrule \multicolumn{11}{r}{continued on next page} \\
+  \midrule \multicolumn{10}{r}{continued on next page} \\
   \endfoot
   \bottomrule
   \endlastfoot
 
-  \textit{Baseline} & LLaVA-OV-7B & --- & \textit{52.66} & --- & 40.5 & 45.2 & 55.5 & 57.0 & 71.2 & 23.8 \\
-  \textit{Baseline} & Qwen3-VL-8B & --- & \textit{62.52} & --- & 46.1 & 63.1 & 65.0 & 67.3 & 79.0 & 33.8 \\
+  \multicolumn{10}{l}{\textit{LLaVA-OV-7B, standardized setting (baseline 52.66)}} \\
+  \textit{Baseline} & --- & \textit{52.66} & --- & 40.5 & 45.2 & 55.5 & 57.0 & 71.2 & 23.8 \\
+  DyCoke & 15\% & 53.36 & +0.70 & 38.9 & 48.8 & 55.7 & 58.2 & 70.9 & 25.3 \\
+  FlashVID & 15\% & 53.31 & +0.65 & 39.9 & 45.7 & 53.8 & 58.0 & 71.7 & 28.2 \\
+  HoliTom & 15\% & 53.14 & +0.47 & 40.8 & 49.6 & 52.6 & 57.0 & 71.4 & 27.3 \\
+  MDP3 & 15\% & 53.06 & +0.40 & 40.5 & 49.6 & 53.5 & 56.8 & 71.6 & 26.5 \\
+  VideoITG & 15\% & 52.86 & +0.20 & 40.1 & 47.0 & 53.7 & 57.6 & 70.1 & 26.8 \\
+  AIM & 25\%$^{\S}$ & 52.86 & +0.20 & 41.4 & 48.1 & 54.2 & 57.0 & 71.9 & 22.3 \\
+  STTM & 15\% & 51.72 & --0.95 & 39.9 & 48.1 & 53.8 & 53.5 & 70.6 & 28.8 \\
+  PruneVID-OV & 50\%$^{\dagger}$ & 38.20 & --14.46$^{*}$ & 32.0 & 34.8 & 35.5 & 38.4 & 52.9 & 27.3 \\
+  FastV & 15\% & 36.78 & --15.88$^{*}$ & 32.8 & 31.9 & 34.1 & 35.7 & 53.8 & 25.3 \\
   \midrule
-  \multicolumn{11}{l}{\textit{LLaVA-OV-7B, standardized setting}} \\
-  DyCoke & LLaVA-OV-7B & 15\% & 53.36 & +0.70 & 38.9 & 48.8 & 55.7 & 58.2 & 70.9 & 25.3 \\
-  FlashVID & LLaVA-OV-7B & 15\% & 53.31 & +0.65 & 39.9 & 45.7 & 53.8 & 58.0 & 71.7 & 28.2 \\
-  HoliTom & LLaVA-OV-7B & 15\% & 53.14 & +0.47 & 40.8 & 49.6 & 52.6 & 57.0 & 71.4 & 27.3 \\
-  MDP3 & LLaVA-OV-7B & 15\% & 53.06 & +0.40 & 40.5 & 49.6 & 53.5 & 56.8 & 71.6 & 26.5 \\
-  VideoITG & LLaVA-OV-7B & 15\% & 52.86 & +0.20 & 40.1 & 47.0 & 53.7 & 57.6 & 70.1 & 26.8 \\
-  AIM & LLaVA-OV-7B & 25\%$^{\S}$ & 52.86 & +0.20 & 41.4 & 48.1 & 54.2 & 57.0 & 71.9 & 22.3 \\
-  STTM & LLaVA-OV-7B & 15\% & 51.72 & --0.95 & 39.9 & 48.1 & 53.8 & 53.5 & 70.6 & 28.8 \\
-  PruneVID-OV & LLaVA-OV-7B & 50\%$^{\dagger}$ & 38.20 & --14.46$^{*}$ & 32.0 & 34.8 & 35.5 & 38.4 & 52.9 & 27.3 \\
-  FastV & LLaVA-OV-7B & 15\% & 36.78 & --15.88$^{*}$ & 32.8 & 31.9 & 34.1 & 35.7 & 53.8 & 25.3 \\
-  \midrule
-  \multicolumn{11}{l}{\textit{Qwen3-VL-8B, standardized setting}} \\
-  PruneVID & Qwen3-VL-8B & 50\%$^{\dagger}$ & 62.17 & --0.35 & 46.1 & 62.9 & 64.1 & 67.1 & 79.1 & 32.5 \\
-  DyCoke & Qwen3-VL-8B & 15\% & 61.85 & --0.67 & 45.1 & 62.6 & 63.9 & 66.4 & 78.4 & 34.5 \\
-  STTM & Qwen3-VL-8B & 15\% & 61.60 & --0.92$^{*}$ & 45.9 & 61.6 & 64.8 & 66.0 & 77.1 & 34.8 \\
-  HoliTom & Qwen3-VL-8B & 15\% & 60.33 & --2.19$^{*}$ & 44.7 & 61.3 & 61.0 & 66.4 & 76.2 & 29.0 \\
-  MDP3 & Qwen3-VL-8B & 15\% & 59.66 & --2.86$^{*}$ & 44.9 & 64.7 & 62.8 & 64.0 & 77.4 & 23.0 \\
-  FlashVID & Qwen3-VL-8B & 15\% & 59.36 & --3.16$^{*}$ & 43.5 & 57.4 & 62.6 & 65.6 & 77.2 & 23.5 \\
-  FastV & Qwen3-VL-8B & 15\% & 59.01 & --3.51$^{*}$ & 46.2 & 61.0 & 61.9 & 63.5 & 72.2 & 30.5 \\
-  VisionZip (contextual) & Qwen3-VL-8B & 15\% & 58.81 & --3.71$^{*}$ & 43.2 & 57.4 & 61.9 & 64.2 & 74.3 & 29.5 \\
-  VideoITG & Qwen3-VL-8B & 15\% & 56.35 & --6.17$^{*}$ & 45.3 & 53.5 & 59.3 & 60.2 & 75.4 & 22.2 \\
-  AIM & Qwen3-VL-8B & 15\% & 55.97 & --6.55$^{*}$ & 45.9 & 56.6 & 59.5 & 58.3 & 72.2 & 27.0 \\
+  \multicolumn{10}{l}{\textit{Qwen3-VL-8B, standardized setting (baseline 62.52)}} \\
+  \textit{Baseline} & --- & \textit{62.52} & --- & 46.1 & 63.1 & 65.0 & 67.3 & 79.0 & 33.8 \\
+  PruneVID & 50\%$^{\dagger}$ & 62.17 & --0.35 & 46.1 & 62.9 & 64.1 & 67.1 & 79.1 & 32.5 \\
+  DyCoke & 15\% & 61.85 & --0.67 & 45.1 & 62.6 & 63.9 & 66.4 & 78.4 & 34.5 \\
+  STTM & 15\% & 61.60 & --0.92$^{*}$ & 45.9 & 61.6 & 64.8 & 66.0 & 77.1 & 34.8 \\
+  HoliTom & 15\% & 60.33 & --2.19$^{*}$ & 44.7 & 61.3 & 61.0 & 66.4 & 76.2 & 29.0 \\
+  MDP3 & 15\% & 59.66 & --2.86$^{*}$ & 44.9 & 64.7 & 62.8 & 64.0 & 77.4 & 23.0 \\
+  FlashVID & 15\% & 59.36 & --3.16$^{*}$ & 43.5 & 57.4 & 62.6 & 65.6 & 77.2 & 23.5 \\
+  FastV & 15\% & 59.01 & --3.51$^{*}$ & 46.2 & 61.0 & 61.9 & 63.5 & 72.2 & 30.5 \\
+  VisionZip (contextual) & 15\% & 58.81 & --3.71$^{*}$ & 43.2 & 57.4 & 61.9 & 64.2 & 74.3 & 29.5 \\
+  VideoITG & 15\% & 56.35 & --6.17$^{*}$ & 45.3 & 53.5 & 59.3 & 60.2 & 75.4 & 22.2 \\
+  AIM & 15\% & 55.97 & --6.55$^{*}$ & 45.9 & 56.6 & 59.5 & 58.3 & 72.2 & 27.0 \\
 \end{longtable}
-\end{landscape}
+\normalsize
 
 Table~\ref{tab:master} fixes every method to its standardized or default
 setting; three methods (FastV, FlashVID, HoliTom) have an authors'-validated
@@ -293,7 +293,10 @@ only 5{,}725 of 8{,}052 predictions, confirmed independently.
 \section{Per-method settings}
 \label{sec:permethod}
 
-\begin{table}[H]
+Table~\ref{tab:permethod} is the mechanism and exact configuration behind
+every row above.
+
+\begin{table}[htbp]
   \centering
   \footnotesize
   \caption{Per-method mechanism, key parameters (as run in this report), and
@@ -319,7 +322,7 @@ only 5{,}725 of 8{,}052 predictions, confirmed independently.
     \midrule
     MDP3 & frame selection (DPP) & \texttt{pool=32 select=8} --- selects frames, not tokens & n/a (8 of 32 frames) \\
     VideoITG & grounded frame selection & 512 sampled $\to$ 32 selected & n/a (32 of 512 sampled) \\
-    DyTo\textsuperscript{$\dagger$} & FINCH clustering $+$ ToMe token merge & \texttt{temporal\_aggregation=} \texttt{spatial\_tome\_finch\_dynamic\_all\_frms}; own Vicuna-7B backbone & $\sim$3{,}680 tok.\ from 100 input frames \\
+    DyTo\textsuperscript{$\dagger$} & FINCH clustering $+$ ToMe token merge & \texttt{temporal\_aggregation=}\allowbreak\texttt{spatial\_\allowbreak tome\_\allowbreak finch\_\allowbreak dynamic\_\allowbreak all\_frms}; own Vicuna-7B backbone & $\sim$3{,}680 tok.\ from 100 input frames \\
     \bottomrule
   \end{tabular}
 
