@@ -424,21 +424,18 @@ within that range ``authors'-validated'' rather than an extrapolation.
   at more than one point, versus run here at a single point or not
   comparable at all.}
   \label{tab:movable}
-  \begin{tabular}{lll}
+  \begin{tabular}{p{2.4cm}p{6.0cm}p{6.0cm}}
     \toprule
     Method & Authors' validated values & Status here \\
     \midrule
-    FlashVID & 10/15/20/25\% (identical on all four & run at all four, both backbones \\
-             & backbone scripts the authors ship) & (Qwen3-VL 20\% not run; see below) \\
+    FlashVID & 10/15/20/25\% (identical on all four backbone scripts the authors ship) & run at all four, both backbones (Qwen3-VL 20\% not run; see below) \\
     HoliTom & 10/15/20/25\% (their own sweep script) & run at all four, LLaVA-OV; three, Qwen3-VL \\
     FastV & 12.5/25/50/75\% keep & run at 10/15/25/50/75\%, LLaVA-OV; three, Qwen3-VL \\
     \midrule
     PruneVID & one point, \texttt{cluster\_ratio=0.5} & run at that point plus two unpublished \\
     DyCoke & no single ratio; one fixed recipe & run at the one published recipe \\
-    AIM & none on LLaVA-OV; unpublished, & LLaVA-OV: fixed merge, no knob. \\
-        & self-ported knob on Qwen3-VL & Qwen3-VL: our own port, no authors' basis \\
-    STTM, VisionZip & per-benchmark configs or fixed & not a sweepable single percentage \\
-        & token budgets, not a percentage & \\
+    AIM & none on LLaVA-OV; unpublished, self-ported knob on Qwen3-VL & LLaVA-OV: fixed merge, no knob. Qwen3-VL: our own port, no authors' basis \\
+    STTM, VisionZip & per-benchmark configs or fixed token budgets, not a percentage & not a sweepable single percentage \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -713,7 +710,7 @@ under an execution-log check alone.
   method's execution log rather than its CLI flag. Input is 11{,}664 visual
   tokens at 32 frames. Nominal 15\% describes five of ten methods.}
   \label{tab:budget}
-  \begin{tabular}{llr}
+  \begin{tabular}{p{2.2cm}p{6.4cm}p{5.6cm}}
     \toprule
     Method & Reduction stage & Measured budget \\
     \midrule
