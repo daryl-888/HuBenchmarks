@@ -194,11 +194,11 @@ with the other rows on that backbone.
 
 | Run dir | Result | Consequence |
 |---|---|---|
-| `s3_sttm_pub_run` | 61.60%, −0.92 vs Qwen3-VL backbone, not significant | replaces the off-spec `root_level=0 / -1.0` cell (−5.45); STTM is accuracy-neutral on Qwen3-VL at a published setting, matching its LLaVA-OV result |
+| `s3_sttm_pub_run` | 61.60%, −0.92 vs Qwen3-VL backbone, χ²=4.28, **significant** (170 broke vs. 133 fixed) | replaces the off-spec `root_level=0 / -1.0` cell (−5.45); a published setting recovers most of the loss but is not accuracy-neutral — corrected from an earlier "not significant" claim, recomputed 2026-08-13 |
 | `s1_fastv_r50_run`, `s1_fastv_k3r50_run` | 36.34%, 35.94% | published K=2/R=50% and K=3/R=50% land in the same collapse band as keep-15%; see [FASTV_FLASHVID_ANALYSIS.md](FASTV_FLASHVID_ANALYSIS.md) |
 | `s1_fastv_r75_run` | 35.69% | keep-75% also collapses; the flat range now spans keep 10–75% |
 | `s1_prunevid_c100_run` | 53.36%, +0.70, not significant | `cluster_ratio=1.0` recovers, matching FastV's own `keepall` control — same density-threshold cause |
-| `s3_flashvid_official_run` | in progress | blocked twice: a dtype crash in the authors' code (fixed locally) then a hard FlashAttention-2 requirement with no matching prebuilt wheel on this cluster (building from source). See [FASTV_FLASHVID_ANALYSIS.md](FASTV_FLASHVID_ANALYSIS.md) §2. |
+| `s3_flashvid_official_run` | 59.36%, −3.16 vs Qwen3-VL backbone, significant, gate PASS | authors' code, all three blocking bugs fixed (dtype cast, FlashAttention-2 build, `cache_position`/transformers-version mismatch); replaces the 56.65%/−5.87 reimplementation cell. See [FASTV_FLASHVID_ANALYSIS.md](FASTV_FLASHVID_ANALYSIS.md) §2. |
 
 **Unresolvable.** PruneVID on LLaVA-OneVision has no released reference
 implementation, so our port cannot be validated against anything. AIM's clone

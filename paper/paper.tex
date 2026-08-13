@@ -104,14 +104,14 @@ recomputed from per-sample prediction records
     \midrule
     \textit{Baseline} & \textit{52.66} & --- & \textit{62.52} & --- \\
     \midrule
-    PruneVID & 38.20 & --14.46$^{*}$ & 62.17 & --0.35 \\
+    PruneVID$^{\dagger}$ & 38.20 & --14.46$^{*}$ & 62.17 & --0.35 \\
     DyCoke & 53.36 & +0.70 & 61.85 & --0.67 \\
+    STTM & 51.72 & --0.95 & 61.60 & --0.92$^{*}$ \\
     HoliTom & 53.14 & +0.47 & 60.33 & --2.19$^{*}$ \\
     MDP3 & 53.06 & +0.40 & 59.66 & --2.86$^{*}$ \\
+    FlashVID & 53.31 & +0.65 & 59.36 & --3.16$^{*}$ \\
     FastV & 36.78 & --15.88$^{*}$ & 59.01 & --3.51$^{*}$ \\
     VisionZip (ctx.)$^{\ddagger}$ & --- & --- & 58.81 & --3.71$^{*}$ \\
-    STTM & 51.72 & --0.95 & 57.07 & --5.45$^{*}$ \\
-    FlashVID & 53.31 & +0.65 & 56.65 & --5.87$^{*}$ \\
     VideoITG & 52.86 & +0.20 & 56.35 & --6.17$^{*}$ \\
     AIM & 52.86 & +0.20 & 55.97 & --6.55$^{*}$ \\
     \bottomrule
@@ -119,6 +119,9 @@ recomputed from per-sample prediction records
 \end{table}
 
 \noindent\footnotesize
+$^{\dagger}$ PruneVID's only published operating point is
+\texttt{cluster\_ratio=0.5} (50\% retention), not 15\% --- it was never run
+at 15\% on either backbone (Appendix~\ref{app:budget}). \quad
 $^{\ddagger}$ Contextual half only --- Qwen3-VL's vision tower has no CLS
 token, so VisionZip's dominant half is not implementable. Not the published
 method. VisionZip's complete form runs on LLaVA-1.5-7B
@@ -132,7 +135,7 @@ Table~\ref{tab:summary} contains the report's main observation. Reading
 across rows rather than down columns, the ordering does not survive the
 change of backbone: PruneVID is the worst result on LLaVA-OV and the best on
 Qwen3-VL; FlashVID is indistinguishable from the backbone on LLaVA-OV and
-loses 5.87 points on Qwen3-VL. Every Qwen3-VL delta is negative; six of nine
+loses 3.16 points on Qwen3-VL. Every Qwen3-VL delta is negative; six of nine
 LLaVA-OV deltas are positive but none resolvably so. A ranking measured on
 one backbone does not transfer to the other.
 
@@ -190,7 +193,9 @@ and is not interpreted below.
   method's budget is fixed internally. All nine methods that run on this
   backbone. Categories as in Table~\ref{tab:baseline}. VisionZip runs on a
   different backbone (Table~\ref{tab:native}). $^{\S}$ AIM's released code
-  ships two active merge steps, so it runs at 25\% retention, not 15\%.}
+  ships two active merge steps, so it runs at 25\% retention, not 15\%.
+  $^{\dagger}$ PruneVID-OV runs at \texttt{cluster\_ratio=0.5} (50\%
+  retention), the authors' only published point, never 15\%.}
   \label{tab:llava}
   \begin{tabular}{lrrrrrrrr}
     \toprule
@@ -204,7 +209,7 @@ and is not interpreted below.
     AIM$^{\S}$ & 52.86 & +0.20 & 41.4 & 48.1 & 54.2 & 57.0 & 71.9 & 22.3 \\
     \textit{Baseline} & \textit{52.66} & --- & \textit{40.5} & \textit{45.2} & \textit{55.5} & \textit{57.0} & \textit{71.2} & \textit{23.8} \\
     STTM & 51.72 & --0.95 & 39.9 & 48.1 & 53.8 & 53.5 & 70.6 & 28.8 \\
-    PruneVID-OV$^{*}$ & 38.20 & --14.46 & 32.0 & 34.8 & 35.5 & 38.4 & 52.9 & 27.3 \\
+    PruneVID-OV$^{*\dagger}$ & 38.20 & --14.46 & 32.0 & 34.8 & 35.5 & 38.4 & 52.9 & 27.3 \\
     FastV$^{*}$ & 36.78 & --15.88 & 32.8 & 31.9 & 34.1 & 35.7 & 53.8 & 25.3 \\
     \bottomrule
   \end{tabular}
@@ -229,25 +234,27 @@ the other seven, and \S\ref{sec:selection} isolates the cause by experiment.
 \begin{table}[H]
   \centering
   \small
-  \caption{Qwen3-VL-8B, 32 frames, 15\% nominal retention. All ten portable
-  methods. VisionZip is the contextual half only (see
-  Table~\ref{tab:summary} notes). $^{\S}$ marks a cell running a
-  configuration the method's authors do not publish for this backbone
-  (Appendix~\ref{app:limits}).}
+  \caption{Qwen3-VL-8B, 32 frames, 15\% nominal retention except where noted.
+  All ten portable methods. VisionZip is the contextual half only (see
+  Table~\ref{tab:summary} notes). FlashVID and STTM run the authors' own
+  code at published settings and no longer carry an off-spec caveat
+  (Appendix~\ref{app:limits}). $^{\dagger}$ PruneVID runs at
+  \texttt{cluster\_ratio=0.5} (50\% retention), the authors' only published
+  point, never 15\%.}
   \label{tab:qwen}
   \begin{tabular}{lrrrrrrrr}
     \toprule
     Method & Overall & $\Delta$ & AO & CM & LM & MR & MO & RC \\
     \midrule
     \textit{Baseline} & \textit{62.52} & --- & \textit{46.1} & \textit{63.1} & \textit{65.0} & \textit{67.3} & \textit{79.0} & \textit{33.8} \\
-    PruneVID & 62.17 & --0.35 & 46.1 & 62.9 & 64.1 & 67.1 & 79.1 & 32.5 \\
+    PruneVID$^{\dagger}$ & 62.17 & --0.35 & 46.1 & 62.9 & 64.1 & 67.1 & 79.1 & 32.5 \\
     DyCoke & 61.85 & --0.67 & 45.1 & 62.6 & 63.9 & 66.4 & 78.4 & 34.5 \\
+    STTM$^{*}$ & 61.60 & --0.92 & 45.9 & 61.6 & 64.8 & 66.0 & 77.1 & 34.8 \\
     HoliTom$^{*}$ & 60.33 & --2.19 & 44.7 & 61.3 & 61.0 & 66.4 & 76.2 & 29.0 \\
     MDP3$^{*}$ & 59.66 & --2.86 & 44.9 & 64.7 & 62.8 & 64.0 & 77.4 & 23.0 \\
+    FlashVID$^{*}$ & 59.36 & --3.16 & 43.5 & 57.4 & 62.6 & 65.6 & 77.2 & 23.5 \\
     FastV$^{*}$ & 59.01 & --3.51 & 46.2 & 61.0 & 61.9 & 63.5 & 72.2 & 30.5 \\
     VisionZip (ctx.)$^{*}$ & 58.81 & --3.71 & 43.2 & 57.4 & 61.9 & 64.2 & 74.3 & 29.5 \\
-    STTM$^{*\S}$ & 57.07 & --5.45 & 44.3 & 60.0 & 61.0 & 60.6 & 73.8 & 23.8 \\
-    FlashVID$^{*\S}$ & 56.65 & --5.87 & 43.4 & 57.9 & 57.1 & 61.2 & 73.0 & 27.0 \\
     VideoITG$^{*}$ & 56.35 & --6.17 & 45.3 & 53.5 & 59.3 & 60.2 & 75.4 & 22.2 \\
     AIM$^{*}$ & 55.97 & --6.55 & 45.9 & 56.6 & 59.5 & 58.3 & 72.2 & 27.0 \\
     \bottomrule
@@ -270,10 +277,13 @@ that retain roughly half their tokens against 7.5--15\% for the rest
 (Appendix~\ref{app:budget}).
 
 Loss does not track budget monotonically. HoliTom operates at the smallest
-measured budget in the set (7.5\%) and loses 2.19 points, while AIM and
-FlashVID at 15\% lose 6.55 and 5.87. The methods that hold up are those that
-merge non-retained tokens into survivors rather than discarding them
-outright.
+measured budget in the set (7.5\%) and loses 2.19 points, while AIM at 15\%
+loses 6.55 --- more than four times as much on a comparable nominal budget.
+The methods that hold up are those that merge non-retained tokens into
+survivors rather than discarding them outright: FlashVID (pre-LLM merge plus
+an inner-LLM compression stage) still loses 3.16 points despite merging
+rather than discarding, so merging reduces but does not eliminate the cost
+of a 15\% budget on this backbone.
 
 \subsection{Per-category change}
 \label{sec:category}
@@ -315,8 +325,13 @@ capability.
   \centering
   \small
   \caption{Accuracy (and $\Delta$ vs.\ backbone) across nominal retention,
-  32 frames and all else fixed. Span is movement from 10\% to 25\%. Four of
-  eleven methods expose a comparable retention parameter.}
+  32 frames and all else fixed. Span is movement from 10\% to 25\%.
+  $^{\ddagger}$ FlashVID's Qwen3-VL 10\%/25\% cells predate the authors'-code
+  fix (\S\ref{app:limits}) and are the incomplete reimplementation, not the
+  verified method; not directly comparable to the verified 15\% cell in
+  Table~\ref{tab:qwen} (59.36\%). PruneVID is not in this table --- its
+  authors publish exactly one operating point, not a 10/15/25\% sweep
+  (Table~\ref{tab:puv}).}
   \label{tab:retention}
   \begin{tabular}{lrrrr}
     \toprule
@@ -326,13 +341,32 @@ capability.
     FastV & 36.06 (--16.60)$^{*}$ & 36.78 (--15.88)$^{*}$ & 36.73 (--15.93)$^{*}$ & +0.67 \\
     FlashVID & 52.51 (--0.15) & 53.31 (+0.65) & 53.36 (+0.70) & +0.85 \\
     HoliTom & 52.76 (+0.10) & 53.14 (+0.47) & 53.41 (+0.75) & +0.65 \\
-    PruneVID & 38.10 (--14.56)$^{*}$ & 38.20 (--14.46)$^{*}$ & 38.38 (--14.29)$^{*}$ & +0.28 \\
     \midrule
     \multicolumn{5}{l}{\textit{Qwen3-VL-8B (baseline 62.52\%)}} \\
     FastV & 56.92 (--5.60)$^{*}$ & 59.01 (--3.51)$^{*}$ & 60.60 (--1.92)$^{*}$ & \textbf{+3.68} \\
-    FlashVID & 54.73 (--7.79)$^{*}$ & 56.65 (--5.87)$^{*}$ & 59.36 (--3.16)$^{*}$ & \textbf{+4.63} \\
+    FlashVID$^{\ddagger}$ & 54.73 (--7.79)$^{*}$ & 56.65 (--5.87)$^{*}$ & 59.36 (--3.16)$^{*}$ & \textbf{+4.63} \\
     HoliTom & 60.05 (--2.46)$^{*}$ & 60.33 (--2.19)$^{*}$ & 60.43 (--2.09)$^{*}$ & +0.38 \\
-    PruneVID & 60.23 (--2.29)$^{*}$ & 62.17 (--0.35) & 61.40 (--1.12)$^{*}$ & +1.17 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{table}[H]
+  \centering
+  \small
+  \caption{PruneVID's true sweep. The retention tables in an earlier revision
+  of this report labeled PruneVID's middle column ``0.15''; that cell is
+  \texttt{cluster\_ratio=0.5}, the authors' only published point, and
+  PruneVID was never run at 0.15 on either backbone. Sorted by the ratio that
+  actually ran, Qwen3-VL is monotonic --- the ``non-monotonic'' cell reported
+  in an earlier revision was an artefact of the mislabeled column, not a
+  property of the method.}
+  \label{tab:puv}
+  \begin{tabular}{lrrr}
+    \toprule
+    Backbone & $c=0.10$ & $c=0.25$ & $c=0.50$ (published) \\
+    \midrule
+    LLaVA-OV-7B & 38.10 (--14.56)$^{*}$ & 38.38 (--14.29)$^{*}$ & 38.20 (--14.46)$^{*}$ \\
+    Qwen3-VL-8B & 60.23 (--2.29)$^{*}$ & 61.40 (--1.12)$^{*}$ & 62.17 (--0.35) \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -347,24 +381,122 @@ capability.
 \end{figure}
 
 Tripling the budget from 10\% to 25\% moves no LLaVA-OV method more than
-0.85 points. On Qwen3-VL the same change moves FlashVID 4.63 points and
-FastV 3.68, with FastV's significance decaying monotonically
-($\chi^2 = 89.8 \to 44.6 \to 18.2$) as it converges toward the baseline ---
-roughly a five-fold difference in retention sensitivity between the two
-backbones.
+0.85 points. On Qwen3-VL the same change moves FastV 3.68 points, with its
+significance decaying monotonically ($\chi^2 = 89.8 \to 44.6 \to 18.2$) as
+it converges toward the baseline. FlashVID's equivalent Qwen3-VL span, 4.63
+points, is not a claim about the verified method --- it is computed entirely
+from the pre-fix reimplementation (Table~\ref{tab:retention}, $\ddagger$
+note); the verified 15\% point (59.36\%) does not sit on a verified curve at
+10\% or 25\%.
 
-On LLaVA-OV the four methods sit in two flat regimes: FlashVID and HoliTom
-at the baseline at every setting, FastV and PruneVID roughly 15 points below
-it at every setting. Within this window, what costs accuracy is that those
-two discard tokens at all, not how hard. The window is bounded, however:
-\S\ref{sec:selection} shows the same code path at 100\% retention returns to
-the baseline, so the flatness across 10--25\% locates a threshold below that
-range rather than showing budget to be irrelevant outright.
+On LLaVA-OV FastV and PruneVID sit roughly 15 points below the backbone at
+every setting tried, while FlashVID and HoliTom stay near the baseline.
+Within FastV's window, what costs accuracy is that it discards tokens at
+all, not how hard: the range was extended beyond the original 10--25\% sweep
+to the authors' full published boundary, 12.5--75\% keep, and the LLaVA-OV
+cells stay flat at 35.7--36.8\% across all of it (Table~\ref{tab:fastvfull},
+\S\ref{sec:movable}),
+including the authors' own K=2/R=50\% operating point (36.34\%). The window
+is bounded, however: \S\ref{sec:selection} shows the same code path at 100\%
+retention returns to the baseline, so the threshold sits strictly between
+75\% and 100\% retention --- narrower than previously reported, not located
+more precisely than that.
 
-One cell is flagged rather than smoothed: PruneVID on Qwen3-VL is
-non-monotonic ($60.23 \to 62.17 \to 61.40$), its midpoint both its best
-result and its only non-significant one. At $\pm1.54$-point resolution this
-may be noise; it is not reported as a trend.
+PruneVID's true sweep (Table~\ref{tab:puv}) is monotonic on Qwen3-VL once
+sorted by the ratio that actually ran: $60.23\to61.40\to62.17$. An earlier
+revision of this report labeled the 0.5 cell ``0.15'' and reported the
+resulting order ($60.23\to62.17\to61.40$) as a flagged non-monotonic
+anomaly; that anomaly was an artefact of the mislabeled column, not a
+property of PruneVID.
+
+\subsection{Which retention parameters are movable}
+\label{sec:movable}
+
+Table~\ref{tab:retention} implies four methods have a comparable retention
+parameter; only three of them have a knob the authors themselves validated
+at more than one operating point, which is the bar for calling a value
+within that range ``authors'-validated'' rather than an extrapolation.
+
+\begin{table}[H]
+  \centering
+  \small
+  \caption{Which methods' retention parameters are validated by the authors
+  at more than one point, versus run here at a single point or not
+  comparable at all.}
+  \label{tab:movable}
+  \begin{tabular}{lll}
+    \toprule
+    Method & Authors' validated values & Status here \\
+    \midrule
+    FlashVID & 10/15/20/25\% (identical on all four & run at all four, both backbones \\
+             & backbone scripts the authors ship) & (Qwen3-VL 20\% not run; see below) \\
+    HoliTom & 10/15/20/25\% (their own sweep script) & run at all four, LLaVA-OV; three, Qwen3-VL \\
+    FastV & 12.5/25/50/75\% keep & run at 10/15/25/50/75\%, LLaVA-OV; three, Qwen3-VL \\
+    \midrule
+    PruneVID & one point, \texttt{cluster\_ratio=0.5} & run at that point plus two unpublished \\
+    DyCoke & no single ratio; one fixed recipe & run at the one published recipe \\
+    AIM & none on LLaVA-OV; unpublished, & LLaVA-OV: fixed merge, no knob. \\
+        & self-ported knob on Qwen3-VL & Qwen3-VL: our own port, no authors' basis \\
+    STTM, VisionZip & per-benchmark configs or fixed & not a sweepable single percentage \\
+        & token budgets, not a percentage & \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+FlashVID and HoliTom were run at their authors' full four-point LLaVA-OV
+sweep, filling the 20\% gap left by the original 10/15/25\% design in this
+report:
+
+\begin{table}[H]
+  \centering
+  \small
+  \caption{FlashVID and HoliTom at 20\% retention, LLaVA-OV-7B (baseline
+  52.66\%) --- the fourth authors'-published point, not previously run.}
+  \label{tab:twenty}
+  \begin{tabular}{lrr}
+    \toprule
+    Method & Overall & $\Delta$ \\
+    \midrule
+    FlashVID & 53.71 & +1.05$^{*}$ \\
+    HoliTom & 53.06 & +0.40 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Both gate clean. HoliTom's gap is not significant, consistent with its other
+three points. FlashVID's is: $\chi^2=3.91$, just above the 3.84 threshold
+(236 fixed vs.\ 194 broke) --- a small genuine gain, not the flat noise its
+10/15/25\% points might suggest, though still well inside the practical
+range every other FlashVID point occupies. Before treating this as a real
+effect worth a mechanism, note it survives at only one of four points and
+the resolution floor is $\pm1.54$; it is reported because it crosses the
+significance threshold, not because a fourth data point changes the overall
+picture that FlashVID is accuracy-neutral on LLaVA-OV.
+
+FastV's authors publish a wider range (12.5--75\% keep) than FlashVID or
+HoliTom's four points, which is why \S\ref{sec:retention}'s threshold search
+above could extend to 50\% and 75\% without leaving validated territory:
+
+\begin{table}[H]
+  \centering
+  \small
+  \caption{FastV's full LLaVA-OV-7B sweep (baseline 52.66\%), extending
+  Table~\ref{tab:retention} to the authors' full published boundary.
+  K=2/R=50\% is the authors' own most-published operating point.}
+  \label{tab:fastvfull}
+  \begin{tabular}{lrrrrr}
+    \toprule
+    Keep & 10\% & 15\% & 25\% & 50\% (K=2/R=50\%) & 75\% \\
+    \midrule
+    Overall & 36.06 & 36.78 & 36.73 & 36.34 & 35.69 \\
+    $\Delta$ & --16.60$^{*}$ & --15.88$^{*}$ & --15.93$^{*}$ & --16.33$^{*}$ & --16.97$^{*}$ \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Every FastV LLaVA-OV cell between 10\% and 75\% is either an authors'-published
+point or an interpolation strictly inside their own tested boundary, never
+an extrapolation past it.
 
 \subsection{Answer distribution on LLaVA-OV}
 \label{sec:collapse}
@@ -470,10 +602,21 @@ survive}; at 100\% the backbone is intact. Selection quality, and the
 temporal structure of the selection, stop mattering below that line. This is
 also the most economical account of why FastV and PruneVID-OV --- unrelated
 in design --- converge on nearly the same number: below the threshold there
-is nothing left for a selection rule to differentiate. Where exactly the
-threshold falls between 25\% and 100\% retention was not measured; the sweep
-in \S\ref{sec:retention} covers only 10--25\%, entirely below it
-(Appendix~\ref{app:open}).
+is nothing left for a selection rule to differentiate. The threshold itself
+was subsequently located more precisely (\S\ref{sec:retention}): FastV stays
+flat from 10\% to 75\% keep, including the authors' own K=2/R=50\% setting,
+and recovers only at 100\%, so the transition sits strictly between 75\% and
+100\%, not measured more finely than that.
+
+PruneVID-OV corroborates the same account independently. Setting
+\texttt{cluster\_ratio=1.0} disables its spatial merge --- the analogue of
+\texttt{keepall} for a structurally different algorithm at a different
+layer --- and scores 53.36\%, $+0.70$ against the backbone, $\chi^2=2.34$,
+not significant: the same recovery FastV's own \texttt{keepall} control
+shows. Two unrelated methods, discarding through unrelated mechanisms, both
+intact with nothing discarded and both collapsed the moment anything is ---
+this is a property of the backbone below some retained-token density, not of
+either method's selection rule.
 
 The fork used here reproduces the production FastV run exactly on the
 matched subset (0 of 986 predictions differ), so the experiment measures the
@@ -575,9 +718,9 @@ under an execution-log check alone.
     Method & Reduction stage & Measured budget \\
     \midrule
     HoliTom & pre-LLM segment retain $+$ in-LLM merge & 7.5\% (875 tokens) \\
-    STTM & quadtree spatio-temporal merge & 9.0\% (1{,}050) \\
+    STTM & quadtree spatio-temporal merge, published setting & not re-measured since the off-spec$\to$published fix \\
     FastV & in-LLM attention rerank, layer 2 & 15.0\% (1{,}750) \\
-    FlashVID & pre-LLM temporal-segment merge & 15.0\% (1{,}750) \\
+    FlashVID & pre-LLM merge $+$ inner-LLM compression, layer 28 & 15.0\% (1{,}750) pre-LLM; further compressed mid-network, not captured here \\
     AIM & bipartite merge $+$ PageRank prune & 15.0\% (1{,}750) \\
     VisionZip (contextual) & key-similarity merge in vision tower & 15.0\% (1{,}750) \\
     DyCoke & temporal merge $+$ KV prune, layer 3 & 49.0\% (5{,}716) \\
@@ -603,10 +746,12 @@ run exists on its backbone.
 
 Six Repetition Count cells land on an exact rounding tie: HoliTom and
 PruneVID-OV at 109/400 = 27.25\%, DyCoke and FastV at 101/400 = 25.25\%, AIM
-at 89/400 = 22.25\% and STTM at 115/400 = 28.75\%. This report rounds half
-away from zero throughout, giving 27.3, 25.3, 22.3 and 28.8. Python's default
-banker's rounding disagrees on every one of them, so recomputation scripts
-must not be used to ``correct'' these cells without changing the stated
+at 89/400 = 22.25\% and STTM at 115/400 = 28.75\% (all LLaVA-OV). A seventh,
+introduced by the Qwen3-VL STTM correction (\S\ref{app:limits}), is
+139/400 = 34.75\%. This report rounds half away from zero throughout, giving
+27.3, 25.3, 22.3, 28.8 and 34.8. Python's default banker's rounding
+disagrees on every one of them, so recomputation scripts must not be used to
+``correct'' these cells without changing the stated
 convention first.
 
 \section{Paired-prediction statistics}
@@ -676,11 +821,16 @@ configuration exactly reproducible, so there is one measurement per cell and
 no run-to-run variance estimate. Reported uncertainty is binomial, not
 empirical --- which is why the $\pm1.54$-point floor is applied strictly.
 
-\textbf{Standardization is not paper fidelity.} FastV's published default is
-$r=0.5$; the figures here are FastV \emph{at} 10--25\%, well outside its
-validated range, and should not be read as characterizing the method as
-published. Since methods without a retention knob keep their defaults, the
-cross-method comparison is at a common nominal setting and not at equal
+\textbf{Standardization is not paper fidelity.} The headline comparison
+tables (Tables~\ref{tab:llava}, \ref{tab:qwen}) fix every method to a common
+15\% nominal budget for cross-method comparability, which is not each
+method's own published default. FastV's LLaVA-OV cells were additionally
+run across its full published range, 10--75\% keep (\S\ref{sec:retention}),
+including its own K=2/R=50\% operating point, so that specific comparison is
+no longer standardization-only; PruneVID's headline cells run at its
+published \texttt{cluster\_ratio=0.5}, not 15\% (Table~\ref{tab:summary}
+$\dagger$ note). Since methods without a retention knob keep their defaults,
+the cross-method comparison is at a common nominal setting and not at equal
 compute (Appendix~\ref{app:budget}).
 
 \textbf{Determinism is conditional.} Bit-identical reproduction was verified
@@ -697,13 +847,20 @@ divergence, and the gate would misclassify it. No such case was observed.
 mechanism ran and changed the output, never that it matches the published
 algorithm. On LLaVA-OV most cells execute upstream code; on Qwen3-VL, which
 postdates most of these methods, most are our ports and should be read as
-``our implementation of the method''. Three cells carry known caveats:
-FlashVID on Qwen3-VL omits the authors' inner-LLM compression stage, STTM on
-Qwen3-VL runs a spatial-only setting the authors do not publish
-(\texttt{root\_level=0}), and PruneVID on LLaVA-OV has no upstream reference
-at all --- its released code targets PLLaVA only, so the 38.20\% cannot be
-validated while its PLLaVA result (44.13\%, Table~\ref{tab:native}) can.
-Per-cell provenance is recorded in the project repository.
+``our implementation of the method''. Two cells previously flagged here have
+since been resolved: FlashVID on Qwen3-VL now runs the authors' own
+\texttt{flashvid()} package with inner-LLM compression at its published
+setting (59.36\%, replacing a 56.65\% reimplementation cell that omitted
+that stage), and STTM on Qwen3-VL now runs a published configuration
+(61.60\%, replacing an off-spec \texttt{root\_level=0} cell at 57.07\%). One
+cell remains genuinely unresolvable: PruneVID on LLaVA-OV has no upstream
+reference at all --- its released code targets PLLaVA only, so the 38.20\%
+cannot be validated while its PLLaVA result (44.13\%, Table~\ref{tab:native})
+can. AIM's Qwen3-VL retention knob is a further case worth naming
+explicitly: the authors ship no Qwen3-VL code at all, so \texttt{prune\_ratio}
+on that backbone is entirely our own port, with no authors' configuration to
+validate against at any value (\S\ref{sec:movable}). Per-cell provenance is
+recorded in the project repository.
 
 \textbf{Scoring protocol.} Accuracy depends on a letter-matching regular
 expression and on excluding the 4{,}034 \texttt{NA} items --- roughly half
@@ -712,24 +869,40 @@ the benchmark. Both are documented choices; neither has been ablated.
 \section{Open items}
 \label{app:open}
 
-\begin{enumerate}
-\item \textbf{Where the discard threshold falls.} \S\ref{sec:selection}
-  establishes that on LLaVA-OV a 15\% budget costs about 15 points regardless
-  of selection rule, while 100\% retention through the same code path is
-  intact. The transition between those two points was not measured, and
-  FastV's own published R=50\% sits inside the unmeasured interval.
-\item \textbf{Whether the threshold is backbone-specific.} No equivalent
-  selection experiment was run on Qwen3-VL, where the same methods respond
-  smoothly to budget (\S\ref{sec:retention}) and show no collapse. The
-  contrast is suggestive but untested.
-\item \textbf{FastV at its stated video setting.} The authors recommend
-  K=2, R=50\% for inputs with roughly ten times the image-token count --- our
-  regime --- while this report runs K=2 at R=85\%. Runs at the published
-  setting are pending.
-\item \textbf{Re-runs at published configurations} for the three flagged
-  cells (FlashVID and STTM on Qwen3-VL, a \texttt{cluster\_ratio=1.0}
-  control for PruneVID-OV) are pending and will replace those numbers if
-  they gate.
-\end{enumerate}
+Three items from an earlier revision of this report are now closed; they are
+recorded here for continuity rather than left silently to disappear.
+
+\textbf{Closed. Where the discard threshold falls.} FastV's LLaVA-OV cells
+were extended from the original 10--25\% sweep to 10/15/25/50/75\% keep,
+covering the authors' full published range and their own K=2/R=50\%
+operating point. All five land at 35.7--36.8\%; recovery happens only at
+100\% (\S\ref{sec:selection}, Table~\ref{tab:fastvfull}). The threshold is
+narrower than previously stated --- strictly between 75\% and 100\% --- but
+was not located more finely than that.
+
+\textbf{Closed. FastV at its stated video setting.} K=2/R=50\% (36.34\%) and
+K=2/R=75\% (35.69\%) were both run; both collapse in the same band as the
+standardized K=2/R=85\% (keep 15\%) cell. FastV's published operating point
+does not recover the LLaVA-OV collapse.
+
+\textbf{Closed. Re-runs at published configurations.} All three pending
+re-runs landed: FlashVID on Qwen3-VL now runs the authors' \texttt{flashvid()}
+package (59.36\%, replacing 56.65\%); STTM on Qwen3-VL now runs a published
+setting (61.60\%, replacing an off-spec 57.07\%); PruneVID-OV's
+\texttt{cluster\_ratio=1.0} control recovers to 53.36\%, corroborating
+FastV's own \texttt{keepall} result independently (\S\ref{sec:selection}).
+
+\textbf{Still open. Whether the threshold is backbone-specific.} No
+four-arm selection experiment analogous to \S\ref{sec:selection} was run on
+Qwen3-VL. The retention sweep (\S\ref{sec:retention}) shows the same methods
+respond smoothly to budget there with no collapse of any size, which is
+suggestive but not the same causal test run on LLaVA-OV.
+
+\textbf{New. FlashVID's Qwen3-VL 10\%/25\% cells are stale.} Only the 15\%
+cell has been re-run against the authors' code; the 10\% and 25\% cells in
+Table~\ref{tab:retention} still reflect the incomplete reimplementation.
+Re-running those two at the authors' settings would let FlashVID's Qwen3-VL
+retention sensitivity be reported on verified data throughout, the way
+FastV's already is.
 
 \end{document}

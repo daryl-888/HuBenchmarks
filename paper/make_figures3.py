@@ -121,11 +121,17 @@ plt.close(fig)
 methods = ["FastV", "FlashVID", "HoliTom", "PruneVID"]
 mcolor = {"FastV": BLUE, "FlashVID": ORANGE, "HoliTom": AQUA, "PruneVID": YELLOW}
 markers = {"FastV": "o", "FlashVID": "s", "HoliTom": "^", "PruneVID": "D"}
-levels = [0.10, 0.15, 0.25]
+LEVELS = {
+    "FastV":    {"LLaVA-OV": [0.10, 0.15, 0.25, 0.50, 0.75], "Qwen3-VL": [0.10, 0.15, 0.25]},
+    "FlashVID": {"LLaVA-OV": [0.10, 0.15, 0.20, 0.25],       "Qwen3-VL": [0.10, 0.15, 0.25]},
+    "HoliTom":  {"LLaVA-OV": [0.10, 0.15, 0.20, 0.25],       "Qwen3-VL": [0.10, 0.15, 0.25]},
+    "PruneVID": {"LLaVA-OV": [0.10, 0.25, 0.50],             "Qwen3-VL": [0.10, 0.25, 0.50]},
+}
 
 fig, axes = plt.subplots(1, 2, figsize=(8.4, 3.3))
 for ax, backbone, base in [(axes[0], "LLaVA-OV", ov_base), (axes[1], "Qwen3-VL", qw_base)]:
     for m in methods:
+        levels = LEVELS[m][backbone]
         ys = [D["retention"][f"{backbone}|{m}|{r:.2f}"]["overall"] for r in levels]
         ax.plot(levels, ys, marker=markers[m], linestyle="-", label=m,
                 color=mcolor[m], linewidth=1.6, markersize=6.5,
@@ -134,8 +140,9 @@ for ax, backbone, base in [(axes[0], "LLaVA-OV", ov_base), (axes[1], "Qwen3-VL",
     off = 1.3 if backbone == "LLaVA-OV" else 0.6
     ax.text(0.098, base["overall"] + off, f"baseline {base['overall']:.2f}%",
             fontsize=7, ha="left", style="italic", color=MUTED)
-    ax.set_xticks(levels)
-    ax.set_xticklabels([f"{int(r*100)}%" for r in levels])
+    all_levels = sorted(set(l for m in methods for l in LEVELS[m][backbone]))
+    ax.set_xticks(all_levels)
+    ax.set_xticklabels([f"{int(r*100)}%" for r in all_levels])
     ax.set_xlabel("Nominal token retention")
     ax.set_ylabel("Accuracy (%)")
     ax.set_title(f"{backbone}-7B" if backbone == "LLaVA-OV" else f"{backbone}-8B", fontsize=9)

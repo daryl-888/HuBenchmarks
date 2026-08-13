@@ -142,13 +142,19 @@ plt.close(fig)
 # Figure 4 -- retention sweep (overall accuracy only)
 # ------------------------------------------------------------------
 methods = ["FastV", "FlashVID", "HoliTom", "PruneVID"]
-levels = [0.10, 0.15, 0.25]
+LEVELS = {
+    "FastV":    {"LLaVA-OV": [0.10, 0.15, 0.25, 0.50, 0.75], "Qwen3-VL": [0.10, 0.15, 0.25]},
+    "FlashVID": {"LLaVA-OV": [0.10, 0.15, 0.20, 0.25],       "Qwen3-VL": [0.10, 0.15, 0.25]},
+    "HoliTom":  {"LLaVA-OV": [0.10, 0.15, 0.20, 0.25],       "Qwen3-VL": [0.10, 0.15, 0.25]},
+    "PruneVID": {"LLaVA-OV": [0.10, 0.25, 0.50],             "Qwen3-VL": [0.10, 0.25, 0.50]},
+}
 markers = {"FastV": "o", "FlashVID": "s", "HoliTom": "^", "PruneVID": "D"}
 styles = {"FastV": "-", "FlashVID": "--", "HoliTom": "-.", "PruneVID": ":"}
 
 fig, axes = plt.subplots(1, 2, figsize=(8.0, 3.2))
 for ax, backbone, base in [(axes[0], "LLaVA-OV", ov_base), (axes[1], "Qwen3-VL", qw_base)]:
     for m in methods:
+        levels = LEVELS[m][backbone]
         ys = [D["retention"][f"{backbone}|{m}|{r:.2f}"]["overall"] for r in levels]
         ax.plot(levels, ys, marker=markers[m], linestyle=styles[m], label=m,
                 color=DARK, linewidth=1.3, markersize=5, markerfacecolor="white")
@@ -156,8 +162,9 @@ for ax, backbone, base in [(axes[0], "LLaVA-OV", ov_base), (axes[1], "Qwen3-VL",
     off = 1.3 if backbone == "LLaVA-OV" else 0.6
     ax.text(0.098, base["overall"] + off, f"baseline {base['overall']:.2f}%",
             fontsize=7, ha="left", style="italic")
-    ax.set_xticks(levels)
-    ax.set_xticklabels([f"{int(r*100)}%" for r in levels])
+    all_levels = sorted(set(l for m in methods for l in LEVELS[m][backbone]))
+    ax.set_xticks(all_levels)
+    ax.set_xticklabels([f"{int(r*100)}%" for r in all_levels])
     ax.set_xlabel("Nominal token retention")
     ax.set_ylabel("Accuracy (%)")
     ax.set_title(f"{backbone}-7B" if backbone == "LLaVA-OV" else f"{backbone}-8B", fontsize=9)
