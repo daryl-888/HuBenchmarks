@@ -324,28 +324,34 @@ capability.
 \begin{table}[H]
   \centering
   \small
-  \caption{Accuracy (and $\Delta$ vs.\ backbone) across nominal retention,
-  32 frames and all else fixed. Span is movement from 10\% to 25\%.
-  $^{\ddagger}$ FlashVID's Qwen3-VL 10\%/25\% cells predate the authors'-code
-  fix (\S\ref{app:limits}) and are the incomplete reimplementation, not the
-  verified method; not directly comparable to the verified 15\% cell in
-  Table~\ref{tab:qwen} (59.36\%). PruneVID is not in this table --- its
-  authors publish exactly one operating point, not a 10/15/25\% sweep
-  (Table~\ref{tab:puv}).}
+  \caption{The three methods with an authors'-validated multi-point retention
+  sweep, at every published point, ordered 10/15/20/25\%. Baseline row spans
+  all four columns since retention does not apply to it. $^{*}$ =
+  significant vs.\ that backbone's baseline. \textbf{---} = not run: 20\% was
+  never run on Qwen3-VL for any method, and FastV's LLaVA-OV cells already
+  span 10--75\% (Table~\ref{tab:fastvfull}), making a 20\% point redundant
+  there. $^{\ddagger}$ FlashVID's Qwen3-VL 10\%/25\% cells predate the
+  authors'-code fix (\S\ref{app:limits}): the incomplete reimplementation, not
+  the verified method. Span is 10\%$\to$25\% movement; not reported for
+  FlashVID/Qwen3-VL since neither endpoint is the verified method. PruneVID
+  is not in this table --- its authors publish exactly one operating point,
+  not a sweep (Table~\ref{tab:puv}).}
   \label{tab:retention}
-  \begin{tabular}{lrrrr}
+  \begin{tabular}{lrrrrr}
     \toprule
-    Method & $r=0.10$ & $r=0.15$ & $r=0.25$ & Span \\
+    Method & $r=0.10$ & $r=0.15$ & $r=0.20$ & $r=0.25$ & Span \\
     \midrule
-    \multicolumn{5}{l}{\textit{LLaVA-OV-7B (baseline 52.66\%)}} \\
-    FastV & 36.06 (--16.60)$^{*}$ & 36.78 (--15.88)$^{*}$ & 36.73 (--15.93)$^{*}$ & +0.67 \\
-    FlashVID & 52.51 (--0.15) & 53.31 (+0.65) & 53.36 (+0.70) & +0.85 \\
-    HoliTom & 52.76 (+0.10) & 53.14 (+0.47) & 53.41 (+0.75) & +0.65 \\
+    \multicolumn{6}{l}{\textit{LLaVA-OV-7B}} \\
+    \textit{Baseline} & \multicolumn{4}{c}{\textit{52.66}} & --- \\
+    FastV & 36.06$^{*}$ & 36.78$^{*}$ & --- & 36.73$^{*}$ & +0.67 \\
+    FlashVID & 52.51 & 53.31 & 53.71$^{*}$ & 53.36 & +0.85 \\
+    HoliTom & 52.76 & 53.14 & 53.06 & 53.41 & +0.65 \\
     \midrule
-    \multicolumn{5}{l}{\textit{Qwen3-VL-8B (baseline 62.52\%)}} \\
-    FastV & 56.92 (--5.60)$^{*}$ & 59.01 (--3.51)$^{*}$ & 60.60 (--1.92)$^{*}$ & \textbf{+3.68} \\
-    FlashVID$^{\ddagger}$ & 54.73 (--7.79)$^{*}$ & 56.65 (--5.87)$^{*}$ & 59.36 (--3.16)$^{*}$ & \textbf{+4.63} \\
-    HoliTom & 60.05 (--2.46)$^{*}$ & 60.33 (--2.19)$^{*}$ & 60.43 (--2.09)$^{*}$ & +0.38 \\
+    \multicolumn{6}{l}{\textit{Qwen3-VL-8B}} \\
+    \textit{Baseline} & \multicolumn{4}{c}{\textit{62.52}} & --- \\
+    FastV & 56.92$^{*}$ & 59.01$^{*}$ & --- & 60.60$^{*}$ & \textbf{+3.68} \\
+    FlashVID$^{\ddagger}$ & 54.73$^{*}$ & 59.36$^{*}$ & --- & 59.36$^{*}$ & --- \\
+    HoliTom & 60.05$^{*}$ & 60.33$^{*}$ & --- & 60.43$^{*}$ & +0.38 \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -409,13 +415,23 @@ resulting order ($60.23\to62.17\to61.40$) as a flagged non-monotonic
 anomaly; that anomaly was an artefact of the mislabeled column, not a
 property of PruneVID.
 
+FlashVID's 20\% LLaVA-OV cell (Table~\ref{tab:retention}) is the one
+retention point in this report that crosses significance in the direction of
+a gain: $+1.05$, $\chi^2=3.91$ against the 3.84 threshold (236 fixed vs.\ 194
+broke). HoliTom's 20\% cell does not ($+0.40$, $\chi^2=0.43$), consistent
+with its other three points. Both gate clean. The FlashVID result survives
+at only one of four points and the resolution floor is $\pm1.54$; it is
+reported because it crosses the threshold, not because a fourth data point
+changes the overall picture that FlashVID is accuracy-neutral on LLaVA-OV.
+
 \subsection{Which retention parameters are movable}
 \label{sec:movable}
 
-Table~\ref{tab:retention} implies four methods have a comparable retention
-parameter; only three of them have a knob the authors themselves validated
-at more than one operating point, which is the bar for calling a value
-within that range ``authors'-validated'' rather than an extrapolation.
+Only three methods have a retention knob the authors themselves validated at
+more than one operating point --- the bar for calling a value within that
+range ``authors'-validated'' rather than an extrapolation. Table~\ref{tab:retention}
+covers exactly those three; the remaining methods with any retention-like
+parameter fail this bar for the reasons in Table~\ref{tab:movable} below.
 
 \begin{table}[H]
   \centering
@@ -441,34 +457,8 @@ within that range ``authors'-validated'' rather than an extrapolation.
 \end{table}
 
 FlashVID and HoliTom were run at their authors' full four-point LLaVA-OV
-sweep, filling the 20\% gap left by the original 10/15/25\% design in this
-report:
-
-\begin{table}[H]
-  \centering
-  \small
-  \caption{FlashVID and HoliTom at 20\% retention, LLaVA-OV-7B (baseline
-  52.66\%) --- the fourth authors'-published point, not previously run.}
-  \label{tab:twenty}
-  \begin{tabular}{lrr}
-    \toprule
-    Method & Overall & $\Delta$ \\
-    \midrule
-    FlashVID & 53.71 & +1.05$^{*}$ \\
-    HoliTom & 53.06 & +0.40 \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-Both gate clean. HoliTom's gap is not significant, consistent with its other
-three points. FlashVID's is: $\chi^2=3.91$, just above the 3.84 threshold
-(236 fixed vs.\ 194 broke) --- a small genuine gain, not the flat noise its
-10/15/25\% points might suggest, though still well inside the practical
-range every other FlashVID point occupies. Before treating this as a real
-effect worth a mechanism, note it survives at only one of four points and
-the resolution floor is $\pm1.54$; it is reported because it crosses the
-significance threshold, not because a fourth data point changes the overall
-picture that FlashVID is accuracy-neutral on LLaVA-OV.
+sweep (Table~\ref{tab:retention}); the 20\% cell is discussed in
+\S\ref{sec:retention} above.
 
 FastV's authors publish a wider range (12.5--75\% keep) than FlashVID or
 HoliTom's four points, which is why \S\ref{sec:retention}'s threshold search
@@ -794,13 +784,13 @@ it cost.
     MDP3 & 1{,}626 & 159 & 274 & 30.01 & yes \\
     FastV & 2{,}029 & 149 & 290 & 44.65 & yes \\
     VisionZip (contextual) & 2{,}035 & 191 & 340 & 41.25 & yes \\
-    STTM & 2{,}095 & 170 & 389 & 85.02 & yes \\
-    FlashVID & 2{,}625 & 178 & 414 & 93.29 & yes \\
+    STTM & 1{,}510 & 133 & 170 & 4.28 & yes \\
+    FlashVID & 2{,}069 & 157 & 284 & 36.00 & yes \\
     VideoITG & 2{,}522 & 206 & 454 & 92.44 & yes \\
     AIM & 2{,}861 & 194 & 457 & 105.44 & yes \\
     \midrule
     \multicolumn{6}{l}{\textit{Backbone vs.\ backbone}} \\
-    Qwen3-VL-8B vs.\ LLaVA-OV-7B & 7{,}081 & 942 & 546 & 127.47 & yes \\
+    Qwen3-VL-8B vs.\ LLaVA-OV-7B & 7{,}081 & 810 & 414 & 127.47 & yes \\
     \bottomrule
   \end{tabular}
 \end{table}
