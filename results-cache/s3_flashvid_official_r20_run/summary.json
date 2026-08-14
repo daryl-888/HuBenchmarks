@@ -1,0 +1,50 @@
+{
+  "accuracy": 0.6005475360876058,
+  "correct": 2413,
+  "total_scoreable": 4018,
+  "total_na_skipped": 4034,
+  "total_samples": 8052,
+  "flashvid_params": {
+    "enabled": true,
+    "retention_ratio": 0.2,
+    "alpha": 0.7,
+    "temporal_threshold": 0.8,
+    "implementation": "authors' flashvid() package",
+    "token_selection_method": "attn_div",
+    "segment_threshold": 0.9,
+    "min_segment_num": 4,
+    "complementary_segment": true,
+    "expansion": 1.25,
+    "pruning_layer": 28,
+    "llm_retention_ratio": 0.1
+  },
+  "model": "Qwen/Qwen3-VL-8B-Instruct",
+  "num_frames": 32,
+  "note": "FlashVID on Qwen3-VL \u2014 pre-LLM temporal-segment token merge (no attention needed)",
+  "per_category": {
+    "Action Order": {
+      "correct": 227,
+      "total": 519
+    },
+    "Motion-related Objects": {
+      "correct": 535,
+      "total": 690
+    },
+    "Repetition Count": {
+      "correct": 107,
+      "total": 400
+    },
+    "Location-related Motion": {
+      "correct": 349,
+      "total": 546
+    },
+    "Camera Motion": {
+      "correct": 221,
+      "total": 385
+    },
+    "Motion Recognition": {
+      "correct": 974,
+      "total": 1478
+    }
+  }
+}

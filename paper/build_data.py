@@ -107,11 +107,13 @@ RETENTION = {
     ("LLaVA-OV", "FlashVID"): {0.10: "s1_flashvid_r10_run", 0.15: "w2_flashvid_run", 0.20: "s1_flashvid_r20_run", 0.25: "s1_flashvid_r25_run"},
     ("LLaVA-OV", "HoliTom"): {0.10: "s1_holitom_r10_run", 0.15: "w2_holitom_run", 0.20: "s1_holitom_r20_run", 0.25: "s1_holitom_r25_run"},
     ("LLaVA-OV", "PruneVID"): {0.10: "s1_prunevid_r10_run", 0.25: "s1_prunevid_r25_run", 0.50: "w2_prunevid_ov_run"},
-    ("Qwen3-VL", "FastV"): {0.10: "s3_fastv_r10_run", 0.15: "w3_fastv_run", 0.25: "s3_fastv_r25_run"},
+    ("Qwen3-VL", "FastV"): {0.10: "s3_fastv_r10_run", 0.15: "w3_fastv_run", 0.20: "s3_fastv_r20_run", 0.25: "s3_fastv_r25_run", 0.50: "s3_fastv_r50_run", 0.75: "s3_fastv_r75_run"},
     # 10%/25% here predate the authors'-code fix (dtype/FlashAttention-2/cache_position bugs) and
-    # are the incomplete reimplementation -- kept for provenance, NOT comparable to the verified 15% point.
-    ("Qwen3-VL", "FlashVID"): {0.10: "s3_flashvid_r10_run", 0.15: "s3_flashvid_official_run", 0.25: "s3_flashvid_r25_run"},
-    ("Qwen3-VL", "HoliTom"): {0.10: "s3_holitom_r10_run", 0.15: "w3_holitom_run", 0.25: "s3_holitom_r25_run"},
+    # are the incomplete reimplementation -- kept for provenance, NOT comparable to the verified 15%
+    # point. 20% (s3_flashvid_official_r20_run) uses the SAME authors'-code implementation as the
+    # verified 15% cell -- comparable to 15%, not to the 10%/25% reimplementation cells.
+    ("Qwen3-VL", "FlashVID"): {0.10: "s3_flashvid_r10_run", 0.15: "s3_flashvid_official_run", 0.20: "s3_flashvid_official_r20_run", 0.25: "s3_flashvid_r25_run"},
+    ("Qwen3-VL", "HoliTom"): {0.10: "s3_holitom_r10_run", 0.15: "w3_holitom_run", 0.20: "s3_holitom_r20_run", 0.25: "s3_holitom_r25_run"},
     ("Qwen3-VL", "PruneVID"): {0.10: "s3_prunevid_r10_run", 0.25: "s3_prunevid_r25_run", 0.50: "w3_prunevid_run"},
 }
 

@@ -1,0 +1,42 @@
+{
+  "accuracy": 0.6264310602289697,
+  "correct": 2517,
+  "total_scoreable": 4018,
+  "total_na_skipped": 4034,
+  "total_samples": 8052,
+  "fastv_params": {
+    "enabled": true,
+    "fastv_k": 2,
+    "fastv_r": 0.25,
+    "keeps": "75% of visual tokens"
+  },
+  "model": "Qwen/Qwen3-VL-8B-Instruct",
+  "num_frames": 32,
+  "note": "FastV on Qwen3-VL \u2014 attention-rerank pruning at layer fastv_k",
+  "per_category": {
+    "Action Order": {
+      "correct": 241,
+      "total": 519
+    },
+    "Motion-related Objects": {
+      "correct": 549,
+      "total": 690
+    },
+    "Repetition Count": {
+      "correct": 132,
+      "total": 400
+    },
+    "Location-related Motion": {
+      "correct": 355,
+      "total": 546
+    },
+    "Camera Motion": {
+      "correct": 245,
+      "total": 385
+    },
+    "Motion Recognition": {
+      "correct": 995,
+      "total": 1478
+    }
+  }
+}
