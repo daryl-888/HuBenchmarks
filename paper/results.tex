@@ -55,15 +55,9 @@ Table~\ref{tab:permethod} (\S\ref{sec:permethod}).
 \label{sec:master}
 
 Table~\ref{tab:llava} and Table~\ref{tab:qwen}: every method at its
-standardized 15\% or published default, one table per backbone. $^{\S}$
-AIM's released code ships two active merge steps, so its LLaVA-OV cell runs
-at 25\%. MDP3 and VideoITG select frames, not tokens, so they have no
-retention percentage. $^{\ddagger}$ DyCoke and STTM have no retention knob
-at all --- each runs its one fixed published recipe (measured net 49\% and
-9\%, Table~\ref{tab:permethod}), not a 15\% target; kept in these tables
-because they are standard-backbone, gate-clean runs, unlike the excluded
-non-standard-backbone methods (\S\ref{sec:native}). Full retention sweeps
-are in \S\ref{sec:retentionsec}.
+standardized 15\% or published default, one table per backbone; footnotes
+mark exceptions (frame-selection methods, no-knob methods, published
+alternate points). Full retention sweeps are in \S\ref{sec:retentionsec}.
 
 \begin{table}[H]
   \centering
@@ -72,15 +66,12 @@ are in \S\ref{sec:retentionsec}.
   noted. AO = Action Order, CM = Camera Motion, LM = Location-related
   Motion, MR = Motion Recognition, MO = Motion-related Objects, RC =
   Repetition Count (\% correct within category, chance = 25\%). $\Delta$ is
-  vs.\ baseline. $^{*}$ = significant. $^{\S}$ AIM runs at 25\% retention
-  (two active merge steps ship in the released code). $^{\dagger}$
-  PruneVID-OV runs at \texttt{cluster\_ratio=0.5} (50\% retention), the
-  authors' only published point, never 15\%. $^{\ddagger}$ no retention
-  knob; one fixed recipe (Table~\ref{tab:permethod}). $^{\P}$ VisionZip is
-  the contextual half only --- LLaVA-OV's SigLIP vision tower has no CLS
-  token, so the dominant half is not implementable (same limitation as the
-  Qwen3-VL cell, Table~\ref{tab:qwen}); this LLaVA-OV port is new in this
-  revision.}
+  vs.\ baseline. $^{*}$ = significant. $^{\S}$ AIM: 25\% retention (two
+  active merge steps ship in the released code). $^{\dagger}$ PruneVID-OV:
+  \texttt{cluster\_ratio=0.5} (50\%), the authors' only published point.
+  $^{\ddagger}$ no retention knob; one fixed recipe (Table~\ref{tab:permethod}).
+  $^{\P}$ VisionZip is the contextual half only --- no CLS token to select
+  the dominant half (same as the Qwen3-VL cell, Table~\ref{tab:qwen}).}
   \label{tab:llava}
   \begin{tabular}{lrrrrrrrr}
     \toprule
@@ -105,13 +96,11 @@ are in \S\ref{sec:retentionsec}.
   \centering
   \small
   \caption{Qwen3-VL-8B, 32 frames, 15\% nominal retention except where
-  noted. All ten portable methods. VisionZip is the contextual half only
-  --- Qwen3-VL's vision tower has no CLS token, so the dominant half is not
-  implementable; not the published method. FlashVID and STTM run the
-  authors' own code at published settings (\S\ref{sec:permethod}).
-  $^{\dagger}$ PruneVID runs at \texttt{cluster\_ratio=0.5} (50\%
-  retention), the authors' only published point, never 15\%. $^{\ddagger}$
-  no retention knob; one fixed recipe (Table~\ref{tab:permethod}).}
+  noted. All ten portable methods. VisionZip is the contextual half only,
+  as in Table~\ref{tab:llava}. FlashVID and STTM run the authors' own code
+  at published settings (\S\ref{sec:permethod}). $^{\dagger}$ PruneVID:
+  \texttt{cluster\_ratio=0.5} (50\%), the authors' only published point.
+  $^{\ddagger}$ no retention knob; one fixed recipe (Table~\ref{tab:permethod}).}
   \label{tab:qwen}
   \begin{tabular}{lrrrrrrrr}
     \toprule
@@ -185,24 +174,19 @@ that data, one table per backbone; baseline is in Table~\ref{tab:llava}/
 \end{table}
 
 FlashVID's 20\% cell is a small local peak on LLaVA-OV (53.71\% vs.\
-53.31\%/53.36\% at 15\%/25\%) but not on Qwen3-VL, where all four points are
-now monotonic (58.04/59.36/60.05/60.70\% at 10/15/20/25\%) since every
-Qwen3-VL FlashVID cell uses the same authors'-code implementation. The
-LLaVA-OV bump is gate-clean but does not persist outside 20\%, so it does
-not change the picture that FlashVID is roughly flat on that backbone ---
-on Qwen3-VL it instead responds cleanly and monotonically to retention.
-HoliTom's 20\% shows no such bump on either backbone. VisionZip's new LLaVA-OV
-sweep (51.69--52.54\%) is gentle and never significant at any point ---
-unlike FastV and PruneVID-OV, it does not collapse on this backbone. FastV is the sharpest backbone contrast in
-this report: at 50\%/75\% keep it stays collapsed on LLaVA-OV
-(35.7--36.3\%, Table~\ref{tab:sweepllava}) but fully recovers to baseline
-parity on Qwen3-VL (62.32\%/62.64\%, both not significant against the
-62.52\% baseline) --- the same pruning rule that permanently breaks the
-model on one backbone is harmless by half retention on the other.
+53.31\%/53.36\% at 15\%/25\%), gate-clean but not persisting outside 20\%.
+On Qwen3-VL it's instead cleanly monotonic (58.04$\to$60.70\% over
+10--25\%). HoliTom shows no such bump on either backbone. VisionZip's
+sweep (51.69--52.54\%) is gentle and never significant --- unlike FastV
+and PruneVID-OV, it does not collapse on LLaVA-OV. FastV is the sharpest
+backbone contrast here: collapsed at 50\%/75\% on LLaVA-OV
+(35.7--36.3\%) but at baseline parity on Qwen3-VL (62.32\%/62.64\%, not
+significant) --- the same rule that permanently breaks the model on one
+backbone is harmless by half retention on the other.
 
-PruneVID publishes exactly one operating point (\texttt{cluster\_ratio=0.5},
-its row in Table~\ref{tab:llava}/\ref{tab:qwen}); Table~\ref{tab:puv} is the
-additional sweep run for context, not an authors'-validated point.
+PruneVID publishes one operating point (\texttt{cluster\_ratio=0.5}, its
+row in Table~\ref{tab:llava}/\ref{tab:qwen}); Table~\ref{tab:puv} is our
+own additional sweep, not authors'-validated.
 
 \begin{table}[H]
   \centering
@@ -420,33 +404,19 @@ sweepable ratio, but the authors never validate one --- our 10--25\% sweep
 (Table~\ref{tab:sweepllava}) is ours, not theirs.
 
 \paragraph{A cache bug silently discarded FastV's and PruneVID's pruning on
-LLaVA-OV.} Both methods prune visual tokens by setting a kept-index list
-(\texttt{kv\_cache}) on \texttt{PrunableDynamicCache}, the shared cache
-class this project's LLaVA-OV ports use. Two independent bugs in that
-mechanism meant the pruning never reached the generated text. First, the
-class's \texttt{update()} gathered the kept indices only for the tensors
-\emph{returned} to attention that call --- the tensors it \emph{stored}
-stayed at full length, so at the end of the first \texttt{generate()} step
-(where \texttt{past\_key\_values} arrives as \texttt{None}) the cache was
-serialized back out via \texttt{to\_legacy\_cache()} at full, unpruned
-length, and every following decode step reconstructed a fresh, fully
-unpruned cache from that export. Second, PruneVID's loader separately
-passed \texttt{dycoke=True} (copied from the DyCoke loading template and
-never removed); with it set, the shared decoder layer loop resets
-\texttt{kv\_cache} to \texttt{None} on every layer before PruneVID's own
-prune layer, \emph{on every decode step}, which both erased PruneVID's
-pruning again and triggered DyCoke's own unrelated pruning path against
-stale state, crashing a large fraction of samples once the first bug was
-fixed and pruning stopped being silently discarded. Fixed by making the
-prune physically permanent in cache storage (survives the
-\texttt{to\_legacy\_cache} round-trip) and by removing the stray
-\texttt{dycoke=True}. Re-running FastV's full published range after the fix
-reproduces every pre-fix accuracy point to within 0.03\%: the LLaVA-OV
-collapse documented above is confirmed to be genuine model behavior, not a
-plumbing artifact --- fixing the bug does not change the result. PruneVID's
-LLaVA-OV numbers in this report predate the fix and are being re-run;
-neither Qwen3-VL port is affected (\S\ref{sec:permethod} documents the
-Qwen3-VL implementations as always using an additive attention mask, never
-this cache class).
+LLaVA-OV, not that it mattered.} Both prune via a shared
+\texttt{PrunableDynamicCache} class whose \texttt{update()} pruned only
+what it returned to attention, not what it stored --- so the pruning was
+lost every time the cache round-tripped through
+\texttt{generate()}'s legacy-tuple export, and every decode step ran
+fully unpruned. (PruneVID had a second bug on top: a stray
+\texttt{dycoke=True} left over from a copy-pasted loader, which reset its
+cache every decode step and crashed once the first bug stopped masking
+it.) Both are fixed --- prune is now physical, survives the round-trip, and
+the stray flag is removed. Re-running FastV's full range with the fix
+reproduces every pre-fix number to within 0.03\%: the LLaVA-OV collapse is
+genuine model behavior, not the bug. PruneVID's fixed sweep is still
+running. Qwen3-VL is unaffected (\S\ref{sec:permethod}: additive-mask
+implementation, never this cache class).
 
 \end{document}
