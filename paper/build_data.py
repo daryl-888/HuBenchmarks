@@ -88,7 +88,14 @@ BASE_QW = "qwen3vl_baseline_run1"
 STAGE1 = [("DyCoke", "w2_dycoke_run"), ("FlashVID", "w2_flashvid_run"),
           ("HoliTom", "w2_holitom_run"), ("MDP3", "w2_mdp3_run"),
           ("VideoITG", "w2_videoitg_run"), ("AIM", "w2_aim_run"),
-          ("STTM", "w2_sttm_run"), ("FastV", "w2_fastv_run"),
+          ("STTM", "w2_sttm_run"),
+          # w2_fastv_run predates the PrunableDynamicCache fix (see docs/notes):
+          # the cache round-trip discarded FastV's pruning entirely on every prior
+          # run. capfix_fastv_r15_run is the same 15% point re-run with the fix.
+          # It reproduces w2_fastv_run's accuracy almost exactly (36.78% both) --
+          # confirms the LLaVA-OV collapse is real model behavior, not the bug.
+          ("FastV", "capfix_fastv_r15_run"),
+          ("VisionZip (contextual)", "visionzip_ov_r15_run"),
           ("PruneVID-OV", "w2_prunevid_ov_run")]
 
 STAGE3 = [("PruneVID", "w3_prunevid_run"), ("DyCoke", "w3_dycoke_run"),
@@ -103,16 +110,23 @@ STAGE3 = [("PruneVID", "w3_prunevid_run"), ("DyCoke", "w3_dycoke_run"),
 # wrong. Keyed by true ratio (0.10 / 0.25 / 0.50) here; callers must not
 # treat PruneVID's "0.50" slot as aligned with the other methods' "0.25" column.
 RETENTION = {
-    ("LLaVA-OV", "FastV"): {0.10: "s1_fastv_r10_run", 0.15: "w2_fastv_run", 0.20: "s1_fastv_r20_run", 0.25: "s1_fastv_r25_run", 0.50: "s1_fastv_r50_run", 0.75: "s1_fastv_r75_run"},
+    # All six points use the PrunableDynamicCache-fixed implementation
+    # (capfix_fastv_r*_run) -- physical-prune + no-legacy-cache-roundtrip, so
+    # the pruning actually survives instead of being silently discarded.
+    # Every point reproduces its pre-fix counterpart almost exactly (10%:
+    # 36.06->36.06, 15%: 36.78->36.78, 20%: 36.93->36.93, 25%: 36.73->36.73,
+    # 50%: 36.34->36.31, 75%: 35.69->35.69) -- the collapse is real.
+    ("LLaVA-OV", "FastV"): {0.10: "capfix_fastv_r10_run", 0.15: "capfix_fastv_r15_run", 0.20: "capfix_fastv_r20_run", 0.25: "capfix_fastv_r25_run", 0.50: "capfix_fastv_r50_run", 0.75: "capfix_fastv_r75_run"},
+    ("LLaVA-OV", "VisionZip"): {0.10: "visionzip_ov_r10_run", 0.15: "visionzip_ov_r15_run", 0.20: "visionzip_ov_r20_run", 0.25: "visionzip_ov_r25_run"},
     ("LLaVA-OV", "FlashVID"): {0.10: "s1_flashvid_r10_run", 0.15: "w2_flashvid_run", 0.20: "s1_flashvid_r20_run", 0.25: "s1_flashvid_r25_run"},
     ("LLaVA-OV", "HoliTom"): {0.10: "s1_holitom_r10_run", 0.15: "w2_holitom_run", 0.20: "s1_holitom_r20_run", 0.25: "s1_holitom_r25_run"},
     ("LLaVA-OV", "PruneVID"): {0.10: "s1_prunevid_r10_run", 0.25: "s1_prunevid_r25_run", 0.50: "w2_prunevid_ov_run"},
     ("Qwen3-VL", "FastV"): {0.10: "s3_fastv_r10_run", 0.15: "w3_fastv_run", 0.20: "s3_fastv_r20_run", 0.25: "s3_fastv_r25_run", 0.50: "s3_fastv_r50_run", 0.75: "s3_fastv_r75_run"},
-    # 10%/25% here predate the authors'-code fix (dtype/FlashAttention-2/cache_position bugs) and
-    # are the incomplete reimplementation -- kept for provenance, NOT comparable to the verified 15%
-    # point. 20% (s3_flashvid_official_r20_run) uses the SAME authors'-code implementation as the
-    # verified 15% cell -- comparable to 15%, not to the 10%/25% reimplementation cells.
-    ("Qwen3-VL", "FlashVID"): {0.10: "s3_flashvid_r10_run", 0.15: "s3_flashvid_official_run", 0.20: "s3_flashvid_official_r20_run", 0.25: "s3_flashvid_r25_run"},
+    # All four points now use the authors'-code implementation (same as the
+    # verified 15% cell) -- the old incomplete reimplementation's 10%/25%
+    # points (s3_flashvid_r10_run / s3_flashvid_r25_run) are superseded and
+    # no longer referenced anywhere.
+    ("Qwen3-VL", "FlashVID"): {0.10: "s3_flashvid_official_r10_run", 0.15: "s3_flashvid_official_run", 0.20: "s3_flashvid_official_r20_run", 0.25: "s3_flashvid_official_r25_run"},
     ("Qwen3-VL", "HoliTom"): {0.10: "s3_holitom_r10_run", 0.15: "w3_holitom_run", 0.20: "s3_holitom_r20_run", 0.25: "s3_holitom_r25_run"},
     ("Qwen3-VL", "PruneVID"): {0.10: "s3_prunevid_r10_run", 0.25: "s3_prunevid_r25_run", 0.50: "w3_prunevid_run"},
 }

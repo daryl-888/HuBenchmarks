@@ -11,13 +11,13 @@
 \usepackage{longtable}
 \usepackage[hidelinks]{hyperref}
 \hypersetup{pdftitle={Training-Free Token Reduction on MotionBench: Results},
-            pdfauthor={HuVLLM Project}}
+            pdfauthor={VLLM Project}}
 
 \captionsetup{font=small,labelfont=bf}
 
 \title{Training-Free Token Reduction on MotionBench\\
 \large Results}
-\author{HuVLLM Project}
+\author{VLLM Project}
 \date{\today}
 
 \begin{document}
@@ -76,7 +76,11 @@ are in \S\ref{sec:retentionsec}.
   (two active merge steps ship in the released code). $^{\dagger}$
   PruneVID-OV runs at \texttt{cluster\_ratio=0.5} (50\% retention), the
   authors' only published point, never 15\%. $^{\ddagger}$ no retention
-  knob; one fixed recipe (Table~\ref{tab:permethod}).}
+  knob; one fixed recipe (Table~\ref{tab:permethod}). $^{\P}$ VisionZip is
+  the contextual half only --- LLaVA-OV's SigLIP vision tower has no CLS
+  token, so the dominant half is not implementable (same limitation as the
+  Qwen3-VL cell, Table~\ref{tab:qwen}); this LLaVA-OV port is new in this
+  revision.}
   \label{tab:llava}
   \begin{tabular}{lrrrrrrrr}
     \toprule
@@ -89,6 +93,7 @@ are in \S\ref{sec:retentionsec}.
     MDP3 & 53.06 & +0.40 & 40.5 & 49.6 & 53.5 & 56.8 & 71.6 & 26.5 \\
     VideoITG & 52.86 & +0.20 & 40.1 & 47.0 & 53.7 & 57.6 & 70.1 & 26.8 \\
     AIM$^{\S}$ & 52.86 & +0.20 & 41.4 & 48.1 & 54.2 & 57.0 & 71.9 & 22.2 \\
+    VisionZip (ctx.)$^{\P}$ & 51.79 & --0.87 & 40.1 & 46.2 & 53.7 & 56.2 & 69.4 & 23.2 \\
     STTM$^{\ddagger}$ & 51.72 & --0.95 & 39.9 & 48.1 & 53.8 & 53.5 & 70.6 & 28.7 \\
     PruneVID-OV$^{*\dagger}$ & 38.20 & --14.46 & 32.0 & 34.8 & 35.5 & 38.4 & 52.9 & 27.3 \\
     FastV$^{*}$ & 36.78 & --15.88 & 32.8 & 31.9 & 34.1 & 35.7 & 53.8 & 25.2 \\
@@ -140,16 +145,21 @@ that data, one table per backbone; baseline is in Table~\ref{tab:llava}/
   \centering
   \small
   \caption{LLaVA-OV-7B retention sweep (baseline 52.66\%). $^{*}$ =
-  significant. FastV's range is its authors' full published boundary; the
-  other two publish 10/15/20/25\% on every backbone they support.}
+  significant. FastV's range is its authors' full published boundary,
+  re-run with the \texttt{PrunableDynamicCache} fix (\S\ref{sec:permethod})
+  --- every point reproduces its pre-fix value almost exactly. FlashVID and
+  HoliTom publish 10/15/20/25\% on every backbone they support; VisionZip
+  (contextual-only, \S\ref{sec:master}) was swept over the same range for
+  this report.}
   \label{tab:sweepllava}
   \begin{tabular}{lrrrrrr}
     \toprule
     Method & 10\% & 15\% & 20\% & 25\% & 50\% & 75\% \\
     \midrule
-    FastV & 36.06$^{*}$ & 36.78$^{*}$ & 36.93$^{*}$ & 36.73$^{*}$ & 36.34$^{*}$ & 35.69$^{*}$ \\
+    FastV & 36.06$^{*}$ & 36.78$^{*}$ & 36.93$^{*}$ & 36.73$^{*}$ & 36.31$^{*}$ & 35.69$^{*}$ \\
     FlashVID & 52.51 & 53.31 & 53.71$^{*}$ & 53.36 & --- & --- \\
     HoliTom & 52.76 & 53.14 & 53.06 & 53.41 & --- & --- \\
+    VisionZip (ctx.) & 51.69 & 51.79 & 51.92 & 52.54 & --- & --- \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -158,30 +168,32 @@ that data, one table per backbone; baseline is in Table~\ref{tab:llava}/
   \centering
   \small
   \caption{Qwen3-VL-8B retention sweep (baseline 62.52\%). $^{*}$ =
-  significant. $^{\ddagger}$ predates the authors'-code fix
-  (\S\ref{sec:permethod}): the incomplete FlashVID reimplementation, not the
-  verified method that produced the 15\%/20\% cells --- not directly
-  comparable to them, despite the coincidental match at 25\%. FlashVID and
-  HoliTom are not published beyond 25\% on this backbone.}
+  significant. All four FlashVID cells now use the authors'-code
+  implementation (\S\ref{sec:permethod}), the same one that produced the
+  15\% cell elsewhere in this report --- monotonic in retention. FlashVID
+  and HoliTom are not published beyond 25\% on this backbone.}
   \label{tab:sweepqwen}
   \begin{tabular}{lrrrrrr}
     \toprule
     Method & 10\% & 15\% & 20\% & 25\% & 50\% & 75\% \\
     \midrule
     FastV & 56.92$^{*}$ & 59.01$^{*}$ & 59.83$^{*}$ & 60.60$^{*}$ & 62.32 & 62.64 \\
-    FlashVID & 54.73$^{*\ddagger}$ & 59.36$^{*}$ & 60.05$^{*}$ & 59.36$^{*\ddagger}$ & --- & --- \\
+    FlashVID & 58.04$^{*}$ & 59.36$^{*}$ & 60.05$^{*}$ & 60.70$^{*}$ & --- & --- \\
     HoliTom & 60.05$^{*}$ & 60.33$^{*}$ & 60.38$^{*}$ & 60.43$^{*}$ & --- & --- \\
     \bottomrule
   \end{tabular}
 \end{table}
 
-FlashVID's 20\% cell is a local peak on both backbones (53.71\% vs.\
-53.31\%/53.36\% at 15\%/25\% on LLaVA-OV; 60.05\% vs.\ 59.36\% at 15\% on
-Qwen3-VL --- the 20\%/15\% cells share the verified implementation, so
-25\% is not a valid comparator there). Gate-clean on both, but the bump
-does not persist outside 20\%, so it does not change the picture that
-FlashVID is roughly flat across its published range. HoliTom's 20\% shows
-no such bump on either backbone. FastV is the sharpest backbone contrast in
+FlashVID's 20\% cell is a small local peak on LLaVA-OV (53.71\% vs.\
+53.31\%/53.36\% at 15\%/25\%) but not on Qwen3-VL, where all four points are
+now monotonic (58.04/59.36/60.05/60.70\% at 10/15/20/25\%) since every
+Qwen3-VL FlashVID cell uses the same authors'-code implementation. The
+LLaVA-OV bump is gate-clean but does not persist outside 20\%, so it does
+not change the picture that FlashVID is roughly flat on that backbone ---
+on Qwen3-VL it instead responds cleanly and monotonically to retention.
+HoliTom's 20\% shows no such bump on either backbone. VisionZip's new LLaVA-OV
+sweep (51.69--52.54\%) is gentle and never significant at any point ---
+unlike FastV and PruneVID-OV, it does not collapse on this backbone. FastV is the sharpest backbone contrast in
 this report: at 50\%/75\% keep it stays collapsed on LLaVA-OV
 (35.7--36.3\%, Table~\ref{tab:sweepllava}) but fully recovers to baseline
 parity on Qwen3-VL (62.32\%/62.64\%, both not significant against the
@@ -281,10 +293,10 @@ every row above.
     \midrule
     HoliTom & pre-LLM segment retain $+$ in-LLM merge & \texttt{RETAIN\_RATIO=0.15 T=0.80 HOLITOM\_k=18 HOLITOM\_r=0.5} & 7.5\% (875 tok.) \\
     STTM & quadtree spatio-temporal merge & LLaVA-OV: \texttt{thresh=0.85 temporal=0.65 root=1}. Qwen3-VL: \texttt{thresh=0.85 temporal=0.65 root=2} --- a published setting (\texttt{s3\_sttm\_pub\_run}), replacing an earlier off-spec \texttt{root=0, temporal=--1.0} cell & 9.0\% (1{,}050 tok.) on LLaVA-OV; not re-measured at the corrected Qwen3-VL setting \\
-    FastV & in-LLM attention rerank, layer 2 & \texttt{K=2, R=0.85} (keep 15\%). K=2/R=50\% (36.34\%) and K=2/R=75\% (35.69\%) were also run and land in the same collapse band (Table~\ref{tab:sweepllava}) & 15.0\% (1{,}750 tok.) \\
+    FastV$^{\ddagger}$ & in-LLM attention rerank, layer 2 & \texttt{K=2, R=0.85} (keep 15\%). Re-run with the \texttt{PrunableDynamicCache} fix; K=2/R=50\% (36.31\%) and K=2/R=75\% (35.69\%) were also run and land in the same collapse band (Table~\ref{tab:sweepllava}) & 15.0\% (1{,}750 tok.) \\
     FlashVID & pre-LLM temporal-segment merge $+$ inner-LLM compression, layer 28 & authors' \texttt{flashvid()} package: \texttt{retention\_ratio=0.15 alpha=0.7 temporal\_threshold=0.8 token\_selection\_method=attn\_div pruning\_layer=28 llm\_retention\_ratio=0.1 expansion=1.25 min\_segment\_num=4} & 15.0\% (1{,}750 tok.) pre-LLM; the layer-28 stage compresses surviving visual tokens by a further 90\% mid-network, not captured by this single figure \\
     AIM & bipartite merge $+$ PageRank prune & 2-step merge schedule compiled in; no CLI retention knob. Qwen3-VL 15\%; LLaVA-OV 25\% (ships two active steps) & 15.0\% (1{,}750 tok.) \\
-    VisionZip (contextual) & key-similarity merge in the vision tower & \texttt{dominant=54 contextual=10} at 8 frames (native LLaVA-1.5-7B form); Qwen3-VL runs the contextual half only --- no CLS token to select the dominant half & 15.0\% (1{,}750 tok.) \\
+    VisionZip (contextual) & key-similarity merge in the vision tower & LLaVA-1.5-7B (native): \texttt{dominant=54 contextual=10} at 8 frames. LLaVA-OV \& Qwen3-VL: contextual-only port, \texttt{retention\_ratio=0.15} --- neither vision tower has a CLS token to select the dominant half & 15.0\% (1{,}750 tok.) \\
     DyCoke & temporal merge $+$ KV prune, layer 3 & \texttt{l=3 p=0.7 k=0.7}; no single retention knob, net $\sim$49\% & 49.0\% (5{,}716 tok.) \\
     PruneVID & DPC-KNN cluster merge, layer 10 & \texttt{cluster=0.50 seg=0.25}; LLaVA-OV port has no upstream reference (upstream targets PLLaVA only) & 50.0\% (5{,}832 tok.) \\
     \midrule
@@ -295,7 +307,7 @@ every row above.
   \end{tabular}
 
   \bigskip
-  \footnotesize $^{\dagger}$ DyTo does not run on either standardized backbone; listed here for completeness (see Table~\ref{tab:native}).
+  \footnotesize $^{\dagger}$ DyTo does not run on either standardized backbone; listed here for completeness (see Table~\ref{tab:native}). $^{\ddagger}$ every prior LLaVA-OV FastV run silently discarded its own pruning (a \texttt{PrunableDynamicCache} bug, \S\ref{sec:notable}); re-run with the fix, every point reproduces its pre-fix value almost exactly.
 \end{table}
 
 % =====================================================================
@@ -326,8 +338,9 @@ guards against).
     VideoITG & 1{,}193 & 192 & 184 & 0.13 & no \\
     AIM & 1{,}406 & 227 & 219 & 0.11 & no \\
     STTM & 4{,}859 & 329 & 367 & 1.97 & no \\
+    VisionZip (ctx.) & 1{,}725 & 260 & 295 & 2.08 & no \\
     PruneVID-OV & 4{,}536 & 473 & 1{,}054 & 220.30 & yes \\
-    FastV & 4{,}605 & 475 & 1{,}113 & 255.52 & yes \\
+    FastV & 4{,}701 & 475 & 1{,}113 & 255.52 & yes \\
     \midrule
     \multicolumn{6}{l}{\textit{Qwen3-VL-8B}} \\
     PruneVID & 1{,}074 & 56 & 70 & 1.34 & no \\
@@ -348,7 +361,7 @@ guards against).
 \end{table}
 
 Divergence volume does not predict damage. STTM on LLaVA-OV changes 4{,}859
-predictions --- more than FastV's 4{,}605 --- yet loses 0.95 points and is
+predictions --- more than FastV's 4{,}701 --- yet loses 0.95 points and is
 not significant, because its changes fall almost evenly in both directions
 (329 fixed, 367 broken). FastV changes a comparable number destructively
 (475 fixed, 1{,}113 broken).
@@ -401,7 +414,39 @@ retention-like parameter do not. \textbf{PruneVID} publishes exactly one
 ratio. \textbf{DyCoke} has no
 single retention knob, only one fixed three-parameter recipe. \textbf{AIM}
 has no knob at all on LLaVA-OV and an unpublished, self-ported one on
-Qwen3-VL. \textbf{STTM} and \textbf{VisionZip} are configured per-benchmark
-or as fixed token budgets, not a sweepable percentage.
+Qwen3-VL. \textbf{STTM} is configured per-benchmark, not a sweepable
+percentage. \textbf{VisionZip}'s contextual-only port does have a
+sweepable ratio, but the authors never validate one --- our 10--25\% sweep
+(Table~\ref{tab:sweepllava}) is ours, not theirs.
+
+\paragraph{A cache bug silently discarded FastV's and PruneVID's pruning on
+LLaVA-OV.} Both methods prune visual tokens by setting a kept-index list
+(\texttt{kv\_cache}) on \texttt{PrunableDynamicCache}, the shared cache
+class this project's LLaVA-OV ports use. Two independent bugs in that
+mechanism meant the pruning never reached the generated text. First, the
+class's \texttt{update()} gathered the kept indices only for the tensors
+\emph{returned} to attention that call --- the tensors it \emph{stored}
+stayed at full length, so at the end of the first \texttt{generate()} step
+(where \texttt{past\_key\_values} arrives as \texttt{None}) the cache was
+serialized back out via \texttt{to\_legacy\_cache()} at full, unpruned
+length, and every following decode step reconstructed a fresh, fully
+unpruned cache from that export. Second, PruneVID's loader separately
+passed \texttt{dycoke=True} (copied from the DyCoke loading template and
+never removed); with it set, the shared decoder layer loop resets
+\texttt{kv\_cache} to \texttt{None} on every layer before PruneVID's own
+prune layer, \emph{on every decode step}, which both erased PruneVID's
+pruning again and triggered DyCoke's own unrelated pruning path against
+stale state, crashing a large fraction of samples once the first bug was
+fixed and pruning stopped being silently discarded. Fixed by making the
+prune physically permanent in cache storage (survives the
+\texttt{to\_legacy\_cache} round-trip) and by removing the stray
+\texttt{dycoke=True}. Re-running FastV's full published range after the fix
+reproduces every pre-fix accuracy point to within 0.03\%: the LLaVA-OV
+collapse documented above is confirmed to be genuine model behavior, not a
+plumbing artifact --- fixing the bug does not change the result. PruneVID's
+LLaVA-OV numbers in this report predate the fix and are being re-run;
+neither Qwen3-VL port is affected (\S\ref{sec:permethod} documents the
+Qwen3-VL implementations as always using an additive attention mask, never
+this cache class).
 
 \end{document}

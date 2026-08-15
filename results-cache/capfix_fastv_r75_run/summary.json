@@ -1,0 +1,15 @@
+{
+  "accuracy": 0.35689397710303633,
+  "correct": 1434,
+  "total_scoreable": 4018,
+  "total_na_skipped": 4034,
+  "total_samples": 8052,
+  "model": "/project/rhu/dpalfaro/weights/llava-ov-7b",
+  "fastv_params": {
+    "enabled": true,
+    "fastv_k": 2,
+    "fastv_r": 0.25,
+    "num_frames": 32,
+    "cache_bug_fix": true
+  }
+}
