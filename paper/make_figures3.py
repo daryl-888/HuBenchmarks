@@ -122,7 +122,7 @@ methods = ["FastV", "FlashVID", "HoliTom", "PruneVID"]
 mcolor = {"FastV": BLUE, "FlashVID": ORANGE, "HoliTom": AQUA, "PruneVID": YELLOW}
 markers = {"FastV": "o", "FlashVID": "s", "HoliTom": "^", "PruneVID": "D"}
 LEVELS = {
-    "FastV":    {"LLaVA-OV": [0.10, 0.15, 0.25, 0.50, 0.75], "Qwen3-VL": [0.10, 0.15, 0.20, 0.25, 0.50, 0.75]},
+    "FastV":    {"LLaVA-OV": [0.10, 0.15, 0.20, 0.25, 0.50, 0.75], "Qwen3-VL": [0.10, 0.15, 0.20, 0.25, 0.50, 0.75]},
     "FlashVID": {"LLaVA-OV": [0.10, 0.15, 0.20, 0.25],       "Qwen3-VL": [0.10, 0.15, 0.20, 0.25]},
     "HoliTom":  {"LLaVA-OV": [0.10, 0.15, 0.20, 0.25],       "Qwen3-VL": [0.10, 0.15, 0.20, 0.25]},
     "PruneVID": {"LLaVA-OV": [0.10, 0.25, 0.50],             "Qwen3-VL": [0.10, 0.25, 0.50]},

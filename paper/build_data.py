@@ -103,7 +103,7 @@ STAGE3 = [("PruneVID", "w3_prunevid_run"), ("DyCoke", "w3_dycoke_run"),
 # wrong. Keyed by true ratio (0.10 / 0.25 / 0.50) here; callers must not
 # treat PruneVID's "0.50" slot as aligned with the other methods' "0.25" column.
 RETENTION = {
-    ("LLaVA-OV", "FastV"): {0.10: "s1_fastv_r10_run", 0.15: "w2_fastv_run", 0.25: "s1_fastv_r25_run", 0.50: "s1_fastv_r50_run", 0.75: "s1_fastv_r75_run"},
+    ("LLaVA-OV", "FastV"): {0.10: "s1_fastv_r10_run", 0.15: "w2_fastv_run", 0.20: "s1_fastv_r20_run", 0.25: "s1_fastv_r25_run", 0.50: "s1_fastv_r50_run", 0.75: "s1_fastv_r75_run"},
     ("LLaVA-OV", "FlashVID"): {0.10: "s1_flashvid_r10_run", 0.15: "w2_flashvid_run", 0.20: "s1_flashvid_r20_run", 0.25: "s1_flashvid_r25_run"},
     ("LLaVA-OV", "HoliTom"): {0.10: "s1_holitom_r10_run", 0.15: "w2_holitom_run", 0.20: "s1_holitom_r20_run", 0.25: "s1_holitom_r25_run"},
     ("LLaVA-OV", "PruneVID"): {0.10: "s1_prunevid_r10_run", 0.25: "s1_prunevid_r25_run", 0.50: "w2_prunevid_ov_run"},
