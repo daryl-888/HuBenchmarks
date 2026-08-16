@@ -96,7 +96,17 @@ STAGE1 = [("DyCoke", "w2_dycoke_run"), ("FlashVID", "w2_flashvid_run"),
           # confirms the LLaVA-OV collapse is real model behavior, not the bug.
           ("FastV", "capfix_fastv_r15_run"),
           ("VisionZip (contextual)", "visionzip_ov_r15_run"),
-          ("PruneVID-OV", "w2_prunevid_ov_run")]
+          # w2_prunevid_ov_run predates two fixes discovered this pass: a
+          # wrong deploy path meant no fix was ever actually running, and
+          # separately, lengeh_vision_token is hardcoded None by
+          # prepare_inputs_labels_for_multimodal() for every caller (not just
+          # PruneVID) -- ported FastV's text_tail arithmetic fallback and
+          # switched to a persistent forward pre-hook. capfix_prunevid_r50_run
+          # is the same 50% published point, now genuinely engaging (58-63%
+          # of predictions differ from baseline across the sweep, verified via
+          # check_run.py); it reproduces the same collapse band as before
+          # (37.53% vs. the old run's ~38%) -- confirms the collapse is real.
+          ("PruneVID-OV", "capfix_prunevid_r50_run")]
 
 STAGE3 = [("PruneVID", "w3_prunevid_run"), ("DyCoke", "w3_dycoke_run"),
           ("HoliTom", "w3_holitom_run"), ("MDP3", "w3_mdp3_run"),
@@ -120,7 +130,7 @@ RETENTION = {
     ("LLaVA-OV", "VisionZip"): {0.10: "visionzip_ov_r10_run", 0.15: "visionzip_ov_r15_run", 0.20: "visionzip_ov_r20_run", 0.25: "visionzip_ov_r25_run"},
     ("LLaVA-OV", "FlashVID"): {0.10: "s1_flashvid_r10_run", 0.15: "w2_flashvid_run", 0.20: "s1_flashvid_r20_run", 0.25: "s1_flashvid_r25_run"},
     ("LLaVA-OV", "HoliTom"): {0.10: "s1_holitom_r10_run", 0.15: "w2_holitom_run", 0.20: "s1_holitom_r20_run", 0.25: "s1_holitom_r25_run"},
-    ("LLaVA-OV", "PruneVID"): {0.10: "s1_prunevid_r10_run", 0.25: "s1_prunevid_r25_run", 0.50: "w2_prunevid_ov_run"},
+    ("LLaVA-OV", "PruneVID"): {0.10: "capfix_prunevid_r10_run", 0.25: "capfix_prunevid_r25_run", 0.50: "capfix_prunevid_r50_run"},
     ("Qwen3-VL", "FastV"): {0.10: "s3_fastv_r10_run", 0.15: "w3_fastv_run", 0.20: "s3_fastv_r20_run", 0.25: "s3_fastv_r25_run", 0.50: "s3_fastv_r50_run", 0.75: "s3_fastv_r75_run"},
     # All four points now use the authors'-code implementation (same as the
     # verified 15% cell) -- the old incomplete reimplementation's 10%/25%
@@ -189,10 +199,13 @@ for label, run in [("VisionZip (LLaVA-1.5-7B, 8 frames)", "w2_visionzip_run"),
     rows, _ = load(run)
     data["other"][label] = pack(rows)
 
-# Answer-letter distribution, LLaVA-OV runs (diagnostic for the collapse)
+# Answer-letter distribution, LLaVA-OV runs (diagnostic for the collapse).
+# PruneVID-OV and FastV use the PrunableDynamicCache-fixed runs (both
+# reproduce their pre-fix collapse almost exactly, so this mainly just
+# keeps the source consistent with the tables elsewhere in this report).
 for label, run in [("baseline", BASE_OV), ("DyCoke", "w2_dycoke_run"),
                    ("FlashVID", "w2_flashvid_run"), ("HoliTom", "w2_holitom_run"),
-                   ("PruneVID-OV", "w2_prunevid_ov_run"), ("FastV", "w2_fastv_run")]:
+                   ("PruneVID-OV", "capfix_prunevid_r50_run"), ("FastV", "capfix_fastv_r15_run")]:
     rows, _ = load(run)
     s = [r for r in rows if r.get("correct") is not None]
     d = defaultdict(int)

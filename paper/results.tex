@@ -86,7 +86,7 @@ alternate points). Full retention sweeps are in \S\ref{sec:retentionsec}.
     AIM$^{\S}$ & 52.86 & +0.20 & 41.4 & 48.1 & 54.2 & 57.0 & 71.9 & 22.2 \\
     VisionZip (ctx.)$^{\P}$ & 51.79 & --0.87 & 40.1 & 46.2 & 53.7 & 56.2 & 69.4 & 23.2 \\
     STTM$^{\ddagger}$ & 51.72 & --0.95 & 39.9 & 48.1 & 53.8 & 53.5 & 70.6 & 28.7 \\
-    PruneVID-OV$^{*\dagger}$ & 38.20 & --14.46 & 32.0 & 34.8 & 35.5 & 38.4 & 52.9 & 27.3 \\
+    PruneVID-OV$^{*\dagger}$ & 37.53 & --15.13 & 31.2 & 34.0 & 35.7 & 38.0 & 52.0 & 24.8 \\
     FastV$^{*}$ & 36.78 & --15.88 & 32.8 & 31.9 & 34.1 & 35.7 & 53.8 & 25.2 \\
     \bottomrule
   \end{tabular}
@@ -185,24 +185,11 @@ significant) --- the same rule that permanently breaks the model on one
 backbone is harmless by half retention on the other.
 
 PruneVID publishes one operating point (\texttt{cluster\_ratio=0.5}, its
-row in Table~\ref{tab:llava}/\ref{tab:qwen}); Table~\ref{tab:puv} is our
-own additional sweep, not authors'-validated.
-
-\begin{table}[H]
-  \centering
-  \small
-  \caption{PruneVID beyond its one published point (not authors'-validated).
-  Qwen3-VL is monotonic in retention; LLaVA-OV is not.}
-  \label{tab:puv}
-  \begin{tabular}{lrrr}
-    \toprule
-    Backbone & 10\% & 25\% & 50\% (published) \\
-    \midrule
-    LLaVA-OV-7B (OV port) & 38.10$^{*}$ & 38.38$^{*}$ & 38.20$^{*}$ \\
-    Qwen3-VL-8B & 60.23$^{*}$ & 61.40$^{*}$ & 62.17 \\
-    \bottomrule
-  \end{tabular}
-\end{table}
+row in Table~\ref{tab:llava}/\ref{tab:qwen}); we additionally swept it at
+10\%/25\% (not authors'-validated) and found the same backbone split as
+FastV: monotonic on Qwen3-VL ($60.23\to61.40\to62.17\%$), collapsed
+throughout on LLaVA-OV ($37.88\to37.53\to37.53\%$, all $>14$ points below
+baseline).
 
 Tripling FastV's budget from 10\% to 25\% moves it 3.68 points on Qwen3-VL,
 against no more than 0.85 points for any LLaVA-OV method over the same
@@ -323,7 +310,7 @@ guards against).
     AIM & 1{,}406 & 227 & 219 & 0.11 & no \\
     STTM & 4{,}859 & 329 & 367 & 1.97 & no \\
     VisionZip (ctx.) & 1{,}725 & 260 & 295 & 2.08 & no \\
-    PruneVID-OV & 4{,}536 & 473 & 1{,}054 & 220.30 & yes \\
+    PruneVID-OV & 5{,}075 & 448 & 1{,}056 & 244.98 & yes \\
     FastV & 4{,}701 & 475 & 1{,}113 & 255.52 & yes \\
     \midrule
     \multicolumn{6}{l}{\textit{Qwen3-VL-8B}} \\
@@ -382,10 +369,10 @@ not significant, because its changes fall almost evenly in both directions
 The backbone swap moves accuracy 9.86 points --- more than any
 token-reduction method moves it, either direction, either backbone, any
 retention level tested. Rankings do not transfer: PruneVID is the worst
-LLaVA-OV result (38.20\%) and the best Qwen3-VL one ($-0.35$);
+LLaVA-OV result (37.53\%) and the best Qwen3-VL one ($-0.35$);
 Figure~\ref{fig:dotplot} shows the crossing lines directly. FastV and
-PruneVID-OV collapse specifically on LLaVA-OV (37--38\%, $>14$ points below
-baseline, significant), while every other LLaVA-OV method is statistically
+PruneVID-OV collapse specifically on LLaVA-OV (36.8--37.5\%, $>15$ points
+below baseline, significant), while every other LLaVA-OV method is statistically
 indistinguishable from the backbone; FastV's own published range does not
 save it (35.7--36.3\% at 75\% and 50\% keep, Table~\ref{tab:sweepllava}).
 Qwen3-VL inverts the pattern: every method loses, eight of ten losses are
@@ -415,8 +402,15 @@ cache every decode step and crashed once the first bug stopped masking
 it.) Both are fixed --- prune is now physical, survives the round-trip, and
 the stray flag is removed. Re-running FastV's full range with the fix
 reproduces every pre-fix number to within 0.03\%: the LLaVA-OV collapse is
-genuine model behavior, not the bug. PruneVID's fixed sweep is still
-running. Qwen3-VL is unaffected (\S\ref{sec:permethod}: additive-mask
-implementation, never this cache class).
+genuine model behavior, not the bug. PruneVID needed one more fix on top:
+the \texttt{lengeh\_vision\_token} kwarg both methods used to locate the
+visual-token span turns out to be hard-coded \texttt{None} by
+\texttt{prepare\_inputs\_labels\_for\_multimodal()} for every caller ---
+FastV's own working fallback (arithmetic from a fixed text tail) had to be
+ported over. With every fix applied, PruneVID's LLaVA-OV sweep lands at
+37.53--37.88\%, within 0.9 points of its pre-fix numbers
+(38.10--38.38\%): same conclusion, genuine collapse. Qwen3-VL is
+unaffected (\S\ref{sec:permethod}: additive-mask implementation, never
+this cache class).
 
 \end{document}

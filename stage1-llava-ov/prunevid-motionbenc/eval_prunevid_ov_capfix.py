@@ -85,7 +85,14 @@ def patch_prunable_cache():
     # called after kv_cache is set, gather its STORED tensors in-place (not
     # just the returned view) and mark that layer done. A physically-shrunk
     # cache survives to_legacy_cache()/from_legacy_cache() round-trips intact.
-    _stats = {"first_seen": False}
+    # NOTE: this print used to be gated by a "first_seen"-style one-shot flag,
+    # which made it look like physical pruning only ever happened once across
+    # an entire run (misleading -- the actual index_select logic below was
+    # never gated that way, only the print was). Cost real debugging time
+    # chasing a fake "hook stops firing after sample 1" bug. Now an
+    # unconditional counter, so the log is trustworthy evidence of per-sample
+    # engagement, not just per-process.
+    _stats = {"n_pruned": 0}
 
     def fixed_update(self, key_states, value_states, layer_idx, cache_kwargs=None):
         if layer_idx == 0:
@@ -105,10 +112,11 @@ def patch_prunable_cache():
             self.key_cache[layer_idx] = self.key_cache[layer_idx].index_select(2, idx)
             self.value_cache[layer_idx] = self.value_cache[layer_idx].index_select(2, idx)
             self._capfix_pruned_layers.add(layer_idx)
-            if not _stats["first_seen"]:
+            _stats["n_pruned"] += 1
+            if _stats["n_pruned"] <= 5 or _stats["n_pruned"] % 200 == 0:
                 print(f"CAPFIX: physically pruned layer={layer_idx} from {n} to {len(keep)} tokens "
-                      f"(permanent, survives cache export)", file=_sys.stderr, flush=True)
-                _stats["first_seen"] = True
+                      f"(permanent, survives cache export) [event #{_stats['n_pruned']}]",
+                      file=_sys.stderr, flush=True)
         return self.key_cache[layer_idx], self.value_cache[layer_idx]
 
     Cache.update = fixed_update
@@ -151,12 +159,35 @@ def _load_prunevid_primitives():
 
 def apply_prunevid(model, cluster_ratio=0.5, temporal_segment_ratio=0.25,
                    selected_layer=10, num_frames=32):
-    import types
     import torch as _torch
     cluster_dpc_knn = _load_prunevid_primitives()
     inner = model.model
-    orig_forward = inner.forward
-    def prunevid_forward(self, *args, **kwargs):
+    _diag_state = {"n": 0}
+    def _diag(msg):
+        # Rate-limited so this is safe to leave on for a full 8052-sample
+        # run (unlike the per-call CAPFIX-PV-DIAG print further down, which
+        # only ever fires on the path that reaches clustering).
+        if _diag_state["n"] < 40:
+            _diag_state["n"] += 1
+            print(f"CAPFIX-EARLYRET[{_diag_state['n']}]: {msg}", file=sys.stderr, flush=True)
+
+    # FIFTH BUG, found via a diagnostic that never fired even once across a
+    # full smoke run: monkeypatching inner.forward via types.MethodType
+    # never actually intercepted anything. HF's generate() calls self.model(...)
+    # which goes through nn.Module.__call__ -- that DOES respect an
+    # instance-level .forward override in principle, but evidently something
+    # in this call chain (DyCoke's patched Qwen2ForCausalLM.forward, or the
+    # LLaVA multimodal wrapper) doesn't route through it reliably. A
+    # forward PRE-hook is registered in nn.Module's own _forward_pre_hooks
+    # dict and is guaranteed to fire on every __call__ to this exact module
+    # instance, regardless of how forward is looked up internally -- so the
+    # setup logic (compute keep/drop indices) moves into a pre-hook, and the
+    # attention-layer hook is registered ONCE (not per-call) and reads state
+    # from a shared holder instead of a per-call closure.
+    holder = {"active": False, "seq_len": None, "keep_list": None}
+
+    def _pre_hook(module, args, kwargs):
+        holder["active"] = False
         inputs_embeds = kwargs.get("inputs_embeds")
         if inputs_embeds is None:
             for a in args:
@@ -165,33 +196,54 @@ def apply_prunevid(model, cluster_ratio=0.5, temporal_segment_ratio=0.25,
                     break
         seq_len = inputs_embeds.shape[1] if inputs_embeds is not None else None
         if seq_len is None or seq_len <= 1:
-            return orig_forward(*args, **kwargs)
-        # THIRD BUG, found via a diagnostic showing img_len constant across
-        # samples with different true visual-token counts: unlike FastV
-        # (which checks kwargs.get("lengeh_vision_token") FIRST -- the value
-        # LlavaQwenForCausalLM.forward() threads through this exact call,
-        # guaranteed fresh per sample), this used only the mutable
-        # model/self attribute, which lags behind for reasons not fully
-        # traced but empirically stale. Check kwargs first, matching FastV's
-        # working pattern.
+            _diag(f"early-return: seq_len={seq_len} "
+                  f"(inputs_embeds={'found' if inputs_embeds is not None else 'MISSING'}, "
+                  f"kwargs keys={list(kwargs.keys())}, n_args={len(args)})")
+            return
+        # THIRD BUG (superseded -- see below): this used to check
+        # kwargs.get("lengeh_vision_token") first on the theory that FastV's
+        # identical-looking check made it "guaranteed fresh per sample".
+        # FIFTH BUG, found by tracing prepare_inputs_labels_for_multimodal()
+        # in llava_arch.py directly: its return statement hard-codes the
+        # 7th tuple element (what becomes self.lengeh_vision_token) to a
+        # literal None, unconditionally, for every caller. The kwarg/attr/
+        # DycokeConfig checks below can never succeed -- kept only as cheap
+        # early-outs in case some other model variant does populate them.
+        # FastV's actual working signal is arithmetic (see run_inference()'s
+        # _prunevid_text_tail computation): pre-hook text_tail fallback below.
+        start = 14                                    # qwen_2 preamble
         img_len = kwargs.get("lengeh_vision_token", None)
         if img_len is None:
             img_len = getattr(model, "lengeh_vision_token", None) or \
-                      getattr(self, "lengeh_vision_token", None)
+                      getattr(module, "lengeh_vision_token", None)
         if img_len is None:
-            cfg = getattr(self, "DycokeConfig", None)
+            cfg = getattr(module, "DycokeConfig", None)
             img_len = getattr(cfg, "image_token_length", None) if cfg else None
+        if isinstance(img_len, _torch.Tensor):
+            img_len = int(img_len.item())
+        if img_len is not None:
+            img_len = int(img_len)
+        if (img_len is None or img_len <= 0):
+            tail = getattr(module, "_prunevid_text_tail", None)
+            if tail is not None and seq_len - start - tail > 0:
+                img_len = seq_len - start - tail
         if not img_len or img_len <= 0:
-            return orig_forward(*args, **kwargs)
+            _diag(f"early-return: img_len={img_len!r} invalid "
+                  f"(kwargs has lengeh_vision_token={'lengeh_vision_token' in kwargs}, "
+                  f"model attr={getattr(model, 'lengeh_vision_token', 'MISSING')!r}, "
+                  f"module attr={getattr(module, 'lengeh_vision_token', 'MISSING')!r}, "
+                  f"DycokeConfig={getattr(module, 'DycokeConfig', 'MISSING')!r}, "
+                  f"text_tail={getattr(module, '_prunevid_text_tail', 'MISSING')!r})")
+            return
         img_len = int(img_len)
-        start = 14                                    # qwen_2 preamble
         vis = _torch.arange(start, min(start + img_len, seq_len),
                             device=inputs_embeds.device)
         if vis.numel() < 8:
-            return orig_forward(*args, **kwargs)
+            _diag(f"early-return: vis.numel()={vis.numel()} < 8 "
+                  f"(start={start} img_len={img_len} seq_len={seq_len})")
+            return
         feats = inputs_embeds[0, vis].unsqueeze(0).float()      # (1, N, C)
         n_tok = feats.shape[1]
-        per_frame = max(1, n_tok // max(1, num_frames))
         n_seg = max(1, int(num_frames * temporal_segment_ratio))
         n_clusters = max(1, int(n_tok * cluster_ratio))
         print(f"CAPFIX-PV-DIAG: seq_len={seq_len} img_len={img_len} vis.numel()={vis.numel()} "
@@ -200,7 +252,7 @@ def apply_prunevid(model, cluster_ratio=0.5, temporal_segment_ratio=0.25,
             idx_cluster, _ = cluster_dpc_knn(feats, cluster_num=n_clusters, k=7)
         except Exception as _e:
             print(f"CAPFIX-PV-DIAG: cluster_dpc_knn FAILED: {_e}", file=sys.stderr, flush=True)
-            return orig_forward(*args, **kwargs)
+            return
         idx_cluster = idx_cluster[0]
         print(f"CAPFIX-PV-DIAG: idx_cluster.shape={tuple(idx_cluster.shape)} "
               f"unique={idx_cluster.unique().numel()}", file=sys.stderr, flush=True)
@@ -215,70 +267,80 @@ def apply_prunevid(model, cluster_ratio=0.5, temporal_segment_ratio=0.25,
         drop = _torch.zeros(seq_len, dtype=_torch.bool, device=vis.device)
         drop[vis] = True
         drop[keep] = False
-        state = {"drop": drop, "done": False}
-        if not getattr(self, "_pv_logged", False):
+        keep_idx = _torch.arange(seq_len, device=vis.device)[~drop]
+        keep_list = sorted(set(i for i in keep_idx.tolist() if 0 <= i < seq_len))
+        if not keep_list:
+            return
+        holder["active"] = True
+        holder["seq_len"] = seq_len
+        holder["keep_list"] = keep_list
+        if not getattr(module, "_pv_logged", False):
             import logging
             logging.warning("PruneVID ACTIVE: visual=%d clusters=%d kept=%d "
                             "(%.1f%%) segments=%d layer=%d",
                             n_tok, n_clusters, keep.numel(),
                             100.0 * keep.numel() / n_tok, n_seg, selected_layer)
-            self._pv_logged = True
-        def _install(module, a_, k_, out):
-            if state.get("done"):
-                return out
-            cache = k_.get("past_key_value") or k_.get("past_key_values")
-            if cache is None:
-                for cand in list(a_):
-                    if hasattr(cand, "kv_cache"):
-                        cache = cand
-                        break
-            if cache is None or not hasattr(cache, "kv_cache"):
-                return out
-            keep_idx = _torch.arange(seq_len, device=vis.device)[~state["drop"]]
-            # cluster_dpc_knn's returned cluster assignments don't always
-            # collapse to exactly n_clusters unique ids (some clusters can end
-            # up empty) -- keep_idx's length is whatever it genuinely is, but
-            # it must never contain an index >= seq_len or this cache/its
-            # sibling layers end up inconsistent. Sanitize + dedupe defensively
-            # rather than let an edge case crash the whole run.
-            keep_list = sorted(set(i for i in keep_idx.tolist() if 0 <= i < seq_len))
-            if not keep_list:
-                return out
-            cache.kv_cache = keep_list
-            # Layers before `selected_layer` already had their one update() call
-            # for this prefill (kv_cache still None then, so they stored the
-            # FULL sequence) -- prune them retroactively right now so every
-            # layer ends this forward pass at the SAME (pruned) length. A
-            # length-mismatched cache across layers is what forces transformers
-            # to discard/reconstruct the whole thing on the next generation step.
-            if not hasattr(cache, "_capfix_pruned_layers"):
-                cache._capfix_pruned_layers = set()
-            for li in range(len(cache.key_cache)):
-                if li in cache._capfix_pruned_layers:
-                    continue
-                try:
-                    n = cache.key_cache[li].shape[-2]
-                    keep_here = [i for i in keep_list if i < n]
-                    if not keep_here:
-                        continue
-                    idx_t = _torch.tensor(keep_here, device=cache.key_cache[li].device)
-                    cache.key_cache[li] = cache.key_cache[li].index_select(2, idx_t)
-                    cache.value_cache[li] = cache.value_cache[li].index_select(2, idx_t)
-                    cache._capfix_pruned_layers.add(li)
-                except Exception as e:
-                    import sys as _sys3
-                    print(f"CAPFIX-WARN: retroactive prune failed for layer {li}: {e} "
-                          f"-- leaving that layer unpruned", file=_sys3.stderr, flush=True)
-            state["done"] = True
+            module._pv_logged = True
+
+    _install_diag_state = {"n": 0}
+    def _install_diag(msg):
+        if _install_diag_state["n"] < 40:
+            _install_diag_state["n"] += 1
+            print(f"CAPFIX-INSTALL[{_install_diag_state['n']}]: {msg}",
+                  file=sys.stderr, flush=True)
+
+    def _install(att_module, a_, k_, out):
+        if not holder["active"]:
+            _install_diag("skip: holder inactive (pre-hook didn't arm this forward)")
             return out
-        handles = [self.layers[selected_layer].self_attn
-                   .register_forward_hook(_install, with_kwargs=True)]
-        try:
-            return orig_forward(*args, **kwargs)
-        finally:
-            for h in handles:
-                h.remove()
-    inner.forward = types.MethodType(prunevid_forward, inner)
+        cache = k_.get("past_key_value")
+        if cache is None:
+            cache = k_.get("past_key_values")
+        if cache is None:
+            for cand in list(a_):
+                if hasattr(cand, "kv_cache"):
+                    cache = cand
+                    break
+        if cache is None or not hasattr(cache, "kv_cache"):
+            _install_diag(f"skip: no usable cache found "
+                          f"(kwargs keys={list(k_.keys())}, "
+                          f"past_key_value type={type(k_.get('past_key_value')).__name__}, "
+                          f"past_key_values type={type(k_.get('past_key_values')).__name__}, "
+                          f"n_args={len(a_)})")
+            return out
+        keep_list = holder["keep_list"]
+        cache.kv_cache = keep_list
+        # Layers before `selected_layer` already had their one update() call
+        # for this prefill (kv_cache still None then, so they stored the
+        # FULL sequence) -- prune them retroactively right now so every
+        # layer ends this forward pass at the SAME (pruned) length. A
+        # length-mismatched cache across layers is what forces transformers
+        # to discard/reconstruct the whole thing on the next generation step.
+        if not hasattr(cache, "_capfix_pruned_layers"):
+            cache._capfix_pruned_layers = set()
+        for li in range(len(cache.key_cache)):
+            if li in cache._capfix_pruned_layers:
+                continue
+            try:
+                n = cache.key_cache[li].shape[-2]
+                keep_here = [i for i in keep_list if i < n]
+                if not keep_here:
+                    continue
+                idx_t = _torch.tensor(keep_here, device=cache.key_cache[li].device)
+                cache.key_cache[li] = cache.key_cache[li].index_select(2, idx_t)
+                cache.value_cache[li] = cache.value_cache[li].index_select(2, idx_t)
+                cache._capfix_pruned_layers.add(li)
+            except Exception as e:
+                print(f"CAPFIX-WARN: retroactive prune failed for layer {li}: {e} "
+                      f"-- leaving that layer unpruned", file=sys.stderr, flush=True)
+        holder["active"] = False   # consumed -- next forward call re-arms via _pre_hook
+        return out
+
+    inner.register_forward_pre_hook(_pre_hook, with_kwargs=True)
+    inner.layers[selected_layer].self_attn.register_forward_hook(_install, with_kwargs=True)
+    print(f"CAPFIX: apply_prunevid installed hooks on inner id={id(inner)} "
+          f"type={type(inner).__name__}, pre_hooks={len(inner._forward_pre_hooks)}",
+          file=sys.stderr, flush=True)
     return model
 
 
@@ -361,6 +423,20 @@ def run_inference(tokenizer, model, image_processor, frames, question,
     input_ids = tokenizer_image_token(
         prompt_str, tokenizer, IMAGE_TOKEN_INDEX, return_tensors="pt"
     ).unsqueeze(0).cuda()
+    # FIFTH BUG (part 2): prepare_inputs_labels_for_multimodal() in
+    # llava_arch.py hard-codes its 7th return value to None -- the
+    # "lengeh_vision_token" kwarg this script (and FastV) tried to read is
+    # therefore always None, from any caller, unconditionally. FastV's real
+    # working mechanism is arithmetic: the pre-expansion input_ids has a
+    # single IMAGE_TOKEN_INDEX placeholder; the number of text tokens AFTER
+    # it is fixed, so post-expansion seq_len - preamble - text_tail recovers
+    # the true visual-token count. Mirror that here.
+    try:
+        ids = input_ids[0].tolist()
+        img_pos = ids.index(IMAGE_TOKEN_INDEX)
+        model.model._prunevid_text_tail = len(ids) - img_pos - 1
+    except (ValueError, AttributeError):
+        pass
     images = image_processor.preprocess(frames, return_tensors="pt")["pixel_values"]
     images = images.to(dtype=model.dtype, device="cuda")
     w, h = frames[0].size

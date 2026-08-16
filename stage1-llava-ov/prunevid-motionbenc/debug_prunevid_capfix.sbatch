@@ -31,7 +31,7 @@ OUT=/project/rhu/dpalfaro/results/dbg_prunevid_capfix_run
     --model_path /project/rhu/dpalfaro/weights/llava-ov-7b \
     --meta_path  /project/rhu/MotionBench_Data/MotionBench/video_info.meta.jsonl \
     --output_dir ${OUT} \
-    --num_frames 32 --conv_template qwen_2 --limit 2 \
+    --num_frames 32 --conv_template qwen_2 --limit 8 \
     --prunevid --cluster_ratio 0.5 --temporal_segment_ratio 0.25 --selected_layer 10
 
 echo "=== SMOKE RESULT ==="
