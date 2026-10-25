@@ -53,4 +53,4 @@ holitom-motionbenc/
 ## Paper
 
 - NeurIPS 2025
-- Code: Official GitHub (see literature doc)
+- Code: Official GitHub
