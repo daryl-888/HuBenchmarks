@@ -53,4 +53,4 @@ prunevid-motionbenc/
 ## Paper
 
 - Findings of ACL 2025
-- Code: Official GitHub (see literature doc)
+- Code: Official GitHub
