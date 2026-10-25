@@ -35,5 +35,5 @@ TrajViT is architecturally the most distinct method in this benchmark set — it
 
 ## Do not run yet
 
-The sbatch files here are removed until TrajViT releases VideoQA support.
+The `*.sbatch` files in this folder are placeholders and are not yet runnable.
 No fake commands are provided.
