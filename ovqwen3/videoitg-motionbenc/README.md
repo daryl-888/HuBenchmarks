@@ -53,4 +53,4 @@ videoitg-motionbenc/
 ## Paper
 
 - CVPR 2026 Highlight
-- Code: Official GitHub (see literature doc)
+- Code: Official GitHub
