@@ -36,4 +36,4 @@ iMOVE is the most directly motion-motivated model in this benchmark set. When re
 
 ## Do not run yet
 
-No sbatch files or eval scripts are provided until the code is released.
+The `*.sbatch` files in this folder are placeholders and are not yet runnable; no eval scripts are provided until the code is released.
