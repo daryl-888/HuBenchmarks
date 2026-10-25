@@ -1,0 +1,42 @@
+{
+  "accuracy": 0.5335988053758088,
+  "correct": 2144,
+  "total_scoreable": 4018,
+  "total_na_skipped": 4034,
+  "total_samples": 8052,
+  "model": "/project/rhu/dpalfaro/weights/llava-ov-7b",
+  "num_frames": 32,
+  "conv_template": "qwen_2",
+  "flashvid_params": {
+    "enabled": true,
+    "retention_ratio": 0.25,
+    "alpha": 0.7,
+    "temporal_threshold": 0.8
+  },
+  "per_category": {
+    "Action Order": {
+      "correct": 219,
+      "total": 519
+    },
+    "Motion-related Objects": {
+      "correct": 496,
+      "total": 690
+    },
+    "Repetition Count": {
+      "correct": 95,
+      "total": 400
+    },
+    "Location-related Motion": {
+      "correct": 301,
+      "total": 546
+    },
+    "Camera Motion": {
+      "correct": 183,
+      "total": 385
+    },
+    "Motion Recognition": {
+      "correct": 850,
+      "total": 1478
+    }
+  }
+}

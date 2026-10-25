@@ -1,0 +1,41 @@
+{
+  "accuracy": 0.5597312095569935,
+  "correct": 2249,
+  "total_scoreable": 4018,
+  "total_na_skipped": 4034,
+  "total_samples": 8052,
+  "aim_params": {
+    "enabled": true,
+    "merge_steps": 4,
+    "prune_ratio": 0.15
+  },
+  "model": "Qwen/Qwen3-VL-8B-Instruct",
+  "num_frames": 32,
+  "note": "AIM on Qwen3-VL \u2014 bipartite soft-matching merge + PageRank prune",
+  "per_category": {
+    "Action Order": {
+      "correct": 238,
+      "total": 519
+    },
+    "Motion-related Objects": {
+      "correct": 498,
+      "total": 690
+    },
+    "Repetition Count": {
+      "correct": 108,
+      "total": 400
+    },
+    "Location-related Motion": {
+      "correct": 325,
+      "total": 546
+    },
+    "Camera Motion": {
+      "correct": 218,
+      "total": 385
+    },
+    "Motion Recognition": {
+      "correct": 862,
+      "total": 1478
+    }
+  }
+}

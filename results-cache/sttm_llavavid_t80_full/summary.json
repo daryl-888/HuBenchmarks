@@ -1,0 +1,41 @@
+{
+  "accuracy": 0.533349925335988,
+  "correct": 2143,
+  "total_scoreable": 4018,
+  "total_na_skipped": 4034,
+  "total_samples": 8052,
+  "model": "lmms-lab/LLaVA-Video-7B-Qwen2",
+  "num_frames": 32,
+  "sttm_params": {
+    "sa_start_layer_idx": 2,
+    "sa_tree_thresh": 0.8,
+    "sa_tree_temporal_thresh": 0.65,
+    "sa_tree_root_level": 1
+  },
+  "per_category": {
+    "Action Order": {
+      "correct": 209,
+      "total": 519
+    },
+    "Motion-related Objects": {
+      "correct": 475,
+      "total": 690
+    },
+    "Repetition Count": {
+      "correct": 108,
+      "total": 400
+    },
+    "Location-related Motion": {
+      "correct": 313,
+      "total": 546
+    },
+    "Camera Motion": {
+      "correct": 188,
+      "total": 385
+    },
+    "Motion Recognition": {
+      "correct": 850,
+      "total": 1478
+    }
+  }
+}

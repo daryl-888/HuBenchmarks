@@ -1,0 +1,30 @@
+--- /tmp/llava_arch.bak	2026-07-25 01:01:43.085426285 -0500
++++ dyto/llava/model/llava_arch.py	2026-07-25 01:01:43.134545171 -0500
+@@ -217,6 +217,27 @@
+                 selected_index = class_indices[len(class_indices)//2 if len(class_indices) > 2 else -1]
+                 selected_indexs.append(selected_index)
+ 
++        # NOTE: the 8 lines below are missing from the released finch_cluster().
++        # They are transcribed VERBATIM from the sibling KMeans function in this
++        # same file (lines 175-186), which is character-identical to this one over
++        # the whole shared region (13/14 normalized lines; the only difference is a
++        # stray space before a colon). new_embeddings is declared at the top of this
++        # function and otherwise unused, and the caller does
++        # `clus_image_features.shape[0]` then `T,N,D = clus_image_features.shape`,
++        # so a stacked 3-D tensor is the only shape that fits. This is recovered
++        # code, not reconstructed logic.
++        selected_indexs.sort()
++        for index in selected_indexs:
++            # Remove first patch from original encoding, only keep patch embeddings [1:577]
++            embedding = image_features[index, 1:, :]  # dimension [576, 4096]
++            # Add to new embeddings
++            new_embeddings.append(embedding)
++
++        # Connect all embeddings together to form new tensor
++        new_image_features = torch.stack(new_embeddings)
++
++        return new_image_features
++
+     def encode_images(self, images):
+         image_features = self.get_model().get_vision_tower()(images)
+         image_features = self.get_model().mm_projector(image_features)

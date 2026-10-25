@@ -1,0 +1,41 @@
+{
+  "accuracy": 0.6251866600298656,
+  "correct": 2512,
+  "total_scoreable": 4018,
+  "total_na_skipped": 4034,
+  "total_samples": 8052,
+  "baseline_params": {
+    "enabled": true,
+    "method": "none",
+    "role": "reference baseline for --vs-baseline gates"
+  },
+  "model": "Qwen/Qwen3-VL-8B-Instruct",
+  "num_frames": 32,
+  "note": "Qwen3-VL baseline \u2014 no compression applied (INTENTIONAL: this is the reference run)",
+  "per_category": {
+    "Action Order": {
+      "correct": 239,
+      "total": 519
+    },
+    "Motion-related Objects": {
+      "correct": 545,
+      "total": 690
+    },
+    "Repetition Count": {
+      "correct": 135,
+      "total": 400
+    },
+    "Location-related Motion": {
+      "correct": 355,
+      "total": 546
+    },
+    "Camera Motion": {
+      "correct": 243,
+      "total": 385
+    },
+    "Motion Recognition": {
+      "correct": 995,
+      "total": 1478
+    }
+  }
+}

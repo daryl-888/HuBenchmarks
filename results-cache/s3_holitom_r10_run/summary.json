@@ -1,0 +1,43 @@
+{
+  "accuracy": 0.6005475360876058,
+  "correct": 2413,
+  "total_scoreable": 4018,
+  "total_na_skipped": 4034,
+  "total_samples": 8052,
+  "holitom_params": {
+    "enabled": true,
+    "RETAIN_RATIO": 0.1,
+    "T": 0.8,
+    "k": 18,
+    "r": 0.5
+  },
+  "model": "Qwen/Qwen3-VL-8B-Instruct",
+  "num_frames": 32,
+  "note": "HoliTom on Qwen3-VL \u2014 outer temporal-segment retain + inner attention merge",
+  "per_category": {
+    "Action Order": {
+      "correct": 233,
+      "total": 519
+    },
+    "Motion-related Objects": {
+      "correct": 534,
+      "total": 690
+    },
+    "Repetition Count": {
+      "correct": 115,
+      "total": 400
+    },
+    "Location-related Motion": {
+      "correct": 326,
+      "total": 546
+    },
+    "Camera Motion": {
+      "correct": 234,
+      "total": 385
+    },
+    "Motion Recognition": {
+      "correct": 971,
+      "total": 1478
+    }
+  }
+}

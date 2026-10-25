@@ -1,0 +1,14 @@
+{
+  "accuracy": 0.5286212045793928,
+  "correct": 2124,
+  "total_scoreable": 4018,
+  "total_na_skipped": 4034,
+  "total_samples": 8052,
+  "model": "/project/rhu/dpalfaro/weights/llava-ov-7b",
+  "grounding_jsonl": "/project/rhu/dpalfaro/results/videoitg_grounding/frame_scores.jsonl",
+  "videoitg_params": {
+    "enabled": true,
+    "stage": "infer (consumes grounding frame_scores.jsonl)",
+    "grounding_src": "/project/rhu/dpalfaro/results/videoitg_grounding/frame_scores.jsonl"
+  }
+}

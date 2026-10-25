@@ -1,0 +1,42 @@
+{
+  "accuracy": 0.5253857640617222,
+  "correct": 2111,
+  "total_scoreable": 4018,
+  "total_na_skipped": 4034,
+  "total_samples": 8052,
+  "model": "/project/rhu/dpalfaro/weights/llava-ov-7b",
+  "num_frames": 32,
+  "conv_template": "qwen_2",
+  "visionzip_params": {
+    "enabled": true,
+    "variant": "contextual-only",
+    "retention_ratio": 0.25,
+    "note": "PARTIAL: dominant half needs a CLS token SigLIP lacks"
+  },
+  "per_category": {
+    "Action Order": {
+      "correct": 210,
+      "total": 519
+    },
+    "Motion-related Objects": {
+      "correct": 487,
+      "total": 690
+    },
+    "Repetition Count": {
+      "correct": 90,
+      "total": 400
+    },
+    "Location-related Motion": {
+      "correct": 296,
+      "total": 546
+    },
+    "Camera Motion": {
+      "correct": 179,
+      "total": 385
+    },
+    "Motion Recognition": {
+      "correct": 849,
+      "total": 1478
+    }
+  }
+}

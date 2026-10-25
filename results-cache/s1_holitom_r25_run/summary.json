@@ -1,0 +1,15 @@
+{
+  "accuracy": 0.5340965654554505,
+  "correct": 2146,
+  "total_scoreable": 4018,
+  "total_na_skipped": 4034,
+  "total_samples": 8052,
+  "model": "/project/rhu/dpalfaro/weights/llava-ov-7b",
+  "holitom_params": {
+    "enabled": true,
+    "RETAIN_RATIO": "0.25",
+    "T": "0.80",
+    "HOLITOM_k": "18",
+    "HOLITOM_r": "0.5"
+  }
+}

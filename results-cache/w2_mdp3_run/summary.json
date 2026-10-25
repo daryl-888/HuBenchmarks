@@ -1,0 +1,14 @@
+{
+  "accuracy": 0.5306122448979592,
+  "correct": 2132,
+  "total_scoreable": 4018,
+  "total_na_skipped": 4034,
+  "total_samples": 8052,
+  "model": "/project/rhu/dpalfaro/weights/llava-ov-7b",
+  "conv_template": "qwen_1_5",
+  "mdp3_params": {
+    "enabled": true,
+    "pool_frames": 32,
+    "select_frames": 8
+  }
+}

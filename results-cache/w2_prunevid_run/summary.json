@@ -1,0 +1,15 @@
+{
+  "accuracy": 0.4412643106022897,
+  "correct": 1773,
+  "total_scoreable": 4018,
+  "total_na_skipped": 4034,
+  "total_samples": 8052,
+  "pruning_enabled": true,
+  "prunevid_params": {
+    "cluster_ratio": 0.5,
+    "temporal_segment_ratio": 0.25,
+    "selected_layer": 10,
+    "alpha": 0.4,
+    "tau": 0.8
+  }
+}

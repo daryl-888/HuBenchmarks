@@ -1,0 +1,104 @@
+diff --git a/models/pllava/llama.py b/models/pllava/llama.py
+index 0409742..591cf3d 100644
+--- a/models/pllava/llama.py
++++ b/models/pllava/llama.py
+@@ -54,6 +54,18 @@ logger = logging.get_logger(__name__)
+ _CONFIG_FOR_DOC = "LlamaConfig"
+ 
+ 
++
++from dataclasses import dataclass as _dc
++from transformers.modeling_outputs import BaseModelOutputWithPast as _B, CausalLMOutputWithPast as _C
++
++@_dc
++class BaseModelOutputWithPastAndMask(_B):
++    attention_mask: Optional[torch.FloatTensor] = None
++
++@_dc
++class CausalLMOutputWithPastAndMask(_C):
++    attention_mask: Optional[torch.FloatTensor] = None
++
+ class LlamaRMSNorm(nn.Module):
+     def __init__(self, hidden_size, eps=1e-6):
+         """
+@@ -300,9 +312,9 @@ class LlamaMLP(nn.Module):
+         self.config = config
+         self.hidden_size = config.hidden_size
+         self.intermediate_size = config.intermediate_size
+-        self.gate_proj = nn.Linear(self.hidden_size, self.intermediate_size, bias=config.mlp_bias)
+-        self.up_proj = nn.Linear(self.hidden_size, self.intermediate_size, bias=config.mlp_bias)
+-        self.down_proj = nn.Linear(self.intermediate_size, self.hidden_size, bias=config.mlp_bias)
++        self.gate_proj = nn.Linear(self.hidden_size, self.intermediate_size, bias=getattr(config, "mlp_bias", False))
++        self.up_proj = nn.Linear(self.hidden_size, self.intermediate_size, bias=getattr(config, "mlp_bias", False))
++        self.down_proj = nn.Linear(self.intermediate_size, self.hidden_size, bias=getattr(config, "mlp_bias", False))
+         self.act_fn = ACT2FN[config.hidden_act]
+ 
+     def forward(self, x):
+@@ -1198,11 +1210,12 @@ class LlamaModel(LlamaPreTrainedModel):
+         if not return_dict:
+             return tuple(v for v in [hidden_states, next_cache, all_hidden_states, all_self_attns] if v is not None)
+         
+-        return BaseModelOutputWithPast(
++        return BaseModelOutputWithPastAndMask(
+             last_hidden_state=hidden_states,
+             past_key_values=next_cache,
+             hidden_states=all_hidden_states,
+             attentions=all_self_attns,
++            attention_mask=attention_mask,
+         )
+ 
+     def _update_causal_mask(
+@@ -1482,7 +1495,6 @@ class LlamaModelVTP(LlamaModel):
+             past_key_values=next_cache,
+             hidden_states=all_hidden_states,
+             attentions=all_self_attns,
+-            attention_mask=attention_mask
+         )
+ 
+ class TextPivotMerge_LayerWise:
+@@ -2121,12 +2133,13 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
+             output = (logits,) + outputs[1:]
+             return (loss,) + output if loss is not None else output
+ 
+-        return CausalLMOutputWithPast(
++        return CausalLMOutputWithPastAndMask(
+             loss=loss,
+             logits=logits,
+             past_key_values=outputs.past_key_values,
+             hidden_states=outputs.hidden_states,
+             attentions=outputs.attentions,
++            attention_mask=outputs.attention_mask,
+         )
+ 
+     def prepare_inputs_for_generation(
+@@ -2287,7 +2300,6 @@ class LlamaForCausalLMVTP(LlamaForCausalLM):
+             past_key_values=outputs.past_key_values,
+             hidden_states=outputs.hidden_states,
+             attentions=outputs.attentions,
+-            attention_mask=outputs.attention_mask
+         )
+ 
+ class LlamaForCausalLMElastic(LlamaForCausalLM):
+diff --git a/models/pllava/modeling_pllava.py b/models/pllava/modeling_pllava.py
+index 51e6e4c..2056b8a 100644
+--- a/models/pllava/modeling_pllava.py
++++ b/models/pllava/modeling_pllava.py
+@@ -403,7 +403,7 @@ class PllavaMultiModalProjector(nn.Module):
+     def forward(self, image_features, media_type, batch_size=None, num_videos=None, num_frames=16, frame_shape=(24, 24)):
+         # frame_shape = self.frame_shape
+         # num_frames = self.num_frames
+-        assert media_type in ( 'video', 'image'), f'only image or video, but got media_type {media_type}'
++        media_type = media_type or 'video'
+         # hidden_states, global_hidden_states = image_features
+         hidden_states = image_features
+         if media_type == 'image':
+@@ -1037,6 +1037,9 @@ class PllavaForConditionalGeneration(PllavaPreTrainedModel):
+             attention_mask = outputs.attention_mask if outputs.attention_mask is not None else attention_mask
+         except:
+             pass
++        # VTP pruning shrinks seq-len; align attention_mask with logits before label creation
++        if attention_mask is not None and attention_mask.shape[-1] != logits.shape[1]:
++            attention_mask = attention_mask.new_ones((logits.shape[0], logits.shape[1]))
+         if flag:
+             labels = torch.full_like(attention_mask, self.config.ignore_index).to(torch.long)
+         loss = None

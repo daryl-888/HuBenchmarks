@@ -1,0 +1,43 @@
+{
+  "accuracy": 0.6022896963663514,
+  "correct": 2420,
+  "total_scoreable": 4018,
+  "total_na_skipped": 4034,
+  "total_samples": 8052,
+  "prunevid_params": {
+    "enabled": true,
+    "cluster_ratio": 0.1,
+    "temporal_segment_ratio": 0.25,
+    "selected_layer": 10,
+    "num_frames": 32
+  },
+  "model": "Qwen/Qwen3-VL-8B-Instruct",
+  "num_frames": 32,
+  "note": "PruneVID on Qwen3-VL \u2014 DPC-KNN temporal segmentation + spatial cluster merge, authors' cluster_dpc_knn",
+  "per_category": {
+    "Action Order": {
+      "correct": 242,
+      "total": 519
+    },
+    "Motion-related Objects": {
+      "correct": 532,
+      "total": 690
+    },
+    "Repetition Count": {
+      "correct": 115,
+      "total": 400
+    },
+    "Location-related Motion": {
+      "correct": 333,
+      "total": 546
+    },
+    "Camera Motion": {
+      "correct": 234,
+      "total": 385
+    },
+    "Motion Recognition": {
+      "correct": 964,
+      "total": 1478
+    }
+  }
+}

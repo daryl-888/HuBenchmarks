@@ -1,0 +1,41 @@
+{
+  "accuracy": 0.5965654554504729,
+  "correct": 2397,
+  "total_scoreable": 4018,
+  "total_na_skipped": 4034,
+  "total_samples": 8052,
+  "mdp3_params": {
+    "enabled": true,
+    "pool_frames": 32,
+    "select_frames": 8
+  },
+  "model": "Qwen/Qwen3-VL-8B-Instruct",
+  "num_frames": 32,
+  "note": "MDP3 on Qwen3-VL \u2014 conditional-DPP frame selection before the model",
+  "per_category": {
+    "Action Order": {
+      "correct": 233,
+      "total": 519
+    },
+    "Motion-related Objects": {
+      "correct": 534,
+      "total": 690
+    },
+    "Repetition Count": {
+      "correct": 92,
+      "total": 400
+    },
+    "Location-related Motion": {
+      "correct": 343,
+      "total": 546
+    },
+    "Camera Motion": {
+      "correct": 249,
+      "total": 385
+    },
+    "Motion Recognition": {
+      "correct": 946,
+      "total": 1478
+    }
+  }
+}

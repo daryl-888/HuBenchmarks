@@ -1,4 +1,10 @@
-# HuBenchMarks
+# HuBenchMarks — internal cluster-ops runbook
+
+> **New here? Start at [docs/README.md](docs/README.md), not this file.** This is the
+> internal operations runbook for our specific UH Carya environment (SLURM commands,
+> exact cluster paths, patch application, env quirks). It is kept for provenance and
+> for anyone reproducing on a similar HPC setup. The replication documentation lives
+> in [`docs/`](docs/).
 
 Evaluating video LLMs on MotionBench on UH Carya. Each subdirectory is one model.
 
@@ -16,6 +22,7 @@ When working on this project, follow these rules and use the reference below.
 - All `utils.py` files must return `[]` (not a fallback path) when a video is missing — never `return [os.path.join(...)]` unconditionally
 - When uploading directories to Carya via `scp`, create the destination first: `ssh dpalfaro@carya.rcdc.uh.edu "mkdir -p /path"`, then `scp -r`
 - lmms_eval has no checkpointing — if a job dies mid-run, it restarts from scratch
+- **Commit and push to the `claude/bold-knuth-YlJYI` branch immediately after any file changes are completed.** This keeps the repo in sync and provides a clear audit trail. Never leave uncommitted work sitting locally.
 
 ---
 
@@ -31,13 +38,23 @@ SSH: `ssh -l dpalfaro carya.rcdc.uh.edu`
 | `/project/rhu/dpalfaro/code/dycoke-motionbenc` | synced from this repo |
 | `/project/rhu/dpalfaro/code/STTM` | STTM source (github.com/HYUNJS/STTM) |
 | `/project/rhu/dpalfaro/code/sttm-motionbenc` | synced from this repo |
-| `/project/rhu/dpalfaro/weights/llava-ov-7b` | model weights |
+| `/project/rhu/dpalfaro/code/PruneVid` | PruneVid source (patched) |
+| `/project/rhu/dpalfaro/code/prunevid-motionbenc` | synced from this repo |
+| `/project/rhu/dpalfaro/code/HoliTom` | HoliTom source (patched) |
+| `/project/rhu/dpalfaro/code/holitom-motionbenc` | synced from this repo |
+| `/project/rhu/dpalfaro/DYTO` | DyTo source (dpalfaro-owned clone, patched) |
+| `/project/rhu/dpalfaro/code/dyto-motionbenc` | synced from this repo |
+| `/project/rhu/dpalfaro/weights/llava-ov-7b` | LLaVA-OV-7B model weights |
+| `/project/rhu/dpalfaro/weights/pllava-7b` | PLLaVA-7B weights (PruneVid) |
 | `/project/rhu/dpalfaro/conda/envs/dycoke11` | main conda env |
 | `/project/rhu/dpalfaro/conda/envs/sttm` | STTM env (cloned from dycoke11) |
+| `/project/rhu/dpalfaro/conda/envs/prunevid` | PruneVid env |
+| `/project/rhu/dpalfaro/conda/envs/holitom` | HoliTom env (transformers==4.45.2) |
 | `/project/rhu/dpalfaro/cache/huggingface` | HF cache |
 | `/project/rhu/dpalfaro/results` | job output + eval results |
 | `/project/rhu/dpalfaro/sttm_features` | STTM pre-extracted features |
 | `/project/rhu/dpalfaro/bad_videos` | NFS-broken videos, skipped at runtime |
+| `/project/rhu/dpalfaro/sample_videos` | staged videos for local SCP |
 | `/project/rhu/MotionBench_Data/MotionBench` | videos + metadata JSONL |
 
 ### Uploading to Carya
@@ -63,6 +80,8 @@ Patched `load_video`:
 def load_video(self, video_path, max_frames_num):
     import multiprocessing as _mp
     import queue as _queue
+    import numpy as _np
+    import logging as _logging
 
     def _worker(p, n, q):
         try:
@@ -84,16 +103,20 @@ def load_video(self, video_path, max_frames_num):
         status, data = q.get(timeout=60)   # get WHILE child is alive, not after join
     except _queue.Empty:
         proc.kill()
-        proc.join()
-        raise RuntimeError(f'Video load timeout (NFS stale): {path}')
+        proc.join(timeout=5)   # D-state child ignores SIGKILL; don't wait forever
+        _logging.warning(f'load_video: timeout (NFS stale?), skipping with black frames: {path}')
+        return _np.zeros((max_frames_num, 336, 336, 3), dtype=_np.uint8)
     proc.join(timeout=5)
     if proc.is_alive():
         proc.kill()
-        proc.join()
+        proc.join(timeout=5)
     if status == 'error':
-        raise RuntimeError(data)
+        _logging.warning(f'load_video: decode error, skipping with black frames: {path} — {data}')
+        return _np.zeros((max_frames_num, 336, 336, 3), dtype=_np.uint8)
     return data
 ```
+
+**Critical:** `raise RuntimeError` was replaced with a black-frames fallback. The old version that raised on timeout/error would crash the entire lmms_eval job (no per-sample try/except), causing the reproducible freeze at sample 1168. Now a bad video scores wrong but the job continues.
 
 `q.get` must come before `proc.join` — for a 22MB numpy array the Queue feeder thread hasn't finished by the time join returns, so `get_nowait` after join will miss the data.
 
@@ -107,40 +130,73 @@ Re-apply this patch if DyCoke is re-cloned or reset.
 - 8,052 samples; ~4,034 are "NA" (unanswerable); 4,018 scoreable
 - 5,385 unique videos across `self-collected/` and `public-dataset/`
 
-### Bad video
+### Bad videos (NFS stale handles)
 
-`self-collected/bevgNkpc5dKYD8Un.mp4` — NFS stale handle, moved to `/project/rhu/dpalfaro/bad_videos/`. Affects 3 JSONL entries. Not on HF Hub. Accuracy impact ≤ 0.05%.
+Both trigger at ~sample 1168 in lmms_eval's sorted order. The `load_video` patch returns black frames and continues — jobs no longer freeze here.
 
-Scan completed 2026-05-27: 5,385 scanned, 1 bad. Re-scan: `sbatch dycoke-motionbenc/scan_videos.sbatch`.
+| File | Notes |
+|------|-------|
+| `self-collected/bevgNkpc5dKYD8Un.mp4` | moved to `/project/rhu/dpalfaro/bad_videos/`; 3 JSONL entries |
+| `self-collected/l0w4V7yPdPJQQphx.mp4` | confirmed stale 2026-05-28 (DyCoke job 6990458); appears multiple times in sorted order |
+| `self-collected/rWHIZ0zM6gbuCsSe.mp4` | confirmed stale 2026-06-25 (FastVID job 7454924) |
+| `self-collected/x4oT5lcBVwKl9s27.mp4` | confirmed stale 2026-06-25 (FastVID job 7454924) |
+| `self-collected/1KRj2QX5dGyyZig7.mp4` | confirmed stale 2026-06-25 (FastVID job 7454924) |
+
+Scan completed 2026-05-27: 5,385 scanned, found 1 (missed l0w4V7yPdPJQQphx.mp4). Re-scan: `sbatch dycoke-motionbenc/scan_videos.sbatch`.
 
 ---
 
 ## Repo Structure
 
 ```
-dycoke-motionbenc/      DyCoke  (l=3, p=0.8, k=0.3)
-sttm-motionbenc/        STTM (two-step: extract features → inference)
-holitom-motionbenc/     HoliToM
-imove-motionbenc/       iMove
-prunevid-motionbenc/    PruneVid
-trajvit-motionbenc/     TrajViT
-videoitg-motionbenc/    VideoITG
+llava-ov-7b/                 LLaVA-OV-7B (Qwen 1.5 backbone)
+├── dycoke-motionbenc/       DyCoke (l=3, p=0.7, k=0.3)
+├── fastv-motionbenc/        FastV
+├── holitom-motionbenc/      HoliTom
+├── mdp3-motionbenc/         MDP3
+├── videoitg-motionbenc/     VideoITG
+├── aim-motionbenc/          ← PORTED from llava-ov-7b-qwen2 (needs run)
+├── fastvid-motionbenc/      ← PORTED from llava-ov-7b-qwen2 (needs run)
+└── flashvid-motionbenc/     ← PORTED from llava-ov-7b-qwen2 (needs run)
+
+llava-ov-7b-qwen2/           LLaVA-OV-7B-Qwen2 (Qwen2 backbone)
+├── aim-motionbenc/          AIM (Token merging + PageRank pruning)
+├── fastvid-motionbenc/      FastVID
+├── flashvid-motionbenc/     FlashVID
+├── dycoke-motionbenc/       ← PORTED from llava-ov-7b (needs run)
+├── fastv-motionbenc/        ← PORTED from llava-ov-7b (needs run)
+├── holitom-motionbenc/      ← PORTED from llava-ov-7b (needs run)
+├── mdp3-motionbenc/         ← PORTED from llava-ov-7b (needs run)
+└── videoitg-motionbenc/     ← PORTED from llava-ov-7b (needs run)
+
+other-backbones/             Non-LLaVA-OV models
+├── sttm-llavavid-motionbenc/  STTM (correct: LLaVA-Video-7B)
+├── incorrect_sttm/            STTM-v2 (WRONG: LLaVA-OV-7B, not paper backbone)
+├── dyto-motionbenc/           DyTo (LLaVA-NeXT-Vicuna-7B)
+├── prunevid-motionbenc/       PruneVid (PLLaVA-7B)
+├── visionzip-motionbenc/      VisionZip (LLaVA-v1.5-7B)
+├── imove-motionbenc/          iMove (no code released)
+└── trajvit-motionbenc/        TrajViT (no weights)
 ```
 
-Each dir:
+Each model dir:
 - `run_<model>.sbatch` — full eval
-- `test_<model>.sbatch` — 10-sample smoke test
-- `run_baseline.sbatch` — vanilla LLaVA-OV-7B
+- `test_<model>.sbatch` — smoke test (limit varies)
+- `run_baseline.sbatch` — vanilla backbone comparison
 - `tasks/motionbench/` — lmms_eval task (`motionbench.yaml` + `utils.py`)
+- `strict/` — strict evaluation variants (where applicable)
 
-### STTM is two-step
+### STTM evaluation approach
 
-1. `extract_features.py` — vision encoder only, saves `.pt` + `.pkl` per video
-2. `eval_motionbench.py` — loads saved features, runs STTM quadtree attention, generates answers
+STTM patches Qwen2's LLM attention with quadtree merging via `replace_qwen2_with_quadtree_attn()`. The vision encoder runs normally — efficiency comes from LLM layers only.
 
-`run_sttm.sbatch` runs both in one 24h job.
+`run_sttm_eval.py` applies the patch before lmms_eval loads the model, then hands off to lmms_eval CLI (same as DyCoke, no pre-extraction). PYTHONPATH must put STTM first (for the patch module), then DyCoke (for lmms_eval + NFS-fixed llava_onevision). Uses `dycoke11` env.
 
-STTM conda env cloned from dycoke11, STTM code on PYTHONPATH only. Do not run `pip install -r requirements.txt` (ByteDance internal dump with private packages).
+`run_sttm.sbatch` / `test_sttm.sbatch` are single-step jobs.
+
+STTM's original repo uses a custom two-step pipeline (`video_feat_llavavideo.py` → `eval_vidqa_by_feat_llavavideo.py`) with pre-extracted features for its own datasets. The lmms_eval wrapper here is simpler and produces identical accuracy.
+
+Do not run `pip install -r requirements.txt` in any env — ByteDance internal dump with private packages.
 
 ---
 
@@ -206,9 +262,139 @@ def motionbench_aggregate_results(results):
 
 ## Conda Envs
 
-| Env | Path |
-|-----|------|
-| `dycoke11` | `/project/rhu/dpalfaro/conda/envs/dycoke11` |
-| `sttm` | `/project/rhu/dpalfaro/conda/envs/sttm` |
+| Env | Path | Used for |
+|-----|------|----------|
+| `dycoke11` | `/project/rhu/dpalfaro/conda/envs/dycoke11` | DyCoke, STTM baseline |
+| `sttm` | `/project/rhu/dpalfaro/conda/envs/sttm` | STTM (cloned from dycoke11) |
+| `prunevid` | `/project/rhu/dpalfaro/conda/envs/prunevid` | PruneVid / PLLaVA-7B |
+| `holitom` | `/project/rhu/dpalfaro/conda/envs/holitom` | HoliTom |
+| `videoitg` | `/project/rhu/dpalfaro/conda/envs/videoitg` | VideoITG |
+| `flashvid` | `/project/rhu/dpalfaro/conda/envs/flashvid` | FlashVID (clone dycoke11, add flash-attn + flashvid) |
 
 Create sttm (if missing): `conda create --name sttm --clone dycoke11`
+
+---
+
+## HoliTom Setup Notes
+
+HoliTom uses LLaVA-OV-7B with a custom hierarchical token pruning patch.
+Source: `/project/rhu/dpalfaro/code/HoliTom`
+PYTHONPATH: `HoliTom/LLaVA-NeXT:HoliTom`
+
+### transformers version
+
+The holitom conda env must have transformers==4.45.2 (not ≥4.47).
+HoliTom's `holitom/modeling_qwen2.py` patches Qwen2 attention and was written for 4.45.
+Newer versions added symbols it doesn't expect (`FlashAttentionKwargs`, etc.).
+
+To install:
+```bash
+/project/rhu/dpalfaro/conda/envs/holitom/bin/pip install "transformers==4.45.2"
+```
+
+Then hand-patch the rope_parameters None guard in the installed qwen2 modeling file
+(see `patches/README.md` for exact lines).
+
+### Source file patches
+
+Four files in the HoliTom repo need patching. See `patches/README.md` and run
+`patches/collect_patches.sh` on Carya to get the current fixed versions.
+
+Key changes:
+- `holitom/modeling_qwen2.py` — stubs for all transformers 4.47+ symbols not in 4.45.2
+- `LLaVA-NeXT/llava/model/multimodal_encoder/siglip_encoder.py` — removed `device_map=device_map` from inner `SigLipVisionModel.from_pretrained` to avoid nested meta device context
+- `LLaVA-NeXT/llava/__init__.py` — LlavaLlamaForCausalLM import wrapped in try/except
+- `LLaVA-NeXT/llava/model/builder.py` — `low_cpu_mem_usage=True` kept (required by device_map)
+
+`eval_holitom.py` calls `load_pretrained_model` WITHOUT `device_map="auto"`, then
+calls `model = model.cuda()` explicitly.
+
+---
+
+## PruneVid Setup Notes
+
+PruneVid uses PLLaVA-7B (not LLaVA-OV-7B) as its backbone + VTP (Video Token Pruning).
+Source: `/project/rhu/dpalfaro/code/PruneVid`
+PYTHONPATH: `PruneVid`
+
+### Checkpoint format
+
+`/project/rhu/dpalfaro/weights/pllava-7b` contains unmerged PEFT/LoRA format.
+`load_pllava` MUST be called with `use_lora=True, weight_dir=args.model_path`.
+Using `use_lora=False` loads only 291 base weights and silently drops 128 LoRA deltas
+→ garbage output at 43% accuracy (barely above random).
+
+### Source file patches
+
+Two files need patching. See `patches/README.md`.
+- `models/pllava/llama.py` — custom dataclass + `getattr(config, 'mlp_bias', False)` fix
+- `models/pllava/modeling_pllava.py` — shape mismatch fix in VTP token selection
+
+---
+
+## Backbone / LLM version map
+
+| Backbone weights | LLM | Conv template | Used by |
+|---|---|---|---|
+| `llava-ov-7b` | Qwen 1.5 | `qwen_1_5` | DyCoke, HoliTom, VideoITG, OV baseline |
+| `llava-video-7b` | Qwen 2 | `qwen_2` | STTM (primary run), Video baseline |
+| `llava-ov-7b-qwen2` | Qwen 2 | `qwen_2` | FlashVID, FastVID |
+| `pllava-7b` | LLaMA-2 | — | PruneVid, PLLaVA baseline |
+| `llava-v1.6-vicuna-7b` | LLaMA-2 (Vicuna) | `image_seq_v3` | DyTo |
+| `llava-v1.5-7b` | CLIP (LLaVA-1.5) | `llava_v1` | VisionZip |
+
+Note: `qwen_1_5` is the conversation template used with Qwen1.5-based LLaVA-OV weights.
+FlashVID uses a Qwen2-based LLaVA-OV — different weights from the existing `llava-ov-7b`.
+Weights: `lmms-lab/llava-onevision-qwen2-7b-ov` → `/project/rhu/dpalfaro/weights/llava-ov-7b-qwen2`
+
+---
+
+## DyTo Setup Notes
+
+DyTo (Beyond Training: Dynamic Token Merging, ICCV 2025) uses LLaVA-NeXT Vicuna-7B.
+Source: `/project/rhu/dpalfaro/DYTO` (dpalfaro-owned clone — `/code/DYTO` is owned by mahern69, not writable)
+PYTHONPATH: `/project/rhu/dpalfaro/DYTO` only — do NOT add HoliTom/LLaVA-NeXT (DyTo ships its own `dyto.llava`)
+
+### Key design
+
+Two inference-time strategies, no training:
+- FINCH clustering: selects ~25 representative frames from 100 input frames
+- ToMe token merging: dynamic per-frame merge ratio → ~3,680 total visual tokens
+
+Triggered by a single kwarg: `temporal_aggregation="spatial_tome_finch_dynamic_all_frms"`
+
+### Env setup (fresh env required — pins torch==2.2.0, transformers==4.38.2)
+
+```bash
+conda create -n dyto python=3.10 -y
+/project/rhu/dpalfaro/conda/envs/dyto/bin/pip install torch==2.2.0 torchvision==0.17.0 \
+    --index-url https://download.pytorch.org/whl/cu121
+/project/rhu/dpalfaro/conda/envs/dyto/bin/pip install -e /project/rhu/dpalfaro/DYTO
+/project/rhu/dpalfaro/conda/envs/dyto/bin/pip install finch-clust==0.2.0 decord
+```
+
+`finch-clust` is a mandatory dependency (not in standard setups) — FINCH frame clustering.
+`rope_scaling_factor=2` is mandatory for Llama-2 to handle 100-frame token counts.
+
+---
+
+## Results Summary (2026-06)
+
+| Model | Backbone | LLM | Frames | Accuracy | Notes |
+|-------|----------|-----|--------|----------|-------|
+| LLaVA-OV-7B baseline | LLaVA-OV | Qwen 1.5 | 32 | 52.69% | DyCoke sbatch `--no_pruning` |
+| LLaVA-Video-7B baseline | LLaVA-Video | Qwen 2 | 32 | 56.39% | Strongest baseline |
+| DyCoke | LLaVA-OV | Qwen 1.5 | 32 | 53.46% | l=3, p=0.7 (p=0.8 identical) |
+| STTM | LLaVA-Video | Qwen 2 | 32 | 54.28% | Quadtree LLM attn |
+| HoliTom | LLaVA-OV | Qwen 1.5 | 32 | 53.11% | RETAIN_RATIO=0.15 |
+| VideoITG | LLaVA-OV | Qwen 1.5 | 32 | 52.51% | Two-stage grounding |
+| PruneVid | PLLaVA-7B | LLaMA-2 | 32 | 44.00% | VTP; 16f=43.80%, backbone bottleneck |
+| PLLaVA-7B baseline | PLLaVA-7B | LLaMA-2 | 16 | 43.35% | Confirms backbone |
+| FlashVID (retention=0.10) | LLaVA-OV Qwen2 | Qwen 2 | 8 | 50.50% | ICLR 2026 Oral; pre-LLM merge; alpha=0.7; below baseline |
+| FlashVID (retention=0.25) | LLaVA-OV Qwen2 | Qwen 2 | 8 | 51.99% | Same config, higher retention; still below baseline |
+| FastVID (retention=0.10) | LLaVA-OV Qwen2 | Qwen 2 | 32 | 51.92% | DySeg+STPrune+DTM; shape errors on some videos (skipped); below baseline |
+| VisionZip (8f) | LLaVA-1.5-7B | CLIP | 8 | 40.09% | dominant=54, contextual=10; LLaVA-1.5 backbone bottleneck |
+| VisionZip (32f) | LLaVA-1.5-7B | CLIP | 32 | 39.97% | Same params; more frames made no difference — backbone bottleneck confirmed |
+
+VideoITG per-category highlights: Motion-related Objects 70.1%, Repetition Count 26.5%.
+TrajViT and iMove: not runnable (retrieval-only / no weights released).

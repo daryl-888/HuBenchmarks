@@ -1,0 +1,87 @@
+diff --git a/llava/model/builder.py b/llava/model/builder.py
+index 92ab77b..2f05c52 100644
+--- a/llava/model/builder.py
++++ b/llava/model/builder.py
+@@ -36,7 +36,7 @@ def load_pretrained_model(model_path, model_base, model_name, load_8bit=False, l
+     elif torch_dtype == "bfloat16":
+         kwargs["torch_dtype"] = torch.bfloat16
+     else:
+-        import pdb;pdb.set_trace()
++        pass
+ 
+     if customized_config is not None:
+         kwargs["config"] = customized_config
+diff --git a/lmms_eval/models/llava_onevision.py b/lmms_eval/models/llava_onevision.py
+index 15942a4..4b519d8 100644
+--- a/lmms_eval/models/llava_onevision.py
++++ b/lmms_eval/models/llava_onevision.py
+@@ -62,6 +62,7 @@ else:
+ 
+ 
+ @register_model("llava_onevision")
++
+ class Llava_OneVision(lmms):
+     """
+     Llava Model
+@@ -380,16 +381,42 @@ class Llava_OneVision(lmms):
+         return new_list
+ 
+     def load_video(self, video_path, max_frames_num):
+-        if type(video_path) == str:
+-            vr = VideoReader(video_path, ctx=cpu(0))
+-        else:
+-            vr = VideoReader(video_path[0], ctx=cpu(0))
+-        total_frame_num = len(vr)
+-        uniform_sampled_frames = np.linspace(0, total_frame_num - 1, max_frames_num, dtype=int)
+-        frame_idx = uniform_sampled_frames.tolist()
+-        spare_frames = vr.get_batch(frame_idx).asnumpy()
+-        return spare_frames  # (frames, height, width, channels)
++        import multiprocessing as _mp
++        import queue as _queue
++        import numpy as _np
++        import logging as _logging
++
++        def _worker(p, n, q):
++            try:
++                import numpy as np
++                from decord import VideoReader, cpu
++                vr = VideoReader(p, ctx=cpu(0))
++                total = len(vr)
++                indices = np.linspace(0, total - 1, n, dtype=int).tolist()
++                frames = vr.get_batch(indices).asnumpy()
++                q.put(('ok', frames))
++            except Exception as e:
++                q.put(('error', str(e)))
+ 
++        path = video_path if type(video_path) == str else video_path[0]
++        q = _mp.Queue()
++        proc = _mp.Process(target=_worker, args=(path, max_frames_num, q))
++        proc.start()
++        try:
++            status, data = q.get(timeout=60)
++        except _queue.Empty:
++            proc.kill()
++            proc.join(timeout=5)
++            _logging.warning(f'load_video: timeout (NFS stale?), skipping with black frames: {path}')
++            return _np.zeros((max_frames_num, 336, 336, 3), dtype=_np.uint8)
++        proc.join(timeout=5)
++        if proc.is_alive():
++            proc.kill()
++            proc.join(timeout=5)
++        if status == 'error':
++            _logging.warning(f'load_video: decode error, skipping: {path}')
++            return _np.zeros((max_frames_num, 336, 336, 3), dtype=_np.uint8)
++        return data
+     def generate_until(self, requests: List[Instance]) -> List[str]:
+         res = []
+ 
+@@ -558,7 +585,8 @@ class Llava_OneVision(lmms):
+ 
+                 text_outputs = self.tokenizer.batch_decode(cont, skip_special_tokens=True)
+             except Exception as e:
+-                raise e
++                print(f"WARNING: generate() failed, skipping sample: {e}", file=__import__('sys').stderr)
++                text_outputs = [""]
+ 
+             text_outputs = [response.strip() for response in text_outputs]
+             res.extend(text_outputs)

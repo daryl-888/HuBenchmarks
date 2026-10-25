@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Media / large artifacts (not committed; see docs/SETUP.md for dataset)
+*.mp4
+*.safetensors
+*.bin
+
+# Run outputs (belong in $HUVLLM_RESULTS, not the repo)
+results_*.out
+results_*.json
+*.deprecated
+
+# Local config override
+config/paths.local.sh
+
+# Temp / editor
+git_status*.txt
+.vscode/
+
+# Upstream repos pulled for provenance cross-referencing (not our code)
+upstream-refs/
